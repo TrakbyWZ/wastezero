@@ -1,0 +1,13 @@
+{
+  "watchDirectories": ["C:\\PrinterLogs", "D:\\Logs\\Printer"],
+  "apiEndpoint": "https://your-app.example.com/api/log-files/ingest",
+  "apiKey": "your-ingest-api-key",
+  "vercelProtectionBypass": "",
+  "pollingIntervalSeconds": 60,
+  "stateFile": "sent_files.json",
+  "logDir": "logs",
+  "logMaxSizeBytes": 5242880,
+  "logMaxBackups": 3,
+  "maxStateRecords": 0,
+  "maxStateAgeDays": 0
+}

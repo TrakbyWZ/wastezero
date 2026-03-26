@@ -1,0 +1,6 @@
+packages:
+  - "docs-site"
+
+onlyBuiltDependencies:
+  - esbuild
+  - supabase
