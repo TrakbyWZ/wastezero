@@ -7,11 +7,11 @@ import { cookies } from "next/headers";
  * it.
  */
 export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Add them to .env.local (see .env.example). Restart the dev server after changing env."
+      "Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY. Add them to .env.local (see .env.example). Restart the dev server after changing env."
     );
   }
 

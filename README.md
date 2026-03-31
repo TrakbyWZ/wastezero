@@ -62,8 +62,8 @@ Use `.env.local` (from `.env.example`). Main variables:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon/publishable key |
+| `SUPABASE_URL` | Yes | Supabase project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon/publishable key |
 | `SESSION_SECRET` | Yes | Secret for session cookies (e.g. `openssl rand -base64 32`) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Service role key (for OTP and server-only APIs) |
 | `SMTP_*`, `OTP_FROM_EMAIL` | No | SMTP for OTP emails; if unset, code is printed in the dev server console |
@@ -86,8 +86,8 @@ To run against a **local** Supabase instance:
    ```
 
 3. Put the output into `.env.local` (or merge with existing). You need at least:
-   - `NEXT_PUBLIC_SUPABASE_URL` (e.g. `http://127.0.0.1:54321`)
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_URL` (e.g. `http://127.0.0.1:54321`)
+   - `SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
 
 4. Run the app: `pnpm dev`, or use `pnpm run dev:full` to restart Supabase and then start the dev server.
