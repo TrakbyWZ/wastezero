@@ -40,8 +40,6 @@ jobs:
 
       - name: Link Supabase project
         run: |
-          PROJECT_REF="${NEXT_PUBLIC_SUPABASE_URL#https://}"
-          PROJECT_REF="${PROJECT_REF%%.supabase.co*}"
           pnpm exec supabase link --project-ref "$PROJECT_REF" --password "$POSTGRES_PASSWORD"
 
       - name: Lint database changes
