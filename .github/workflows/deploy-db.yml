@@ -38,20 +38,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate Supabase CLI token
-        run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "Missing SUPABASE_ACCESS_TOKEN GitHub secret."
-            exit 1
-          fi
-          case "$SUPABASE_ACCESS_TOKEN" in
-            sbp_*) ;;
-            *)
-              echo "Invalid SUPABASE_ACCESS_TOKEN format. Expected a Supabase personal access token starting with 'sbp_'."
-              exit 1
-              ;;
-          esac
-
       - name: Link Supabase project
         run: |
           pnpm exec supabase link --project-ref "$PROJECT_REF" --password "$POSTGRES_PASSWORD"
