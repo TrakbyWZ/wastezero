@@ -4,7 +4,7 @@
  *
  * Usage:
  *   pnpm create-users --local   # reads .env.local
- *   pnpm create-users --linked  # reads .env.production.local
+ *   pnpm create-users --linked  # reads .env.prod.local
  */
 
 import { readFileSync, existsSync } from "fs";
@@ -18,7 +18,7 @@ const useLinked = argv.includes("--linked");
 if (useLocal === useLinked) {
   console.error("Error: Exactly one of --local or --linked is required.");
   console.error("  pnpm create-users --local   # use .env.local");
-  console.error("  pnpm create-users --linked  # use .env.production.local");
+  console.error("  pnpm create-users --linked  # use .env.prod.local");
   process.exit(1);
 }
 
@@ -40,14 +40,14 @@ function loadEnvFile(filename: string) {
   }
 }
 
-const envFile = useLocal ? ".env.local" : ".env.production.local";
+const envFile = useLocal ? ".env.local" : ".env.prod.local";
 loadEnvFile(envFile);
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SECRET_KEY
 if (!url || !key) {
   console.error(
-    `Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in ${envFile}.`
+    `Error: SUPABASE_URL and SUPABASE_SECRET_KEY required in ${envFile}.`
   );
   process.exit(1);
 }
