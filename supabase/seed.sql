@@ -7,7 +7,8 @@ VALUES ('dsouzae03@gmail.com', 'E DSouza', true, true),
     ('tcannon@wastezero.com', 'Todd Cannon',false, true),
     ('branda@wastezero.com', 'Brian Randa', false, true),
     ('mmacomber@wastezero.com', 'Megan Macomber', false, true),
-    ('bchasse@wastezero.com', 'Brian Chasse', false, true);
+    ('bchasse@wastezero.com', 'Brian Chasse', false, true)
+    ('cstoner@wastezero.com', 'Cody Stoner', false, true);
 
 INSERT INTO public.customer (customer_num, customer_description)
 VALUES ('JADO', 'JADO'),
