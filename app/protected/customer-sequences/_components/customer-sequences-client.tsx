@@ -45,6 +45,7 @@ export default function CustomerSequencesClient() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [blockedActionMessage, setBlockedActionMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     customer_id: "",
     customer_search: "",
@@ -302,6 +303,11 @@ export default function CustomerSequencesClient() {
     [fetchSequences],
   );
 
+  const showBlockedActionMessage = useCallback((message: string) => {
+    setBlockedActionMessage(message);
+    window.setTimeout(() => setBlockedActionMessage(null), 2500);
+  }, []);
+
   return (
     <div className="flex flex-col gap-6 w-full max-w-6xl">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -438,7 +444,16 @@ export default function CustomerSequencesClient() {
                         variant="outline"
                         size="sm"
                         type="button"
-                        onClick={() => openEditModal(row)}
+                        onClick={() => {
+                          if (row.used_in_batch) {
+                            showBlockedActionMessage("This sequence cannot be edited because it is used by a batch.");
+                            return;
+                          }
+                          void openEditModal(row);
+                        }}
+                        aria-disabled={row.used_in_batch ? true : undefined}
+                        title={row.used_in_batch ? "This sequence cannot be edited because it is used by a batch." : undefined}
+                        className={row.used_in_batch ? "opacity-50 cursor-not-allowed" : undefined}
                       >
                         Edit
                       </Button>
@@ -446,8 +461,16 @@ export default function CustomerSequencesClient() {
                         variant="outline"
                         size="sm"
                         type="button"
-                        onClick={() => openDeleteConfirm(row.id)}
-                        className="text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (row.used_in_batch) {
+                            showBlockedActionMessage("This sequence cannot be deleted because it is used by a batch.");
+                            return;
+                          }
+                          openDeleteConfirm(row.id);
+                        }}
+                        aria-disabled={row.used_in_batch ? true : undefined}
+                        title={row.used_in_batch ? "This sequence cannot be deleted because it is used by a batch." : undefined}
+                        className={`text-destructive hover:text-destructive ${row.used_in_batch ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         Delete
                       </Button>
@@ -677,6 +700,15 @@ export default function CustomerSequencesClient() {
               </form>
             </CardContent>
           </Card>
+        </div>
+      )}
+      {blockedActionMessage && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium shadow-lg"
+          role="status"
+          aria-live="polite"
+        >
+          {blockedActionMessage}
         </div>
       )}
     </div>

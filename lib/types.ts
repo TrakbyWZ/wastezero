@@ -63,6 +63,8 @@ export type CustomerSequenceRow = {
   created_date: string | null;
   modified_by: string | null;
   modified_date: string | null;
+  /** True when at least one batch references this sequence */
+  used_in_batch?: boolean;
 };
 
 /** Row from log_files table (for list and preview file summary) */
