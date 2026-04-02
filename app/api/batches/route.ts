@@ -46,6 +46,7 @@ export async function GET(request: Request) {
   const fromDate = searchParams.get("from")?.trim() || null;
   const toDate = searchParams.get("to")?.trim() || null;
   const customerId = searchParams.get("customer")?.trim() || null;
+  const customerSequenceId = searchParams.get("customer_sequence")?.trim() || null;
 
   const supabase = createAdminClient();
 
@@ -58,6 +59,9 @@ export async function GET(request: Request) {
 
   if (customerId) {
     query = query.eq("customer_id", customerId);
+  }
+  if (customerSequenceId) {
+    query = query.eq("customer_sequence_id", customerSequenceId);
   }
 
   const { data, error } = await query;
@@ -115,6 +119,7 @@ export async function GET(request: Request) {
 /** Request body for creating a batch and generating its sequence CSV */
 export type CreateBatchBody = {
   customer_id: string;
+  customer_sequence_id: string;
   customer_label_style_id?: string | null;
   start_sequence: number;
   end_sequence: number;
@@ -156,6 +161,8 @@ export async function POST(request: Request) {
 
   const raw = body as Record<string, unknown>;
   const customerId = typeof raw.customer_id === "string" ? raw.customer_id.trim() : null;
+  const customerSequenceId =
+    typeof raw.customer_sequence_id === "string" ? raw.customer_sequence_id.trim() : null;
   const startSeq = toInt(raw.start_sequence);
   const endSeq = toInt(raw.end_sequence);
   const offsetSeq = toInt(raw.offset_sequence);
@@ -163,17 +170,23 @@ export async function POST(request: Request) {
   if (!customerId) {
     return NextResponse.json({ error: "customer_id is required" }, { status: 400 });
   }
+  if (!customerSequenceId) {
+    return NextResponse.json({ error: "customer_sequence_id is required" }, { status: 400 });
+  }
   if (startSeq == null || endSeq == null || offsetSeq == null) {
     return NextResponse.json(
       { error: "start_sequence, end_sequence, and offset_sequence must be integers" },
       { status: 400 },
     );
   }
-  if (endSeq <= startSeq) {
-    return NextResponse.json({ error: "end_sequence must be greater than start_sequence" }, { status: 400 });
+  if (offsetSeq === 0) {
+    return NextResponse.json({ error: "offset_sequence cannot be 0" }, { status: 400 });
   }
-  if (offsetSeq <= 0) {
-    return NextResponse.json({ error: "offset_sequence must be greater than 0" }, { status: 400 });
+  if ((offsetSeq > 0 && endSeq < startSeq) || (offsetSeq < 0 && endSeq > startSeq)) {
+    return NextResponse.json(
+      { error: "end_sequence direction must match the offset direction" },
+      { status: 400 },
+    );
   }
 
   const admin = createAdminClient();
@@ -193,16 +206,32 @@ export async function POST(request: Request) {
 
   const { data: customerSequence, error: seqError } = await admin
     .from("customer_sequence")
-    .select("id, label_prefix, number_format")
-    .eq("customer_id", customer.id)
-    .order("is_default", { ascending: false })
-    .order("created_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("id, customer_id, label_prefix, number_format, offset_sequence")
+    .eq("id", customerSequenceId)
+    .single();
 
   if (seqError || !customerSequence) {
     return NextResponse.json(
-      { error: "No customer sequence configured for this customer. Add one in Customer Sequences." },
+      { error: "Selected customer sequence was not found." },
+      { status: 400 },
+    );
+  }
+  if (customerSequence.customer_id !== customer.id) {
+    return NextResponse.json(
+      { error: "Selected customer sequence does not belong to this customer." },
+      { status: 400 },
+    );
+  }
+  const sequenceOffset = customerSequence.offset_sequence;
+  if (!Number.isInteger(sequenceOffset) || sequenceOffset === 0) {
+    return NextResponse.json(
+      { error: "Selected customer sequence has an invalid offset." },
+      { status: 400 },
+    );
+  }
+  if (offsetSeq !== sequenceOffset) {
+    return NextResponse.json(
+      { error: "offset_sequence must match the selected customer sequence offset." },
       { status: 400 },
     );
   }

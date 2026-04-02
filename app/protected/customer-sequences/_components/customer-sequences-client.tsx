@@ -206,8 +206,8 @@ export default function CustomerSequencesClient() {
       return;
     }
     const offsetNum = parseInt(form.offset_sequence, 10);
-    if (Number.isNaN(offsetNum) || offsetNum < 1) {
-      setFormError("Offset sequence must be at least 1.");
+    if (Number.isNaN(offsetNum) || offsetNum === 0) {
+      setFormError("Offset sequence cannot be 0.");
       return;
     }
     setFormSubmitting(true);
@@ -610,7 +610,6 @@ export default function CustomerSequencesClient() {
                     <Input
                       id="start_seq"
                       type="number"
-                      min={0}
                       step={1}
                       value={form.start_seq}
                       onChange={(e) => setForm((f) => ({ ...f, start_seq: e.target.value }))}
@@ -622,7 +621,6 @@ export default function CustomerSequencesClient() {
                     <Input
                       id="end_seq"
                       type="number"
-                      min={0}
                       step={1}
                       value={form.end_seq}
                       onChange={(e) => setForm((f) => ({ ...f, end_seq: e.target.value }))}
@@ -635,7 +633,6 @@ export default function CustomerSequencesClient() {
                   <Input
                     id="offset_sequence"
                     type="number"
-                    min={1}
                     step={1}
                     value={form.offset_sequence}
                     onChange={(e) => setForm((f) => ({ ...f, offset_sequence: e.target.value }))}

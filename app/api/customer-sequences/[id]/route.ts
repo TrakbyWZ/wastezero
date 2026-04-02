@@ -110,6 +110,13 @@ export async function PATCH(
       : undefined;
   const switchDefault = raw.switch_default === true || raw.switch_default === "true";
 
+  if (offsetSeq === 0) {
+    return NextResponse.json(
+      { error: "offset_sequence cannot be 0." },
+      { status: 400 },
+    );
+  }
+
   const admin = createAdminClient();
 
   if (isDefault === true) {

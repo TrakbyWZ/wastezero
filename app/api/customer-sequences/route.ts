@@ -138,6 +138,13 @@ export async function POST(request: Request) {
     raw.is_default === true || raw.is_default === "true" || raw.is_default === 1;
   const switchDefault = raw.switch_default === true || raw.switch_default === "true";
 
+  if (offsetSeq === 0) {
+    return NextResponse.json(
+      { error: "offset_sequence cannot be 0." },
+      { status: 400 },
+    );
+  }
+
   if (isDefault) {
     const { data: existingDefault } = await admin
       .from("customer_sequence")

@@ -35,7 +35,7 @@ export async function GET(
 
   const rawOffset = row?.offset_sequence;
   const offset_sequence =
-    rawOffset != null && Number.isInteger(rawOffset) && rawOffset > 0
+    rawOffset != null && Number.isInteger(rawOffset) && rawOffset !== 0
       ? rawOffset
       : null;
 

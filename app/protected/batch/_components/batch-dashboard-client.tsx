@@ -21,6 +21,16 @@ import {
 } from "@/lib/sequence";
 import type { BatchRow, CustomerRow } from "@/lib/types";
 
+type CustomerSequenceOption = {
+  id: string;
+  label_prefix: string | null;
+  number_format: string | null;
+  offset_sequence: number | null;
+  start_seq: number | null;
+  end_seq: number | null;
+  is_default: boolean | null;
+};
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString(undefined, {
@@ -57,14 +67,17 @@ export default function BatchDashboardClient() {
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const [lastBatchForCustomer, setLastBatchForCustomer] = useState<BatchRow | null>(null);
   const [loadingLastBatch, setLoadingLastBatch] = useState(false);
+  const [customerSequences, setCustomerSequences] = useState<CustomerSequenceOption[]>([]);
+  const [loadingCustomerSequences, setLoadingCustomerSequences] = useState(false);
   const [customerSequenceOffset, setCustomerSequenceOffset] = useState<number | null>(null);
   const [customerSequenceLabelPrefix, setCustomerSequenceLabelPrefix] = useState<string | null>(null);
   const [customerSequenceNumberFormat, setCustomerSequenceNumberFormat] = useState<string | null>(null);
-  const [loadingCustomerSequence, setLoadingCustomerSequence] = useState(false);
+  const [customerSequenceStartSeq, setCustomerSequenceStartSeq] = useState<number | null>(null);
+  const [customerSequenceEndSeq, setCustomerSequenceEndSeq] = useState<number | null>(null);
   const [form, setForm] = useState({
     customer_id: "",
+    customer_sequence_id: "",
     customer_search: "",
-    initial_start_sequence: "1",
     sequence_count: "",
   });
 
@@ -127,18 +140,18 @@ export default function BatchDashboardClient() {
     }
   }, []);
 
-  const fetchLastBatchForCustomer = useCallback(async (cid: string) => {
+  const fetchLastBatchForCustomer = useCallback(async (cid: string, sequenceId: string) => {
     setLoadingLastBatch(true);
     try {
-      const res = await fetch(`/api/batches?customer=${encodeURIComponent(cid)}`);
+      const params = new URLSearchParams();
+      params.set("customer", cid);
+      params.set("customer_sequence", sequenceId);
+      const res = await fetch(`/api/batches?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to load batches");
       const data = await res.json();
       const batchesList = data.batches ?? [];
       const last = batchesList[0] ?? null;
       setLastBatchForCustomer(last);
-      if (!last) {
-        setForm((f) => ({ ...f, initial_start_sequence: "1" }));
-      }
     } catch {
       setLastBatchForCustomer(null);
     } finally {
@@ -146,35 +159,63 @@ export default function BatchDashboardClient() {
     }
   }, []);
 
-  const fetchCustomerSequence = useCallback(async (cid: string) => {
-    setLoadingCustomerSequence(true);
+  const fetchCustomerSequences = useCallback(async (cid: string) => {
+    setLoadingCustomerSequences(true);
     try {
-      const res = await fetch(`/api/customers/${encodeURIComponent(cid)}/sequence`);
-      if (!res.ok) throw new Error("Failed to load sequence");
+      const res = await fetch(`/api/customer-sequences?customer=${encodeURIComponent(cid)}`);
+      if (!res.ok) throw new Error("Failed to load sequences");
       const data = await res.json();
-      setCustomerSequenceOffset(data.offset_sequence ?? null);
-      setCustomerSequenceLabelPrefix(data.label_prefix ?? null);
-      setCustomerSequenceNumberFormat(data.number_format ?? null);
+      const rows: CustomerSequenceOption[] = (data.sequences ?? []).map((row: Record<string, unknown>) => ({
+        id: String(row.id ?? ""),
+        label_prefix: typeof row.label_prefix === "string" ? row.label_prefix : null,
+        number_format: typeof row.number_format === "string" ? row.number_format : null,
+        offset_sequence:
+          typeof row.offset_sequence === "number" && Number.isInteger(row.offset_sequence)
+            ? row.offset_sequence
+            : null,
+        start_seq:
+          typeof row.start_seq === "number" && Number.isInteger(row.start_seq)
+            ? row.start_seq
+            : null,
+        end_seq:
+          typeof row.end_seq === "number" && Number.isInteger(row.end_seq)
+            ? row.end_seq
+            : null,
+        is_default: row.is_default === true,
+      }));
+      setCustomerSequences(rows);
+      const defaultSequence = rows.find((s) => s.is_default === true) ?? rows[0] ?? null;
+      setForm((f) => ({
+        ...f,
+        customer_sequence_id: defaultSequence?.id ?? "",
+      }));
     } catch {
+      setCustomerSequences([]);
+      setForm((f) => ({ ...f, customer_sequence_id: "" }));
       setCustomerSequenceOffset(null);
       setCustomerSequenceLabelPrefix(null);
       setCustomerSequenceNumberFormat(null);
+      setCustomerSequenceStartSeq(null);
+      setCustomerSequenceEndSeq(null);
     } finally {
-      setLoadingCustomerSequence(false);
+      setLoadingCustomerSequences(false);
     }
   }, []);
 
   const openNewBatchModal = useCallback(() => {
     setForm({
       customer_id: "",
+      customer_sequence_id: "",
       customer_search: "",
-      initial_start_sequence: "1",
       sequence_count: "",
     });
     setLastBatchForCustomer(null);
+    setCustomerSequences([]);
     setCustomerSequenceOffset(null);
     setCustomerSequenceLabelPrefix(null);
     setCustomerSequenceNumberFormat(null);
+    setCustomerSequenceStartSeq(null);
+    setCustomerSequenceEndSeq(null);
     setFormError(null);
     setCustomerDropdownOpen(false);
     setModalOpen(true);
@@ -209,15 +250,49 @@ export default function BatchDashboardClient() {
 
   useEffect(() => {
     if (modalOpen && form.customer_id) {
-      fetchLastBatchForCustomer(form.customer_id);
-      fetchCustomerSequence(form.customer_id);
+      fetchCustomerSequences(form.customer_id);
     } else {
+      setCustomerSequences([]);
+      setForm((f) => ({ ...f, customer_sequence_id: "" }));
       setLastBatchForCustomer(null);
       setCustomerSequenceOffset(null);
       setCustomerSequenceLabelPrefix(null);
       setCustomerSequenceNumberFormat(null);
+      setCustomerSequenceStartSeq(null);
+      setCustomerSequenceEndSeq(null);
     }
-  }, [modalOpen, form.customer_id, fetchLastBatchForCustomer, fetchCustomerSequence]);
+  }, [modalOpen, form.customer_id, fetchCustomerSequences]);
+
+  useEffect(() => {
+    if (modalOpen && form.customer_id && form.customer_sequence_id) {
+      void fetchLastBatchForCustomer(form.customer_id, form.customer_sequence_id);
+    } else {
+      setLastBatchForCustomer(null);
+    }
+  }, [modalOpen, form.customer_id, form.customer_sequence_id, fetchLastBatchForCustomer]);
+
+  useEffect(() => {
+    const selectedSequence = form.customer_sequence_id
+      ? customerSequences.find((s) => s.id === form.customer_sequence_id) ?? null
+      : null;
+    if (selectedSequence) {
+      setCustomerSequenceOffset(
+        selectedSequence.offset_sequence != null && selectedSequence.offset_sequence !== 0
+          ? selectedSequence.offset_sequence
+          : null,
+      );
+      setCustomerSequenceLabelPrefix(selectedSequence.label_prefix ?? null);
+      setCustomerSequenceNumberFormat(selectedSequence.number_format ?? null);
+      setCustomerSequenceStartSeq(selectedSequence.start_seq);
+      setCustomerSequenceEndSeq(selectedSequence.end_seq);
+    } else {
+      setCustomerSequenceOffset(null);
+      setCustomerSequenceLabelPrefix(null);
+      setCustomerSequenceNumberFormat(null);
+      setCustomerSequenceStartSeq(null);
+      setCustomerSequenceEndSeq(null);
+    }
+  }, [form.customer_sequence_id, customerSequences]);
 
   const selectedCustomer = form.customer_id
     ? customersForDropdown.find((c) => c.id === form.customer_id) ?? null
@@ -233,17 +308,16 @@ export default function BatchDashboardClient() {
 
   const offsetNum = customerSequenceOffset;
   const countNum = parseInt(form.sequence_count, 10);
-  const initialStartNum = parseInt(form.initial_start_sequence, 10);
   const computedStartSequence =
-    lastBatchForCustomer != null && offsetNum != null && offsetNum > 0
+    lastBatchForCustomer != null && offsetNum != null && offsetNum !== 0
       ? computeStartFromLastEnd(lastBatchForCustomer.end_sequence ?? 0, offsetNum)
-      : Number.isNaN(initialStartNum) ? null : initialStartNum;
+      : customerSequenceStartSeq;
   const computedEndSequence =
     computedStartSequence != null &&
     !Number.isNaN(countNum) &&
     countNum >= 1 &&
     offsetNum != null &&
-    offsetNum > 0
+    offsetNum !== 0
       ? computeEndFromStartOffsetCount(computedStartSequence, offsetNum, countNum)
       : null;
 
@@ -277,7 +351,7 @@ export default function BatchDashboardClient() {
       return;
     }
     const count = parseInt(form.sequence_count, 10);
-    if (customerSequenceOffset == null || customerSequenceOffset <= 0) {
+    if (customerSequenceOffset == null || customerSequenceOffset === 0) {
       setFormError("This customer has no sequence pattern configured. Configure offset in Customer Sequence.");
       return;
     }
@@ -286,15 +360,8 @@ export default function BatchDashboardClient() {
       return;
     }
     if (computedStartSequence == null || computedEndSequence == null) {
-      setFormError("Start and end sequence could not be computed. Check initial start (for first batch) and offset.");
+      setFormError("Start and end sequence could not be computed. Check selected sequence default start and offset.");
       return;
-    }
-    if (lastBatchForCustomer == null) {
-      const initialStart = parseInt(form.initial_start_sequence, 10);
-      if (Number.isNaN(initialStart) || initialStart < 0) {
-        setFormError("Initial start sequence must be 0 or greater.");
-        return;
-      }
     }
     setFormSubmitting(true);
     setFormError(null);
@@ -304,6 +371,7 @@ export default function BatchDashboardClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: form.customer_id,
+          customer_sequence_id: form.customer_sequence_id,
           start_sequence: computedStartSequence,
           end_sequence: computedEndSequence,
           offset_sequence: customerSequenceOffset,
@@ -542,7 +610,7 @@ export default function BatchDashboardClient() {
               <div>
                 <CardTitle id="new-batch-title">New batch</CardTitle>
                 <CardDescription>
-                  Create a new batch. Start sequence is taken from the last batch for the customer (last end + offset), or set an initial start for the first batch. Enter offset and how many sequences to print (1–1,000,000). A CSV file will download.
+                  Create a new batch. Start sequence is taken from the last batch for the selected sequence (last end + offset), or from that sequence&apos;s default start value if no prior batch exists. Enter how many sequences to print (1–1,000,000). A CSV file will download.
                 </CardDescription>
               </div>
             </CardHeader>
@@ -582,6 +650,7 @@ export default function BatchDashboardClient() {
                               setForm((f) => ({
                                 ...f,
                                 customer_id: c.id,
+                                customer_sequence_id: "",
                                 customer_search: "",
                               }));
                               setCustomerDropdownOpen(false);
@@ -597,23 +666,53 @@ export default function BatchDashboardClient() {
                     </div>
                   )}
                 </div>
-                {lastBatchForCustomer == null && !loadingLastBatch && form.customer_id && (
-                  <div className="space-y-2">
-                    <Label htmlFor="initial_start_sequence">Initial start sequence (first batch for this customer) *</Label>
-                    <Input
-                      id="initial_start_sequence"
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={form.initial_start_sequence}
-                      onChange={(e) => setForm((f) => ({ ...f, initial_start_sequence: e.target.value }))}
-                      placeholder="e.g. 1"
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="batch-customer-sequence">Customer sequence *</Label>
+                  {loadingCustomerSequences && form.customer_id ? (
+                    <p className="text-sm text-muted-foreground py-2">Loading sequences…</p>
+                  ) : customerSequences.length > 0 ? (
+                    <select
+                      id="batch-customer-sequence"
+                      value={form.customer_sequence_id}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, customer_sequence_id: e.target.value }))
+                      }
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      required
+                    >
+                      <option value="" disabled>
+                        Select a sequence
+                      </option>
+                      {customerSequences.map((seq) => {
+                        const prefix = seq.label_prefix?.trim() || "—";
+                        const format = seq.number_format?.trim() || "—";
+                        const defaultSuffix = seq.is_default ? " (Default)" : "";
+                        return (
+                          <option key={seq.id} value={seq.id}>
+                            {`${prefix} | ${format}${defaultSuffix}`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : form.customer_id ? (
+                    <p className="text-sm text-destructive">
+                      No sequences configured for this customer. Add one in Customer Sequence.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Select a customer to choose a sequence.
+                    </p>
+                  )}
+                </div>
                 {lastBatchForCustomer != null && (
                   <p className="text-sm text-muted-foreground">
-                    Last batch for this customer ended at sequence {lastBatchForCustomer.end_sequence}. Start will be last end + offset.
+                    Last batch for this sequence ended at sequence {lastBatchForCustomer.end_sequence}. Start will be last end + offset.
+                  </p>
+                )}
+                {lastBatchForCustomer == null && !loadingLastBatch && form.customer_sequence_id && customerSequenceStartSeq != null && (
+                  <p className="text-sm text-muted-foreground">
+                    No previous batch for this sequence. Start will use the sequence default start value:{" "}
+                    <span className="font-mono">{customerSequenceStartSeq}</span>.
                   </p>
                 )}
                 {loadingLastBatch && form.customer_id && (
@@ -621,9 +720,7 @@ export default function BatchDashboardClient() {
                 )}
                 <div className="space-y-2">
                   <Label>Customer sequence</Label>
-                  {loadingCustomerSequence && form.customer_id ? (
-                    <p className="text-sm text-muted-foreground py-2">Loading…</p>
-                  ) : customerSequenceOffset != null && customerSequenceOffset > 0 ? (
+                  {customerSequenceOffset != null && customerSequenceOffset !== 0 ? (
                     <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm space-y-1.5">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                         <span className="text-muted-foreground">Label prefix:</span>
@@ -637,8 +734,16 @@ export default function BatchDashboardClient() {
                         <span className="text-muted-foreground">Offset between sequences:</span>
                         <span className="font-mono">{customerSequenceOffset}</span>
                       </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <span className="text-muted-foreground">Default start:</span>
+                        <span className="font-mono">{customerSequenceStartSeq ?? "—"}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <span className="text-muted-foreground">Default end:</span>
+                        <span className="font-mono">{customerSequenceEndSeq ?? "—"}</span>
+                      </div>
                     </div>
-                  ) : form.customer_id ? (
+                  ) : form.customer_id && form.customer_sequence_id ? (
                     <p className="text-sm text-destructive">No sequence configured for this customer. Add a record in Customer Sequence.</p>
                   ) : (
                     <p className="text-sm text-muted-foreground">Select a customer to see sequence (label prefix, number format, offset).</p>
@@ -698,7 +803,12 @@ export default function BatchDashboardClient() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={formSubmitting || customerSequenceOffset == null || customerSequenceOffset <= 0}
+                    disabled={
+                      formSubmitting ||
+                      !form.customer_sequence_id ||
+                      customerSequenceOffset == null ||
+                      customerSequenceOffset === 0
+                    }
                   >
                     {formSubmitting ? "Creating…" : "Create batch"}
                   </Button>
