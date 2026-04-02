@@ -14,6 +14,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import type { CustomerSequenceRow, CustomerRow } from "@/lib/types";
 
 function formatDate(iso: string | null): string {
@@ -608,13 +615,66 @@ export default function CustomerSequencesClient() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="label_prefix">Label prefix</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="label_prefix">Label prefix</Label>
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex text-muted-foreground transition-colors hover:text-foreground rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            aria-label="About label prefix"
+                          >
+                            <Info className="h-4 w-4 shrink-0" strokeWidth={2} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="top"
+                          align="start"
+                          className="max-w-sm space-y-2 text-xs leading-relaxed text-muted-foreground"
+                        >
+                          <p className="text-popover-foreground font-medium text-sm">
+                            Label prefix
+                          </p>
+                          <p>
+                            This value is placed at the start of every label in a batch file,
+                            immediately before the padded sequence number (see{" "}
+                            <span className="text-popover-foreground">Number format</span>).
+                          </p>
+                          <p>
+                            You can use a fixed string or add{" "}
+                            <span className="text-popover-foreground">date expressions</span> as{" "}
+                            <span className="font-mono text-popover-foreground">%…%</span> segments
+                            (e.g.{" "}
+                            <span className="font-mono text-popover-foreground">%MMYY%</span>). At
+                            batch creation, each date expression is replaced using the UTC
+                            calendar date. Only month, year, and day are supported—no time of day.
+                          </p>
+                          <p>
+                            Examples: <span className="font-mono text-popover-foreground">R002C</span>{" "}
+                            stays as-is;{" "}
+                            <span className="font-mono text-popover-foreground">%MMYY%-R002C</span>{" "}
+                            becomes <span className="font-mono text-popover-foreground">0426-R002C</span>{" "}
+                            in April 2026;{" "}
+                            <span className="font-mono text-popover-foreground">%DDMM%</span> is day then
+                            month (<span className="font-mono text-popover-foreground">0204</span> on 2 Apr).
+                          </p>
+                          <p className="border-t border-border pt-2">
+                            Date expressions:{" "}
+                            <span className="font-mono text-popover-foreground">
+                              %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYY% %MM% %DD% %YY%
+                            </span>
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input
                     id="label_prefix"
                     type="text"
                     value={form.label_prefix}
                     onChange={(e) => setForm((f) => ({ ...f, label_prefix: e.target.value }))}
-                    placeholder="e.g. R002C"
+                    placeholder="e.g. R002C, %MMYY%-R002C"
                   />
                 </div>
                 <div className="space-y-2">

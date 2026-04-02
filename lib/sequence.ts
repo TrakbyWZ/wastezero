@@ -57,6 +57,47 @@ export function padSequenceNumber(num: number, numberFormat: string): string {
   return isNegative ? `-${padded}` : padded;
 }
 
+/** UTC calendar fields for `at`, from ISO date (`YYYY-MM-DD` is always zero-padded). */
+function utcCalendarParts(at: Date): { YYYY: string; MM: string; DD: string; YY: string } {
+  const [YYYY, MM, DD] = at.toISOString().slice(0, 10).split("-") as [string, string, string];
+  return { YYYY, MM, DD, YY: YYYY.slice(-2) };
+}
+
+/**
+ * Expands `%...%` date tokens in a label prefix using the UTC calendar date of `at`.
+ * Only calendar **month**, **year**, and **day** fields are supported (no time-of-day tokens).
+ * Tokens (longest matched first): `%MMYYDD%`, `%YYYYMMDD%`, `%MMYY%`, `%DDMM%`, `%YYYY%`, `%MM%`, `%DD%`, `%YY%`.
+ * Examples (2026-04-02 UTC): `%MMYYDD%-R002C` → `042602-R002C`; `%MMYY%-R002C` → `0426-R002C`; `%DDMM%` → `0204`.
+ */
+export function interpolateLabelPrefixDateTokens(
+  labelPrefix: string | null | undefined,
+  at: Date,
+): string | null {
+  if (labelPrefix == null || labelPrefix === "") return labelPrefix ?? null;
+  if (!labelPrefix.includes("%")) return labelPrefix;
+
+  const { YYYY, MM, DD, YY } = utcCalendarParts(at);
+
+  const pairs: [string, string][] = [
+    ["%MMYYDD%", MM + YY + DD],
+    ["%YYYYMMDD%", YYYY + MM + DD],
+    ["%MMYY%", MM + YY],
+    ["%DDMM%", DD + MM],
+    ["%YYYY%", YYYY],
+    ["%MM%", MM],
+    ["%DD%", DD],
+    ["%YY%", YY],
+  ];
+
+  let out = labelPrefix;
+  for (const [token, value] of pairs) {
+    if (out.includes(token)) {
+      out = out.split(token).join(value);
+    }
+  }
+  return out;
+}
+
 /**
  * Formats sequence numbers with an optional label prefix and number format.
  * Each value becomes: labelPrefix + zero-padded number (using numberFormat).

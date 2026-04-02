@@ -4,7 +4,7 @@
  * No test framework required; exits with code 0 on success, 1 on failure.
  */
 
-import { generateSequence } from "../lib/sequence";
+import { generateSequence, interpolateLabelPrefixDateTokens } from "../lib/sequence";
 
 function assertEqual<T>(actual: T, expected: T, label: string): void {
   const ok =
@@ -57,6 +57,49 @@ assertEqual(
   generateSequence(100, 105, 2),
   [100, 102, 104],
   "start=100, end=105, offset=2",
+);
+
+// Label prefix date tokens (UTC)
+const apr2_2026 = new Date(Date.UTC(2026, 3, 2, 12, 0, 0));
+assertEqual(
+  interpolateLabelPrefixDateTokens("%MMYYDD%-R002C", apr2_2026),
+  "042602-R002C",
+  "%MMYYDD%-R002C on 2026-04-02 UTC",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("%MMYY%-R002C", apr2_2026),
+  "0426-R002C",
+  "%MMYY%-R002C on 2026-04-02 UTC",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("%DDMM%-X", apr2_2026),
+  "0204-X",
+  "%DDMM% day+month on 2026-04-02 UTC",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("%YYYYMMDD%-X", apr2_2026),
+  "20260402-X",
+  "%YYYYMMDD% composite",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("%YYYY%-%MM%-%DD%", apr2_2026),
+  "2026-04-02",
+  "%YYYY%, %MM%, %DD% separated",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("%YY%%MM%%DD%", apr2_2026),
+  "260402",
+  "%YY%, %MM%, %DD% concatenated",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("R002C", apr2_2026),
+  "R002C",
+  "static prefix unchanged",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens(null, apr2_2026),
+  null,
+  "null prefix stays null",
 );
 
 console.log("\nAll SequenceLib tests passed.");
