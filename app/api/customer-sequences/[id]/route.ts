@@ -13,6 +13,20 @@ function toInt(x: unknown): number | null {
   return null;
 }
 
+async function sequenceHasBatches(
+  admin: ReturnType<typeof createAdminClient>,
+  sequenceId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("batch")
+    .select("id")
+    .eq("customer_sequence_id", sequenceId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -110,7 +124,21 @@ export async function PATCH(
       : undefined;
   const switchDefault = raw.switch_default === true || raw.switch_default === "true";
 
+  if (offsetSeq === 0) {
+    return NextResponse.json(
+      { error: "offset_sequence cannot be 0." },
+      { status: 400 },
+    );
+  }
+
   const admin = createAdminClient();
+  const isUsedByBatch = await sequenceHasBatches(admin, id);
+  if (isUsedByBatch) {
+    return NextResponse.json(
+      { error: "Cannot edit: one or more batches already use this sequence." },
+      { status: 409 },
+    );
+  }
 
   if (isDefault === true) {
     const { data: current } = await admin
@@ -199,6 +227,13 @@ export async function DELETE(
   }
 
   const admin = createAdminClient();
+  const isUsedByBatch = await sequenceHasBatches(admin, id);
+  if (isUsedByBatch) {
+    return NextResponse.json(
+      { error: "Cannot delete: one or more batches already use this sequence." },
+      { status: 409 },
+    );
+  }
 
   const { error } = await admin.from("customer_sequence").delete().eq("id", id);
 

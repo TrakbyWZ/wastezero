@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   }
 
   const rawRows = (data ?? []) as Array<Record<string, unknown>>;
-  const rows: CustomerSequenceRow[] = rawRows.map((r) => ({
+  const rowsBase: CustomerSequenceRow[] = rawRows.map((r) => ({
     ...r,
     customer:
       r.customer_num != null || r.customer_description != null
@@ -51,6 +51,27 @@ export async function GET(request: Request) {
           }
         : null,
   })) as CustomerSequenceRow[];
+  const sequenceIds = rowsBase.map((r) => r.id);
+  let usedSet = new Set<string>();
+  if (sequenceIds.length > 0) {
+    const { data: usedRows } = await supabase
+      .from("batch")
+      .select("customer_sequence_id")
+      .in("customer_sequence_id", sequenceIds);
+    usedSet = new Set(
+      (usedRows ?? [])
+        .map((r) => {
+          const row = r as Record<string, unknown>;
+          return typeof row.customer_sequence_id === "string" ? row.customer_sequence_id : "";
+        })
+        .filter((v) => v.length > 0),
+    );
+  }
+  const rows: CustomerSequenceRow[] = rowsBase.map((row) => ({
+    ...row,
+    used_in_batch: usedSet.has(row.id),
+  }));
+
   const filtered = rows.filter((row) => matchesSearch(row, q));
 
   return NextResponse.json({
@@ -137,6 +158,13 @@ export async function POST(request: Request) {
   const isDefault =
     raw.is_default === true || raw.is_default === "true" || raw.is_default === 1;
   const switchDefault = raw.switch_default === true || raw.switch_default === "true";
+
+  if (offsetSeq === 0) {
+    return NextResponse.json(
+      { error: "offset_sequence cannot be 0." },
+      { status: 400 },
+    );
+  }
 
   if (isDefault) {
     const { data: existingDefault } = await admin

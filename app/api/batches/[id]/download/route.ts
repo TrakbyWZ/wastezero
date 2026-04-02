@@ -52,8 +52,9 @@ export async function GET(
     startSeq == null ||
     endSeq == null ||
     offsetSeq == null ||
-    endSeq <= startSeq ||
-    offsetSeq <= 0
+    offsetSeq === 0 ||
+    (offsetSeq > 0 && endSeq < startSeq) ||
+    (offsetSeq < 0 && endSeq > startSeq)
   ) {
     return NextResponse.json(
       { error: "Batch has invalid sequence parameters" },

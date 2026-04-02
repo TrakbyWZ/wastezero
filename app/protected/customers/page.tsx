@@ -182,7 +182,7 @@ export default function CustomersPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Customer Management
+            Customers
           </h1>
           <p className="text-muted-foreground text-sm">
             View, search, and manage authorized customers.

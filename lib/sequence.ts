@@ -20,7 +20,7 @@ export function computeStartFromLastEnd(lastEnd: number, offset: number): number
  * exactly `count` values: start, start+offset, start+2*offset, ..., start+(count-1)*offset.
  *
  * @param start - First value (inclusive)
- * @param offset - Step between consecutive values (must be positive)
+ * @param offset - Step between consecutive values (must be non-zero)
  * @param count - Number of values in the sequence (must be at least 1)
  * @returns end = start + (count - 1) * offset, or null if inputs are invalid
  *
@@ -32,7 +32,7 @@ export function computeEndFromStartOffsetCount(
   offset: number,
   count: number,
 ): number | null {
-  if (count < 1 || offset <= 0) return null;
+  if (count < 1 || offset === 0) return null;
   return start + (count - 1) * offset;
 }
 
@@ -48,10 +48,13 @@ export function computeEndFromStartOffsetCount(
  */
 export function padSequenceNumber(num: number, numberFormat: string): string {
   if (!numberFormat || numberFormat.length === 0) return String(num);
-  const raw = String(Math.floor(num));
+  const whole = Math.floor(num);
+  const isNegative = whole < 0;
+  const raw = String(Math.abs(whole));
   const targetLen = numberFormat.length;
-  if (raw.length >= targetLen) return raw;
-  return raw.padStart(targetLen, "0");
+  if (raw.length >= targetLen) return isNegative ? `-${raw}` : raw;
+  const padded = raw.padStart(targetLen, "0");
+  return isNegative ? `-${padded}` : padded;
 }
 
 /**
@@ -104,11 +107,12 @@ export function formatSequenceToCsv(
 
 /**
  * Generates an arithmetic progression of integers from start up to and including
- * the last value that does not exceed end, stepping by offset.
+ * the last value that does not exceed (ascending) or drop below (descending) end,
+ * stepping by offset.
  *
  * @param startSeq - First value (inclusive)
  * @param endSeq - Upper bound (inclusive); generation stops when next value would be > endSeq
- * @param offsetSeq - Step between consecutive values (must be positive)
+ * @param offsetSeq - Step between consecutive values (must be non-zero)
  * @returns Array of integers in the sequence
  *
  * @example
@@ -120,11 +124,19 @@ export function generateSequence(
   endSeq: number,
   offsetSeq: number,
 ): number[] {
+  if (offsetSeq === 0) return [];
   const out: number[] = [];
   let v = startSeq;
-  while (v <= endSeq) {
-    out.push(v);
-    v += offsetSeq;
+  if (offsetSeq > 0) {
+    while (v <= endSeq) {
+      out.push(v);
+      v += offsetSeq;
+    }
+  } else {
+    while (v >= endSeq) {
+      out.push(v);
+      v += offsetSeq;
+    }
   }
   return out;
 }
