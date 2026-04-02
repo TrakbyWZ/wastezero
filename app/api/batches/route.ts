@@ -1,7 +1,11 @@
 import { getSession } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { generateSequence, formatSequenceToCsv } from "@/lib/sequence";
+import {
+  generateSequence,
+  formatSequenceToCsv,
+  interpolateLabelPrefixDateTokens,
+} from "@/lib/sequence";
 import type { BatchRow } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -269,7 +273,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const labelPrefix = customerSequence.label_prefix ?? null;
+  const labelPrefix = interpolateLabelPrefixDateTokens(
+    customerSequence.label_prefix,
+    createdAt,
+  );
   const numberFormat = customerSequence.number_format ?? null;
   const csv = formatSequenceToCsv(sequence, labelPrefix, numberFormat);
   const filename = csvFilename;

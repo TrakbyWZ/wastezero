@@ -1,7 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
-import { generateSequence, formatSequenceToCsv } from "@/lib/sequence";
+import {
+  generateSequence,
+  formatSequenceToCsv,
+  interpolateLabelPrefixDateTokens,
+} from "@/lib/sequence";
 import { batchCsvFilename } from "@/app/api/batches/route";
 import { NextResponse } from "next/server";
 
@@ -32,7 +36,7 @@ export async function GET(
   const { data: batch, error: batchError } = await admin
     .from("batch")
     .select(
-      "id, created_date, start_sequence, end_sequence, offset_sequence, filename, customer:customer_id(customer_num, customer_description), customer_sequence:customer_sequence_id(label_prefix, number_format)",
+      "id, created_date, start_time, start_sequence, end_sequence, offset_sequence, filename, customer:customer_id(customer_num, customer_description), customer_sequence:customer_sequence_id(label_prefix, number_format)",
     )
     .eq("id", batchId)
     .single();
@@ -67,7 +71,13 @@ export async function GET(
     label_prefix: string | null;
     number_format: string | null;
   } | null;
-  const labelPrefix = customerSequence?.label_prefix ?? null;
+  const anchorAt = new Date(
+    batch.start_time ?? batch.created_date ?? Date.now(),
+  );
+  const labelPrefix = interpolateLabelPrefixDateTokens(
+    customerSequence?.label_prefix,
+    anchorAt,
+  );
   const numberFormat = customerSequence?.number_format ?? null;
   const csv = formatSequenceToCsv(sequence, labelPrefix, numberFormat);
   const filename =

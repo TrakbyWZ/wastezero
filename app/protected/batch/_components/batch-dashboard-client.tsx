@@ -17,6 +17,7 @@ import { Check, Copy } from "lucide-react";
 import {
   computeEndFromStartOffsetCount,
   computeStartFromLastEnd,
+  interpolateLabelPrefixDateTokens,
   padSequenceNumber,
 } from "@/lib/sequence";
 import type { BatchRow, CustomerRow } from "@/lib/types";
@@ -726,6 +727,17 @@ export default function BatchDashboardClient() {
                         <span className="text-muted-foreground">Label prefix:</span>
                         <span className="font-mono">{customerSequenceLabelPrefix ?? "—"}</span>
                       </div>
+                      {customerSequenceLabelPrefix?.includes("%") && (
+                        <p className="text-xs text-muted-foreground">
+                          Month/year/day tokens only; expand at batch creation (UTC). Example for right now:{" "}
+                          <span className="font-mono">
+                            {interpolateLabelPrefixDateTokens(
+                              customerSequenceLabelPrefix,
+                              new Date(),
+                            ) ?? "—"}
+                          </span>
+                        </p>
+                      )}
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                         <span className="text-muted-foreground">Number format:</span>
                         <span className="font-mono">{customerSequenceNumberFormat ?? "—"}</span>
@@ -769,7 +781,10 @@ export default function BatchDashboardClient() {
                     <p className="text-muted-foreground">
                       Start:{" "}
                       <span className="font-mono">
-                        {(customerSequenceLabelPrefix ?? "") +
+                        {(interpolateLabelPrefixDateTokens(
+                          customerSequenceLabelPrefix,
+                          new Date(),
+                        ) ?? "") +
                           padSequenceNumber(
                             computedStartSequence,
                             customerSequenceNumberFormat ?? "",
@@ -777,7 +792,10 @@ export default function BatchDashboardClient() {
                       </span>{" "}
                       → End:{" "}
                       <span className="font-mono">
-                        {(customerSequenceLabelPrefix ?? "") +
+                        {(interpolateLabelPrefixDateTokens(
+                          customerSequenceLabelPrefix,
+                          new Date(),
+                        ) ?? "") +
                           padSequenceNumber(
                             computedEndSequence,
                             customerSequenceNumberFormat ?? "",

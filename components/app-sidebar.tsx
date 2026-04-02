@@ -14,6 +14,13 @@ const navLinks = [
   { href: "/protected/logs", label: "Data Logs" },
 ] as const;
 
+/** Desktop top nav: batches | customer setup | data logs — then Reports. */
+const mainNavSections: ReadonlyArray<ReadonlyArray<(typeof navLinks)[number]>> = [
+  [navLinks[0]],
+  [navLinks[1], navLinks[2]],
+  [navLinks[3]],
+];
+
 const reportLinks = [
   { href: "/protected/reports/customer-bags", label: "Customer Bags" },
 ] as const;
@@ -116,14 +123,31 @@ function ReportsNavItem() {
   );
 }
 
+function MainNavSectionDivider() {
+  return (
+    <span
+      aria-hidden
+      className="mx-3 h-5 w-px shrink-0 bg-border/45 dark:bg-border/55"
+    />
+  );
+}
+
 function NavLinksHorizontal() {
   return (
-    <nav className="flex items-center gap-1">
-      {navLinks.map(({ href, label }) => (
-        <Link key={href} href={href} className={navLinkClass}>
-          {label}
-        </Link>
+    <nav className="flex items-center" aria-label="Main navigation">
+      {mainNavSections.map((section, sectionIndex) => (
+        <div key={section[0].href} className="flex items-center">
+          {sectionIndex > 0 ? <MainNavSectionDivider /> : null}
+          <div className="flex items-center gap-2">
+            {section.map(({ href, label }) => (
+              <Link key={href} href={href} className={navLinkClass}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
       ))}
+      <MainNavSectionDivider />
       <ReportsNavItem />
     </nav>
   );
