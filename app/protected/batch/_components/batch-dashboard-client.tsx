@@ -334,7 +334,7 @@ export default function BatchDashboardClient() {
     <div className="flex flex-col gap-6 w-full max-w-6xl">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Batch Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Batches</h1>
           <p className="text-muted-foreground text-sm">
             Search and filter production batches by ID, customer, or date range.
           </p>
