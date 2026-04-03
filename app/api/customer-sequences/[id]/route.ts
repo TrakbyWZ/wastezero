@@ -1,3 +1,8 @@
+import {
+  DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+  DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE,
+  DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+} from "@/lib/customer-sequence-defaults";
 import { getSession } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -105,10 +110,15 @@ export async function PATCH(
     raw.label_prefix !== undefined
       ? (typeof raw.label_prefix === "string" ? raw.label_prefix.trim() || null : null)
       : undefined;
-  const numberFormat =
-    raw.number_format !== undefined
-      ? (typeof raw.number_format === "string" ? raw.number_format.trim() || null : null)
-      : undefined;
+  let numberFormat: string | undefined;
+  if (raw.number_format !== undefined) {
+    numberFormat =
+      typeof raw.number_format === "string"
+        ? raw.number_format.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT
+        : DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
+  } else {
+    numberFormat = undefined;
+  }
   const attributes =
     raw.attributes !== undefined
       ? (raw.attributes != null && typeof raw.attributes === "object" && !Array.isArray(raw.attributes)
@@ -132,6 +142,66 @@ export async function PATCH(
   }
 
   const admin = createAdminClient();
+
+  const { data: existingRow, error: existingErr } = await admin
+    .from("customer_sequence")
+    .select("start_seq, end_seq, offset_sequence")
+    .eq("id", id)
+    .maybeSingle();
+  if (existingErr || !existingRow) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const mergedOffsetRaw =
+    offsetSeq !== undefined ? offsetSeq : existingRow.offset_sequence;
+  const mergedOffset =
+    mergedOffsetRaw === null || mergedOffsetRaw === undefined
+      ? null
+      : Number(mergedOffsetRaw);
+
+  let mergedEnd: number | null;
+  if (mergedOffset != null && mergedOffset < 0) {
+    mergedEnd = 0;
+  } else if (endSeq !== undefined) {
+    mergedEnd = endSeq;
+  } else {
+    mergedEnd = existingRow.end_seq;
+  }
+
+  let mergedStart: number | null;
+  if (startSeq === undefined) {
+    mergedStart = existingRow.start_seq;
+  } else if (startSeq === null) {
+    mergedStart = DEFAULT_CUSTOMER_SEQUENCE_START_SEQ;
+  } else {
+    mergedStart = startSeq;
+  }
+  const effectiveStart = mergedStart ?? DEFAULT_CUSTOMER_SEQUENCE_START_SEQ;
+
+  if (
+    (mergedOffset == null || mergedOffset >= 0) &&
+    mergedEnd == null &&
+    effectiveStart < 0
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "When end_seq is not set, start_seq must be at least 0 (minimum sequence is zero when there is no end).",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (mergedOffset != null && mergedOffset < 0 && effectiveStart < 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Descending sequences (negative offset) end at 0; start_seq must be at least 0.",
+      },
+      { status: 400 },
+    );
+  }
+
   const isUsedByBatch = await sequenceHasBatches(admin, id);
   if (isUsedByBatch) {
     return NextResponse.json(
@@ -183,10 +253,24 @@ export async function PATCH(
   if (labelPrefix !== undefined) updatePayload.label_prefix = labelPrefix;
   if (numberFormat !== undefined) updatePayload.number_format = numberFormat;
   if (attributes !== undefined) updatePayload.attributes = attributes;
-  if (startSeq !== undefined) updatePayload.start_seq = startSeq;
+  if (startSeq !== undefined) {
+    updatePayload.start_seq =
+      startSeq === null ? DEFAULT_CUSTOMER_SEQUENCE_START_SEQ : startSeq;
+  }
   if (endSeq !== undefined) updatePayload.end_seq = endSeq;
-  if (offsetSeq !== undefined) updatePayload.offset_sequence = offsetSeq;
+  if (offsetSeq !== undefined) {
+    updatePayload.offset_sequence =
+      offsetSeq ?? DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE;
+  }
   if (isDefault !== undefined) updatePayload.is_default = isDefault;
+
+  const finalOffset =
+    updatePayload.offset_sequence !== undefined
+      ? Number(updatePayload.offset_sequence)
+      : mergedOffset;
+  if (finalOffset != null && finalOffset < 0) {
+    updatePayload.end_seq = 0;
+  }
 
   const { data, error } = await admin
     .from("customer_sequence")

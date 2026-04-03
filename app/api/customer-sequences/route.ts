@@ -1,3 +1,8 @@
+import {
+  DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+  DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE,
+  DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+} from "@/lib/customer-sequence-defaults";
 import { getSession } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -147,7 +152,9 @@ export async function POST(request: Request) {
   const labelPrefix =
     typeof raw.label_prefix === "string" ? raw.label_prefix.trim() || null : null;
   const numberFormat =
-    typeof raw.number_format === "string" ? raw.number_format.trim() || null : null;
+    typeof raw.number_format === "string"
+      ? raw.number_format.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT
+      : DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
   const attributes =
     raw.attributes != null && typeof raw.attributes === "object" && !Array.isArray(raw.attributes)
       ? (raw.attributes as Record<string, unknown>)
@@ -162,6 +169,30 @@ export async function POST(request: Request) {
   if (offsetSeq === 0) {
     return NextResponse.json(
       { error: "offset_sequence cannot be 0." },
+      { status: 400 },
+    );
+  }
+
+  const resolvedOffset = offsetSeq ?? DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE;
+  const resolvedStart = startSeq ?? DEFAULT_CUSTOMER_SEQUENCE_START_SEQ;
+  const resolvedEnd = resolvedOffset < 0 ? 0 : endSeq ?? null;
+
+  if (resolvedOffset >= 0 && resolvedEnd == null && resolvedStart < 0) {
+    return NextResponse.json(
+      {
+        error:
+          "When end_seq is not set, start_seq must be at least 0 (minimum sequence is zero when there is no end).",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (resolvedOffset < 0 && resolvedStart < 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Descending sequences (negative offset) end at 0; start_seq must be at least 0.",
+      },
       { status: 400 },
     );
   }
@@ -198,9 +229,9 @@ export async function POST(request: Request) {
       label_prefix: labelPrefix,
       number_format: numberFormat,
       attributes: attributes,
-      start_seq: startSeq ?? 1,
-      end_seq: endSeq ?? null,
-      offset_sequence: offsetSeq ?? 1,
+      start_seq: resolvedStart,
+      end_seq: resolvedEnd,
+      offset_sequence: resolvedOffset,
       is_default: isDefault,
       created_by: userId,
       modified_by: userId,

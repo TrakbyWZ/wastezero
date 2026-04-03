@@ -13,6 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+  DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE,
+  DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+} from "@/lib/customer-sequence-defaults";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
@@ -29,6 +34,21 @@ function formatDate(iso: string | null): string {
     dateStyle: "short",
     timeStyle: "medium",
   });
+}
+
+/** Renders 0 as "0" (never blank). */
+function formatSequenceTableInt(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString();
+}
+
+function resolveEndSeqForApi(offset: number, endField: string): number | null {
+  if (offset < 0) return 0;
+  const t = endField.trim();
+  if (!t) return null;
+  return parseInt(t, 10);
 }
 
 export default function CustomerSequencesClient() {
@@ -57,10 +77,10 @@ export default function CustomerSequencesClient() {
     customer_id: "",
     customer_search: "",
     label_prefix: "",
-    number_format: "",
-    start_seq: "1",
+    number_format: DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+    start_seq: String(DEFAULT_CUSTOMER_SEQUENCE_START_SEQ),
     end_seq: "",
-    offset_sequence: "1",
+    offset_sequence: String(DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE),
     is_default: false,
   });
 
@@ -125,10 +145,10 @@ export default function CustomerSequencesClient() {
       customer_id: "",
       customer_search: "",
       label_prefix: "",
-      number_format: "",
-      start_seq: "1",
+      number_format: DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+      start_seq: String(DEFAULT_CUSTOMER_SEQUENCE_START_SEQ),
       end_seq: "",
-      offset_sequence: "1",
+      offset_sequence: String(DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE),
       is_default: false,
     });
     setFormError(null);
@@ -144,10 +164,24 @@ export default function CustomerSequencesClient() {
         customer_id: row.customer_id,
         customer_search: row.customer ? row.customer.customer_num : "",
         label_prefix: row.label_prefix ?? "",
-        number_format: row.number_format ?? "",
-        start_seq: row.start_seq != null ? String(row.start_seq) : "1",
-        end_seq: row.end_seq != null ? String(row.end_seq) : "",
-        offset_sequence: row.offset_sequence != null ? String(row.offset_sequence) : "1",
+        number_format:
+          row.number_format?.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+        start_seq:
+          row.start_seq != null
+            ? String(row.start_seq)
+            : String(DEFAULT_CUSTOMER_SEQUENCE_START_SEQ),
+        end_seq:
+          row.offset_sequence != null && row.offset_sequence < 0
+            ? String(
+                row.end_seq !== null && row.end_seq !== undefined ? row.end_seq : 0,
+              )
+            : row.end_seq !== null && row.end_seq !== undefined
+              ? String(row.end_seq)
+              : "",
+        offset_sequence:
+          row.offset_sequence != null
+            ? String(row.offset_sequence)
+            : String(DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE),
         is_default: row.is_default === true,
       });
       setFormError(null);
@@ -197,11 +231,18 @@ export default function CustomerSequencesClient() {
       )
     : customersForDropdown;
 
+  const formOffsetParsed = parseInt(form.offset_sequence, 10);
+  const isDescendingOffset =
+    !Number.isNaN(formOffsetParsed) && formOffsetParsed < 0;
+
   const buildPatchBody = (switchDefault: boolean, offset: number) => ({
     label_prefix: form.label_prefix.trim() || null,
-    number_format: form.number_format.trim() || null,
-    start_seq: form.start_seq ? parseInt(form.start_seq, 10) : null,
-    end_seq: form.end_seq ? parseInt(form.end_seq, 10) : null,
+    number_format:
+      form.number_format.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+    start_seq: form.start_seq.trim()
+      ? parseInt(form.start_seq, 10)
+      : DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+    end_seq: resolveEndSeqForApi(offset, form.end_seq),
     offset_sequence: offset,
     is_default: form.is_default,
     ...(switchDefault ? { switch_default: true } : {}),
@@ -216,6 +257,25 @@ export default function CustomerSequencesClient() {
     const offsetNum = parseInt(form.offset_sequence, 10);
     if (Number.isNaN(offsetNum) || offsetNum === 0) {
       setFormError("Offset sequence cannot be 0.");
+      return;
+    }
+    const startNum = form.start_seq.trim()
+      ? parseInt(form.start_seq, 10)
+      : DEFAULT_CUSTOMER_SEQUENCE_START_SEQ;
+    if (Number.isNaN(startNum)) {
+      setFormError("Start seq must be a valid integer.");
+      return;
+    }
+    if (offsetNum >= 0 && !form.end_seq.trim() && startNum < 0) {
+      setFormError(
+        "When end seq is empty, start seq must be at least 0 (minimum sequence is zero with no end).",
+      );
+      return;
+    }
+    if (offsetNum < 0 && startNum < 0) {
+      setFormError(
+        "Descending sequences (negative offset) end at 0; start seq must be at least 0.",
+      );
       return;
     }
     setFormSubmitting(true);
@@ -244,9 +304,10 @@ export default function CustomerSequencesClient() {
         const body = {
           customer_id: form.customer_id,
           label_prefix: form.label_prefix.trim() || null,
-          number_format: form.number_format.trim() || null,
-          start_seq: form.start_seq ? parseInt(form.start_seq, 10) : 1,
-          end_seq: form.end_seq ? parseInt(form.end_seq, 10) : null,
+          number_format:
+            form.number_format.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+          start_seq: startNum,
+          end_seq: resolveEndSeqForApi(offsetNum, form.end_seq),
           offset_sequence: offsetNum,
           is_default: form.is_default,
           ...(retryWithSwitchDefault ? { switch_default: true } : {}),
@@ -428,13 +489,13 @@ export default function CustomerSequencesClient() {
                     <td className="p-3 font-mono text-xs">{row.label_prefix ?? "—"}</td>
                     <td className="p-3 font-mono text-xs">{row.number_format ?? "—"}</td>
                     <td className="p-3 font-mono text-xs">
-                      {row.start_seq != null ? row.start_seq.toLocaleString() : "—"}
+                      {formatSequenceTableInt(row.start_seq)}
                     </td>
                     <td className="p-3 font-mono text-xs">
-                      {row.end_seq != null ? row.end_seq.toLocaleString() : "—"}
+                      {formatSequenceTableInt(row.end_seq)}
                     </td>
                     <td className="p-3 font-mono text-xs">
-                      {row.offset_sequence != null ? row.offset_sequence.toLocaleString() : "—"}
+                      {formatSequenceTableInt(row.offset_sequence)}
                     </td>
                     <td className="p-3">
                       {row.is_default === true ? (
@@ -684,7 +745,7 @@ export default function CustomerSequencesClient() {
                     type="text"
                     value={form.number_format}
                     onChange={(e) => setForm((f) => ({ ...f, number_format: e.target.value }))}
-                    placeholder="e.g. 0000000"
+                    placeholder="e.g. 00000000"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -700,14 +761,23 @@ export default function CustomerSequencesClient() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="end_seq">End seq (optional)</Label>
+                    <Label htmlFor="end_seq">
+                      {isDescendingOffset
+                        ? "End seq (0 for descending)"
+                        : "End seq (optional)"}
+                    </Label>
                     <Input
                       id="end_seq"
                       type="number"
                       step={1}
-                      value={form.end_seq}
-                      onChange={(e) => setForm((f) => ({ ...f, end_seq: e.target.value }))}
-                      placeholder="—"
+                      value={isDescendingOffset ? "0" : form.end_seq}
+                      readOnly={isDescendingOffset}
+                      aria-readonly={isDescendingOffset}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, end_seq: e.target.value }))
+                      }
+                      placeholder={isDescendingOffset ? "0" : "—"}
+                      className={isDescendingOffset ? "bg-muted/50" : undefined}
                     />
                   </div>
                 </div>
@@ -718,7 +788,16 @@ export default function CustomerSequencesClient() {
                     type="number"
                     step={1}
                     value={form.offset_sequence}
-                    onChange={(e) => setForm((f) => ({ ...f, offset_sequence: e.target.value }))}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const n = parseInt(v, 10);
+                      setForm((f) => {
+                        if (!Number.isNaN(n) && n < 0) {
+                          return { ...f, offset_sequence: v, end_seq: "0" };
+                        }
+                        return { ...f, offset_sequence: v };
+                      });
+                    }}
                     placeholder="1"
                     required
                   />

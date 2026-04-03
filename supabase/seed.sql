@@ -26,7 +26,7 @@ SELECT c.id,
         WHEN c.customer_num='UCPNB' THEN 'R006C'
         WHEN c.customer_num='PINK' THEN 'R007C'
     END as label_prefix,
-    '0000000' as number_format,
+    '00000000' as number_format,
     1 as start_seq,
     null as end_seq,
     1 as offset_sequence,

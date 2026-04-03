@@ -1,3 +1,4 @@
+import { DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT } from "@/lib/customer-sequence-defaults";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
@@ -41,8 +42,13 @@ export async function GET(
 
   const label_prefix =
     typeof row?.label_prefix === "string" ? row.label_prefix.trim() || null : null;
-  const number_format =
-    typeof row?.number_format === "string" ? row.number_format.trim() || null : null;
+  let number_format: string | null = null;
+  if (row) {
+    number_format =
+      typeof row.number_format === "string" && row.number_format.trim() !== ""
+        ? row.number_format.trim()
+        : DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
+  }
 
   const result: CustomerSequenceResponse = {
     offset_sequence,
