@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -13,6 +19,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+  DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE,
+  DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+} from "@/lib/customer-sequence-defaults";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
@@ -29,6 +40,55 @@ function formatDate(iso: string | null): string {
     dateStyle: "short",
     timeStyle: "medium",
   });
+}
+
+/** Renders 0 as "0" (never blank). */
+function formatSequenceTableInt(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString();
+}
+
+function resolveEndSeqForApi(offset: number, endField: string): number | null {
+  if (offset < 0) return 0;
+  const t = endField.trim();
+  if (!t) return null;
+  return parseInt(t, 10);
+}
+
+function InfoFieldHelp({
+  title,
+  ariaLabel,
+  children,
+}: {
+  title: string;
+  ariaLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex text-muted-foreground transition-colors hover:text-foreground rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label={ariaLabel}
+          >
+            <Info className="h-4 w-4 shrink-0" strokeWidth={2} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          align="start"
+          className="max-w-sm space-y-2 text-xs leading-relaxed text-muted-foreground"
+        >
+          <p className="text-popover-foreground font-medium text-sm">{title}</p>
+          {children}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 export default function CustomerSequencesClient() {
@@ -57,10 +117,10 @@ export default function CustomerSequencesClient() {
     customer_id: "",
     customer_search: "",
     label_prefix: "",
-    number_format: "",
-    start_seq: "1",
+    number_format: DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+    start_seq: String(DEFAULT_CUSTOMER_SEQUENCE_START_SEQ),
     end_seq: "",
-    offset_sequence: "1",
+    offset_sequence: String(DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE),
     is_default: false,
   });
 
@@ -125,10 +185,10 @@ export default function CustomerSequencesClient() {
       customer_id: "",
       customer_search: "",
       label_prefix: "",
-      number_format: "",
-      start_seq: "1",
+      number_format: DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+      start_seq: String(DEFAULT_CUSTOMER_SEQUENCE_START_SEQ),
       end_seq: "",
-      offset_sequence: "1",
+      offset_sequence: String(DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE),
       is_default: false,
     });
     setFormError(null);
@@ -144,10 +204,24 @@ export default function CustomerSequencesClient() {
         customer_id: row.customer_id,
         customer_search: row.customer ? row.customer.customer_num : "",
         label_prefix: row.label_prefix ?? "",
-        number_format: row.number_format ?? "",
-        start_seq: row.start_seq != null ? String(row.start_seq) : "1",
-        end_seq: row.end_seq != null ? String(row.end_seq) : "",
-        offset_sequence: row.offset_sequence != null ? String(row.offset_sequence) : "1",
+        number_format:
+          row.number_format?.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+        start_seq:
+          row.start_seq != null
+            ? String(row.start_seq)
+            : String(DEFAULT_CUSTOMER_SEQUENCE_START_SEQ),
+        end_seq:
+          row.offset_sequence != null && row.offset_sequence < 0
+            ? String(
+                row.end_seq !== null && row.end_seq !== undefined ? row.end_seq : 0,
+              )
+            : row.end_seq !== null && row.end_seq !== undefined
+              ? String(row.end_seq)
+              : "",
+        offset_sequence:
+          row.offset_sequence != null
+            ? String(row.offset_sequence)
+            : String(DEFAULT_CUSTOMER_SEQUENCE_OFFSET_SEQUENCE),
         is_default: row.is_default === true,
       });
       setFormError(null);
@@ -197,11 +271,18 @@ export default function CustomerSequencesClient() {
       )
     : customersForDropdown;
 
+  const formOffsetParsed = parseInt(form.offset_sequence, 10);
+  const isDescendingOffset =
+    !Number.isNaN(formOffsetParsed) && formOffsetParsed < 0;
+
   const buildPatchBody = (switchDefault: boolean, offset: number) => ({
     label_prefix: form.label_prefix.trim() || null,
-    number_format: form.number_format.trim() || null,
-    start_seq: form.start_seq ? parseInt(form.start_seq, 10) : null,
-    end_seq: form.end_seq ? parseInt(form.end_seq, 10) : null,
+    number_format:
+      form.number_format.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+    start_seq: form.start_seq.trim()
+      ? parseInt(form.start_seq, 10)
+      : DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+    end_seq: resolveEndSeqForApi(offset, form.end_seq),
     offset_sequence: offset,
     is_default: form.is_default,
     ...(switchDefault ? { switch_default: true } : {}),
@@ -216,6 +297,25 @@ export default function CustomerSequencesClient() {
     const offsetNum = parseInt(form.offset_sequence, 10);
     if (Number.isNaN(offsetNum) || offsetNum === 0) {
       setFormError("Offset sequence cannot be 0.");
+      return;
+    }
+    const startNum = form.start_seq.trim()
+      ? parseInt(form.start_seq, 10)
+      : DEFAULT_CUSTOMER_SEQUENCE_START_SEQ;
+    if (Number.isNaN(startNum)) {
+      setFormError("Start seq must be a valid integer.");
+      return;
+    }
+    if (offsetNum >= 0 && !form.end_seq.trim() && startNum < 0) {
+      setFormError(
+        "When end seq is empty, start seq must be at least 0 (minimum sequence is zero with no end).",
+      );
+      return;
+    }
+    if (offsetNum < 0 && startNum < 0) {
+      setFormError(
+        "Descending sequences (negative offset) end at 0; start seq must be at least 0.",
+      );
       return;
     }
     setFormSubmitting(true);
@@ -244,9 +344,10 @@ export default function CustomerSequencesClient() {
         const body = {
           customer_id: form.customer_id,
           label_prefix: form.label_prefix.trim() || null,
-          number_format: form.number_format.trim() || null,
-          start_seq: form.start_seq ? parseInt(form.start_seq, 10) : 1,
-          end_seq: form.end_seq ? parseInt(form.end_seq, 10) : null,
+          number_format:
+            form.number_format.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+          start_seq: startNum,
+          end_seq: resolveEndSeqForApi(offsetNum, form.end_seq),
           offset_sequence: offsetNum,
           is_default: form.is_default,
           ...(retryWithSwitchDefault ? { switch_default: true } : {}),
@@ -428,13 +529,13 @@ export default function CustomerSequencesClient() {
                     <td className="p-3 font-mono text-xs">{row.label_prefix ?? "—"}</td>
                     <td className="p-3 font-mono text-xs">{row.number_format ?? "—"}</td>
                     <td className="p-3 font-mono text-xs">
-                      {row.start_seq != null ? row.start_seq.toLocaleString() : "—"}
+                      {formatSequenceTableInt(row.start_seq)}
                     </td>
                     <td className="p-3 font-mono text-xs">
-                      {row.end_seq != null ? row.end_seq.toLocaleString() : "—"}
+                      {formatSequenceTableInt(row.end_seq)}
                     </td>
                     <td className="p-3 font-mono text-xs">
-                      {row.offset_sequence != null ? row.offset_sequence.toLocaleString() : "—"}
+                      {formatSequenceTableInt(row.offset_sequence)}
                     </td>
                     <td className="p-3">
                       {row.is_default === true ? (
@@ -617,57 +718,37 @@ export default function CustomerSequencesClient() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
                     <Label htmlFor="label_prefix">Label prefix</Label>
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex text-muted-foreground transition-colors hover:text-foreground rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            aria-label="About label prefix"
-                          >
-                            <Info className="h-4 w-4 shrink-0" strokeWidth={2} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="top"
-                          align="start"
-                          className="max-w-sm space-y-2 text-xs leading-relaxed text-muted-foreground"
-                        >
-                          <p className="text-popover-foreground font-medium text-sm">
-                            Label prefix
-                          </p>
-                          <p>
-                            This value is placed at the start of every label in a batch file,
-                            immediately before the padded sequence number (see{" "}
-                            <span className="text-popover-foreground">Number format</span>).
-                          </p>
-                          <p>
-                            You can use a fixed string or add{" "}
-                            <span className="text-popover-foreground">date expressions</span> as{" "}
-                            <span className="font-mono text-popover-foreground">%…%</span> segments
-                            (e.g.{" "}
-                            <span className="font-mono text-popover-foreground">%MMYY%</span>). At
-                            batch creation, each date expression is replaced using the UTC
-                            calendar date. Only month, year, and day are supported—no time of day.
-                          </p>
-                          <p>
-                            Examples: <span className="font-mono text-popover-foreground">R002C</span>{" "}
-                            stays as-is;{" "}
-                            <span className="font-mono text-popover-foreground">%MMYY%-R002C</span>{" "}
-                            becomes <span className="font-mono text-popover-foreground">0426-R002C</span>{" "}
-                            in April 2026;{" "}
-                            <span className="font-mono text-popover-foreground">%DDMM%</span> is day then
-                            month (<span className="font-mono text-popover-foreground">0204</span> on 2 Apr).
-                          </p>
-                          <p className="border-t border-border pt-2">
-                            Date expressions:{" "}
-                            <span className="font-mono text-popover-foreground">
-                              %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYY% %MM% %DD% %YY%
-                            </span>
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <InfoFieldHelp title="Label prefix" ariaLabel="About label prefix">
+                      <p>
+                        This value is placed at the start of every label in a batch file,
+                        immediately before the padded sequence number (see{" "}
+                        <span className="text-popover-foreground">Number format</span>).
+                      </p>
+                      <p>
+                        You can use a fixed string or add{" "}
+                        <span className="text-popover-foreground">date expressions</span> as{" "}
+                        <span className="font-mono text-popover-foreground">%…%</span> segments
+                        (e.g.{" "}
+                        <span className="font-mono text-popover-foreground">%MMYY%</span>). At
+                        batch creation, each date expression is replaced using the UTC
+                        calendar date. Only month, year, and day are supported—no time of day.
+                      </p>
+                      <p>
+                        Examples: <span className="font-mono text-popover-foreground">R002C</span>{" "}
+                        stays as-is;{" "}
+                        <span className="font-mono text-popover-foreground">%MMYY%-R002C</span>{" "}
+                        becomes <span className="font-mono text-popover-foreground">0426-R002C</span>{" "}
+                        in April 2026;{" "}
+                        <span className="font-mono text-popover-foreground">%DDMM%</span> is day then
+                        month (<span className="font-mono text-popover-foreground">0204</span> on 2 Apr).
+                      </p>
+                      <p className="border-t border-border pt-2">
+                        Date expressions:{" "}
+                        <span className="font-mono text-popover-foreground">
+                          %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYY% %MM% %DD% %YY%
+                        </span>
+                      </p>
+                    </InfoFieldHelp>
                   </div>
                   <Input
                     id="label_prefix"
@@ -678,50 +759,122 @@ export default function CustomerSequencesClient() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="number_format">Number format</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="number_format">Number format</Label>
+                    <InfoFieldHelp title="Number format" ariaLabel="About number format">
+                      <p>
+                        A string of zeros whose <span className="text-popover-foreground">length</span>{" "}
+                        sets how wide the numeric part of each label is. Values are zero-padded to
+                        that width (e.g. <span className="font-mono text-popover-foreground">00000000</span>{" "}
+                        and sequence <span className="font-mono text-popover-foreground">1</span> become{" "}
+                        <span className="font-mono text-popover-foreground">00000001</span>).
+                      </p>
+                      <p>
+                        If a number has more digits than the format length, the full number is used
+                        without truncation. The default is eight places (
+                        <span className="font-mono text-popover-foreground">00000000</span>).
+                      </p>
+                    </InfoFieldHelp>
+                  </div>
                   <Input
                     id="number_format"
                     type="text"
                     value={form.number_format}
                     onChange={(e) => setForm((f) => ({ ...f, number_format: e.target.value }))}
-                    placeholder="e.g. 0000000"
+                    placeholder="e.g. 00000000"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div
+                  className="space-y-3"
+                  role="group"
+                  aria-labelledby="sequence-numbers-heading"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      id="sequence-numbers-heading"
+                      className="text-sm font-medium leading-none"
+                    >
+                      Start, end & offset
+                    </span>
+                    <InfoFieldHelp
+                      title="Start, end & offset"
+                      ariaLabel="About start sequence, end sequence, and offset"
+                    >
+                      <p>
+                        These fields define the <span className="text-popover-foreground">pattern</span>{" "}
+                        used when creating batches: the first value, optional last value, and step
+                        between each label&apos;s sequence number.
+                      </p>
+                      <p>
+                        <span className="text-popover-foreground">Start seq</span> is the beginning of
+                        the range (default <span className="font-mono text-popover-foreground">1</span> if
+                        left blank). <span className="text-popover-foreground">End seq</span> is optional
+                        for counting up; leave it empty for no fixed upper bound.
+                      </p>
+                      <p>
+                        <span className="text-popover-foreground">Offset</span> is the step size and
+                        cannot be <span className="font-mono text-popover-foreground">0</span>. Positive
+                        offsets count up; negative offsets count down. For descending sequences,{" "}
+                        <span className="text-popover-foreground">end seq</span> is always{" "}
+                        <span className="font-mono text-popover-foreground">0</span>, and start must be
+                        at least <span className="font-mono text-popover-foreground">0</span>.
+                      </p>
+                    </InfoFieldHelp>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start_seq">Start seq</Label>
+                      <Input
+                        id="start_seq"
+                        type="number"
+                        step={1}
+                        value={form.start_seq}
+                        onChange={(e) => setForm((f) => ({ ...f, start_seq: e.target.value }))}
+                        placeholder="1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end_seq">
+                        {isDescendingOffset
+                          ? "End seq (0 for descending)"
+                          : "End seq (optional)"}
+                      </Label>
+                      <Input
+                        id="end_seq"
+                        type="number"
+                        step={1}
+                        value={isDescendingOffset ? "0" : form.end_seq}
+                        readOnly={isDescendingOffset}
+                        aria-readonly={isDescendingOffset}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, end_seq: e.target.value }))
+                        }
+                        placeholder={isDescendingOffset ? "0" : "—"}
+                        className={isDescendingOffset ? "bg-muted/50" : undefined}
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="start_seq">Start seq</Label>
+                    <Label htmlFor="offset_sequence">Offset sequence *</Label>
                     <Input
-                      id="start_seq"
+                      id="offset_sequence"
                       type="number"
                       step={1}
-                      value={form.start_seq}
-                      onChange={(e) => setForm((f) => ({ ...f, start_seq: e.target.value }))}
+                      value={form.offset_sequence}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const n = parseInt(v, 10);
+                        setForm((f) => {
+                          if (!Number.isNaN(n) && n < 0) {
+                            return { ...f, offset_sequence: v, end_seq: "0" };
+                          }
+                          return { ...f, offset_sequence: v };
+                        });
+                      }}
                       placeholder="1"
+                      required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_seq">End seq (optional)</Label>
-                    <Input
-                      id="end_seq"
-                      type="number"
-                      step={1}
-                      value={form.end_seq}
-                      onChange={(e) => setForm((f) => ({ ...f, end_seq: e.target.value }))}
-                      placeholder="—"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="offset_sequence">Offset sequence *</Label>
-                  <Input
-                    id="offset_sequence"
-                    type="number"
-                    step={1}
-                    value={form.offset_sequence}
-                    onChange={(e) => setForm((f) => ({ ...f, offset_sequence: e.target.value }))}
-                    placeholder="1"
-                    required
-                  />
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox

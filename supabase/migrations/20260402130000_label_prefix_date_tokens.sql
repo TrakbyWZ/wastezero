@@ -1,6 +1,31 @@
--- Label prefix templates (UTC calendar, month/year/day only): %MMYYDD%, %YYYYMMDD%, %MMYY%,
--- %DDMM%, %YYYY%, %MM%, %DD%, %YY%. Camera-1 scanned values (e.g. 042602-R002C0000001) match
--- via regex built from the stored template (e.g. %MMYYDD%-R002C).
+-- (1) API batches list: append customer_sequence_id (do not reorder columns — 42P16).
+-- (2) Label prefix date templates (UTC M/Y/D): %MMYYDD%, %YYYYMMDD%, %MMYY%, %DDMM%, %YYYY%, %MM%, %DD%, %YY%.
+--     Camera-1 values match via regex from templates (e.g. %MMYYDD%-R002C).
+
+create or replace view public.vw_api_batches_list
+with (security_invoker = on)
+as
+select
+  b.id,
+  b.customer_id,
+  b.created_date,
+  b.start_time,
+  b.end_time,
+  b.start_sequence,
+  b.end_sequence,
+  b.offset_sequence,
+  b.label_count,
+  b.filename,
+  c.customer_num,
+  c.customer_description,
+  cs.label_prefix as sequence_label_prefix,
+  cs.number_format as sequence_number_format,
+  b.customer_sequence_id
+from public.batch b
+join public.customer c on c.id = b.customer_id
+join public.customer_sequence cs on cs.id = b.customer_sequence_id;
+
+comment on view public.vw_api_batches_list is 'GET /api/batches. Order and filter (q, from, to, customer, customer_sequence) in API. Map to nested customer and customer_sequence objects.';
 
 create or replace function public.customer_sequence_cam1_data_value_regex(
   p_label_prefix text,

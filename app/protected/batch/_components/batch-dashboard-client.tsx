@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/card";
 import { Check, Copy } from "lucide-react";
 import {
+  DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
+  DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
+} from "@/lib/customer-sequence-defaults";
+import {
   computeEndFromStartOffsetCount,
   computeStartFromLastEnd,
   interpolateLabelPrefixDateTokens,
@@ -312,7 +316,7 @@ export default function BatchDashboardClient() {
   const computedStartSequence =
     lastBatchForCustomer != null && offsetNum != null && offsetNum !== 0
       ? computeStartFromLastEnd(lastBatchForCustomer.end_sequence ?? 0, offsetNum)
-      : customerSequenceStartSeq;
+      : (customerSequenceStartSeq ?? DEFAULT_CUSTOMER_SEQUENCE_START_SEQ);
   const computedEndSequence =
     computedStartSequence != null &&
     !Number.isNaN(countNum) &&
@@ -529,7 +533,10 @@ export default function BatchDashboardClient() {
                       {row.customer_sequence?.label_prefix ?? "—"}
                     </td>
                     <td className="p-3 font-mono text-xs">
-                      {row.customer_sequence?.number_format ?? "—"}
+                      {row.customer_sequence == null
+                        ? "—"
+                        : row.customer_sequence.number_format?.trim() ||
+                          DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT}
                     </td>
                     <td className="p-3 text-muted-foreground">
                       {formatDate(row.created_date)}
@@ -686,7 +693,9 @@ export default function BatchDashboardClient() {
                       </option>
                       {customerSequences.map((seq) => {
                         const prefix = seq.label_prefix?.trim() || "—";
-                        const format = seq.number_format?.trim() || "—";
+                        const format =
+                          seq.number_format?.trim() ||
+                          DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
                         const defaultSuffix = seq.is_default ? " (Default)" : "";
                         return (
                           <option key={seq.id} value={seq.id}>
@@ -787,7 +796,8 @@ export default function BatchDashboardClient() {
                         ) ?? "") +
                           padSequenceNumber(
                             computedStartSequence,
-                            customerSequenceNumberFormat ?? "",
+                            customerSequenceNumberFormat?.trim() ||
+                              DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
                           )}
                       </span>{" "}
                       → End:{" "}
@@ -798,7 +808,8 @@ export default function BatchDashboardClient() {
                         ) ?? "") +
                           padSequenceNumber(
                             computedEndSequence,
-                            customerSequenceNumberFormat ?? "",
+                            customerSequenceNumberFormat?.trim() ||
+                              DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
                           )}
                       </span>
                       {countNum >= 1 && !Number.isNaN(countNum) && (

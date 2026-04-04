@@ -1,3 +1,4 @@
+import { DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT } from "@/lib/customer-sequence-defaults";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
@@ -78,7 +79,8 @@ export async function GET(
     customerSequence?.label_prefix,
     anchorAt,
   );
-  const numberFormat = customerSequence?.number_format ?? null;
+  const numberFormat =
+    customerSequence?.number_format?.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
   const csv = formatSequenceToCsv(sequence, labelPrefix, numberFormat);
   const filename =
     batch.filename ||
