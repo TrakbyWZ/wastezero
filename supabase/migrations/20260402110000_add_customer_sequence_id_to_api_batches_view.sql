@@ -5,7 +5,6 @@ as
 select
   b.id,
   b.customer_id,
-  b.customer_sequence_id,
   b.created_date,
   b.start_time,
   b.end_time,
@@ -17,7 +16,8 @@ select
   c.customer_num,
   c.customer_description,
   cs.label_prefix as sequence_label_prefix,
-  cs.number_format as sequence_number_format
+  cs.number_format as sequence_number_format,
+  b.customer_sequence_id
 from public.batch b
 join public.customer c on c.id = b.customer_id
 join public.customer_sequence cs on cs.id = b.customer_sequence_id;
