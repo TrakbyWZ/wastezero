@@ -1,4 +1,5 @@
 node_modules/
+daemon/
 .env
 config.json
 config.prod.json

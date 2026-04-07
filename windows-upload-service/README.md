@@ -85,76 +85,61 @@ npm start
 - It polls each directory for `*.txt` and `*.csv` files, uploads new ones (not in the state file), and marks them sent on success.
 - Logs go to `logs/service.log`. Failed uploads are retried on the next cycle.
 
-## 3. Install as a Windows Service (NSSM)
+## 3. Install as a Windows Service ([node-windows](https://www.npmjs.com/package/node-windows))
 
-So the watcher starts automatically on boot and runs in the background:
+So the watcher starts automatically on boot and runs in the background, this project uses **node-windows** (WinSW under the hood). Installing or removing a service requires an **Administrator** shell.
 
-### 3.1 Install NSSM
+### 3.1 Install
 
-1. Download NSSM from [nssm.cc/download](https://nssm.cc/download).
-2. Extract and add the **win64** (or win32) folder to your PATH, or set **`NSSM_HOME`** to that folder.
-
-### 3.2 Install the service
-
-From an **elevated** Command Prompt or PowerShell, in the `windows-upload-service` folder:
+From an **elevated** Command Prompt or PowerShell, in the `windows-upload-service` folder (after `npm install`):
 
 ```bash
-node scripts/install-service.js
+npm run install-service
 ```
 
-This prints the exact `nssm` commands. Run them (or run the script and copy-paste). Example:
+This registers the service, writes wrapper files under a **`daemon/`** folder next to `index.js`, and starts the service. Logs from the WinSW wrapper also go under **`logs/`** (alongside `service.log` from the app).
 
-```batch
-nssm install WasteZeroUpload "C:\Program Files\nodejs\node.exe" "C:\path\to\wastezero\windows-upload-service\index.js"
-nssm set WasteZeroUpload AppDirectory "C:\path\to\wastezero\windows-upload-service"
-nssm set WasteZeroUpload AppStdout "C:\path\to\wastezero\windows-upload-service\logs\service-stdout.log"
-nssm set WasteZeroUpload AppStderr "C:\path\to\wastezero\windows-upload-service\logs\service-stderr.log"
-nssm set WasteZeroUpload AppRotateFiles 1
-nssm start WasteZeroUpload
-```
-
-Custom service name:
+Custom display name (still the same `index.js` and working directory):
 
 ```bash
-node scripts/install-service.js MyPrinterUpload
+node scripts/install-service.js install MyPrinterUpload
 ```
 
-### 3.3 Useful NSSM commands
+### 3.2 Manage the service
 
-| Command | Description |
-|--------|-------------|
-| `nssm status WasteZeroUpload` | Check if the service is running |
-| `nssm stop WasteZeroUpload`   | Stop the service |
-| `nssm start WasteZeroUpload` | Start the service |
-| `nssm remove WasteZeroUpload`| Remove the service (will prompt for confirm) |
+Use **Windows Services** (`services.msc`) or the command line:
 
-You can also use **Windows Services** (`services.msc`): look for **WasteZeroUpload** (or the name you passed).
+| Action | Command (default name) |
+|--------|-------------------------|
+| Start | `net start wastezeroupload.exe` |
+| Stop | `net stop wastezeroupload.exe` |
 
-### 3.4 Uninstall the service
+The internal service id matches the WinSW wrapper name in the `daemon` folder (for display name **WasteZeroUpload**, that is **`wastezeroupload.exe`**). `net start` / `net stop` use that id string, which can differ from the friendly name shown at the top of the service Properties dialog.
 
-From an **elevated** Command Prompt or PowerShell:
+### 3.3 Uninstall
 
-1. **Stop the service** (if it is running):
+From an **elevated** prompt in `windows-upload-service`:
 
-   ```batch
-   nssm stop WasteZeroUpload
-   ```
+```bash
+npm run uninstall-service
+```
 
-   *(Use your custom service name instead of `WasteZeroUpload` if you installed with one.)*
+With a custom name:
 
-2. **Remove the service** (NSSM will prompt for confirmation):
+```bash
+node scripts/install-service.js uninstall MyPrinterUpload
+```
 
-   ```batch
-   nssm remove WasteZeroUpload confirm
-   ```
+### 3.4 Migrating from NSSM
 
-   The `confirm` flag skips the prompt; omit it if you want to confirm interactively.
+If you previously installed with **NSSM** under a name like `WasteZeroUpload`, remove that service first (`nssm remove WasteZeroUpload confirm` or Services UI) so it does not conflict with the node-windows service.
 
-3. **(Optional)** To remove all traces of the upload service:
-   - Delete the **`windows-upload-service`** folder (or your install path).
-   - This removes `config.json`, `.env`, `sent_files.json`, and the `logs/` directory. Back up `sent_files.json` first if you need to preserve upload history.
+### 3.5 Remove the install folder
 
-You can also remove the service from **Windows Services** (`services.msc`): open the service, stop it, then delete it (or use **sc delete WasteZeroUpload** if the service was installed with that name).
+To remove all traces of the upload service:
+
+- Run **`npm run uninstall-service`** (or the matching `uninstall` command if you used a custom name).
+- Delete the **`windows-upload-service`** folder (or your install path). This removes `config.json`, `.env`, `sent_files.json`, `daemon/`, and `logs/`. Back up `sent_files.json` first if you need to preserve upload history.
 
 ## 4. Test the ingest endpoint
 
@@ -179,7 +164,7 @@ Both print the response status and body (or the error response on failure).
 
 ## 5. Logging and resilience
 
-- **Logs:** All service events (start, successful uploads, connection errors) are written to **`logs/service.log`** (and optionally to NSSM’s stdout/stderr files if configured).
+- **Logs:** All service events (start, successful uploads, connection errors) are written to **`logs/service.log`**. When running as a Windows service, WinSW may also write **`logs/*.out.log`** / **`*.err.log`** (or similar) under the configured `logpath`.
 - **Resilience:** If the network is down or the API returns an error, the script logs the error and continues; failed files are recorded as FAIL and not retried. The process does not exit on connection errors.
 - **State:** Every attempted upload (success or fail) is recorded in **`sent_files.json`** (or the path in `stateFile`) so the same file is not uploaded again. The file is a JSON array of rows: `path`, `filename`, `sentAt`, `status` (`"SUCCESS"` or `"FAIL"`), and optionally `errorMessage` for failures. Failed attempts are not retried. Suitable for loading as a dataframe or table.
 
@@ -201,7 +186,7 @@ windows-upload-service/
 ├── retry.js              # Retry on file lock (EBUSY / EACCES / EPERM)
 ├── state.js              # sent_files state
 ├── scripts/
-│   ├── install-service.js  # NSSM install helper
+│   ├── install-service.js  # node-windows install / uninstall helper
 │   └── test-ingest.ps1     # Test ingest endpoint (PowerShell; uses config.json)
 ├── test/
 │   ├── upload-api.test.js  # Unit tests (mock server)

@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "install-service": "node scripts/install-service.js",
+    "install-service": "node scripts/install-service.js install",
+    "uninstall-service": "node scripts/install-service.js uninstall",
     "test": "node --test",
     "upload": "tsx test/upload-file.ts"
   },
@@ -14,10 +15,11 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "node-windows": "^1.0.0-beta.8"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }
