@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "test:sequence": "tsx scripts/test-sequence.ts",
     "test:log-parser": "tsx scripts/test-log-parser.ts",
+    "test:log-ingest-pressure": "tsx scripts/pressure-test-log-ingest.ts",
     "create-users": "tsx scripts/create-user.ts",
     "docs:start": "cd docs-site && pnpm install && pnpm start",
     "docs:build": "cd docs-site && pnpm install && pnpm build"
