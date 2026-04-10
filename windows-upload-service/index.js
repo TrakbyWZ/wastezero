@@ -15,7 +15,11 @@ function validateDirectories(watchDirectories) {
       const stat = fs.statSync(resolvedPath);
       if (!stat.isDirectory()) invalid.push(dir);
       else resolved.push(resolvedPath);
-    } catch {
+    } catch (err) {
+      logger.warn(`Watch path not accessible: ${dir}`, {
+        code: err.code,
+        message: err.message,
+      });
       invalid.push(dir);
     }
   }
