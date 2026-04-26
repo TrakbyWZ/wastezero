@@ -27,7 +27,7 @@ This page is **only** for running WasteZero on **your computer**: local **Supaba
 ## 1. Clone and install
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/TrakbyWZ/wastezero.git
 cd wastezero
 pnpm install
 ```
