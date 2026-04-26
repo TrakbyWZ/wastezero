@@ -1,22 +1,18 @@
----
-sidebar_label: Local development
----
-
 # Local development
 
-This page is **only** for running WasteZero on **your computer**: local **Supabase** (Docker), the **Next.js** app, and the embedded **docs** at `/docs`. It does not cover **production** deploys, **GitHub** release flow, or **hosted** Supabase/Vercel (see [System Overview](./architecture.md) and [Users, GitHub, Supabase, and Vercel](./admin-platforms.md)).
+This page is **only** for running WasteZero on **your computer**: local **Supabase** (Docker), the **Next.js** app, and **in-app help** under **Help & Docs** in the navigation. It does not cover **production** deploys, **GitHub** release flow, or **hosted** Supabase/Vercel (see [System overview](./architecture.md) and [Users, GitHub, Supabase, and Vercel](./admin-platforms.md)).
 
-**After reading this, you should know:** how to install dependencies, point `.env.local` at local or hosted Supabase, reset the local database from migrations, start the app and open it in the browser, and see help at `/docs`.
+**After reading this, you should know:** how to install dependencies, point `.env.local` at local or hosted Supabase, reset the local database from migrations, start the app and open it in the browser, and open help from the signed-in app.
 
 ---
 
 ## What runs where (local)
 
 | What | URL / process |
-|------|----------------|
+| ---- | -------------- |
 | **Next.js** (main app) | `http://localhost:3000` — `pnpm dev` (or the tail end of `pnpm run dev:full`) |
 | **Local Supabase** (Postgres, Auth, Studio) | `http://127.0.0.1:54321` and related ports — `pnpm exec supabase start` |
-| **Docusaurus only** (optional) | e.g. `http://localhost:3001` — `pnpm run docs:start` in the monorepo; use when you want **hot reload** for Markdown without rebuilding. The **integrated** docs path for daily work is: build Docusaurus → `public/docs` → served as **`/docs`** on the same origin as the app (see below). |
+| **In-app help** | `http://localhost:3000/protected/docs/...` when signed in; source lives in `content/docs/*.md` and hot-reloads with `pnpm dev`. |
 
 ---
 
@@ -36,8 +32,6 @@ cd wastezero
 pnpm install
 ```
 
-Install runs at the **repository root** (monorepo); it covers the main app and the `docs-site` package as needed for builds.
-
 ---
 
 ## 2. Environment (`.env.local`)
@@ -51,7 +45,7 @@ cp .env.example .env.local
 **Minimum to run the app (hosted or local Supabase), aligned with the repo’s `lib/` usage:**
 
 | Variable | Notes |
-|----------|--------|
+| -------- | ----- |
 | `SUPABASE_URL` | From the [Supabase Dashboard](https://app.supabase.com) (hosted) or `pnpm exec supabase status` (local). |
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable (anon) key. |
 | `SUPABASE_SECRET_KEY` | **Service role** key — **server only**; never in client bundles. Read by `lib/supabase/admin.ts` (if your `supabase status` output or `.env.example` used another name, copy the service role **value** into this variable so it matches the code). |
@@ -96,7 +90,7 @@ Open **Supabase Studio** for the local project from the CLI (URL is listed in `s
 
 - Seeded / test users for local dev are typically defined in **`supabase/seed.sql`**. If you change the seed, run `pnpm exec supabase db reset` so they are reapplied.  
 - Without outgoing SMTP, use the code shown in the **dev server** terminal.  
-- The app’s access rules still use `public.users` and Supabase Auth (see [App structure](./app-structure-and-database.md) and the proxy allow-list in `lib/supabase/proxy.ts`).
+- The app’s access rules still use `public.users` and Supabase Auth (see [App structure](./app-structure-and-database.md) and the allow-list in `lib/supabase/proxy.ts`).
 
 ---
 
@@ -108,30 +102,24 @@ pnpm dev
 
 Open the app: **[http://localhost:3000](http://localhost:3000)** (or the host/port Next prints).
 
-### One command: Supabase + docs + dev server
+### One command: Supabase + app
 
-To **restart** local Supabase, run a full **Docusaurus** production build, copy the output into **`public/docs`**, and then start the dev server:
+**`dev:full`** restarts the local **Supabase** stack, then runs the Next.js dev server. Help content is part of the app (Markdown under `content/docs/`).
 
 ```bash
 pnpm run dev:full
 ```
 
-Use this when you want **integrated `/docs`** in the same process as the app without a separate Docusaurus port. The Docusaurus build can take a minute; day-to-day `pnpm dev` is faster if you are not changing docs.
-
 ---
 
-## 5. In-app documentation (`/docs`)
+## 5. In-app documentation
 
-The help site is a **Docusaurus** build copied into `public/docs` and served as **`/docs`** on the same origin as the app (e.g. `http://localhost:3000/docs/`). You must have built and copied at least once, or use `dev:full` above.
+Help and developer pages are **Markdown** files in **`content/docs/`**, rendered as **`/protected/docs/...`** routes inside the same Next.js app (same top navigation, theme, and sign-in as the rest of the product). You must be **signed in** to view them, same as the other protected pages.
 
-| Need | Command (repo root) |
-|------|---------------------|
-| **One-off** build + copy | `pnpm run docs:build && pnpm run docs:sync` |
-| **Production** pipeline | `pnpm run build` (includes docs before `next build`) |
-
-**Hot reload** while editing **Markdown** only: from the repo root, `pnpm run docs:start` runs Docusaurus (often on **port 3001** so it does not clash with Next on **3000**). That is a **standalone** docs site; the **in-app** experience is still `http://localhost:3000/docs/` after build + sync. More context: `docs-site/README.md` in the repository.
-
-**Note (navbar “Back to TrakByWz App”):** the docs build uses `NEXT_PUBLIC_SITE_URL` (or, on Vercel, `VERCEL_URL`) to point that link at the app’s **public origin** (see `docs-site/docusaurus.config.js`). For local `docs:build` without those variables, the default is `http://localhost:3000`, so the link matches the app on the usual dev port. Set `NEXT_PUBLIC_SITE_URL` if you use a different base URL (e.g. `https://localhost:3000` or another host).
+- Edit `content/docs/<slug>.md` and save; reload the page in the browser to see changes.
+- Page titles and the left-hand outline come from `lib/docs/config.ts`.
+- Screenshot images for the **Quick Start Guide** page live in **`public/docs-images/`** and are referenced in Markdown as e.g. `/docs-images/help-menu.png`.
+- If your deployment used older **`/docs/...`** paths, `next.config.ts` may define redirects to **`/protected/docs/...`** (see the file in the repo).
 
 ---
 

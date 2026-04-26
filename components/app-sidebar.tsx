@@ -42,11 +42,11 @@ function NavLinksVertical({ onLinkClick }: { onLinkClick?: () => void }) {
         </Link>
       ))}
       <Link
-        href="/docs/"
+        href="/protected/docs"
         onClick={onLinkClick}
         className={navLinkClass + " text-muted-foreground"}
       >
-        Help &amp; docs
+        Help &amp; Docs
       </Link>
       <div className="pt-2 mt-2 border-t border-border">
         <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -157,8 +157,8 @@ function NavLinksHorizontal() {
       <MainNavSectionDivider />
       <ReportsNavItem />
       <MainNavSectionDivider />
-      <Link href="/docs/" className={navLinkClass}>
-        Help &amp; docs
+      <Link href="/protected/docs" className={navLinkClass}>
+        Help &amp; Docs
       </Link>
     </nav>
   );

@@ -1,14 +1,14 @@
-# System Overview
+# System overview
 
 This page is for **IT and administrators**: a **system-level** view of the WasteZero stack and how **production** and **hosting** fit together (**GitHub**, **Supabase**, **Vercel**). It does not replace a step-by-step for your laptop — for that, use [Local development](./local-development.md).
 
-- For **running the app, local Supabase, and `/docs` on your machine**, see [Local development](./local-development.md).
+- For **running the app, local Supabase, and in-app help** on your machine, see [Local development](./local-development.md).
 - For **repository layout**, **how the Next.js app connects to Supabase (keys and clients)**, and **how the database is built from migrations**, see [App structure, Supabase connection, and database construction](./app-structure-and-database.md).
-- For **adding users in hosted environments**, **GitHub/Supabase/Vercel** operations, and **applying migrations** to a remote project, see [Users, GitHub, Supabase, and Vercel](./admin-platforms.md).
+- For **adding users in hosted environments**, **GitHub/Supabase/Vercel** operations, and **applying migrations** to a **remote** project, see [Users, GitHub, Supabase, and Vercel](./admin-platforms.md).
 
 ## System diagram
 
-The application is a **Next.js** web app that talks to **Supabase** (PostgreSQL + Auth). Optional components: a **Docusaurus** documentation site in this repo, and a **Windows file upload service** on your network that posts log files to the app’s HTTP API.
+The application is a **Next.js** web app that talks to **Supabase** (PostgreSQL + Auth). The **Windows file upload service** on your network posts log files to the app’s HTTP API. **Product and developer documentation** is served **inside the same app** (signed-in users) under **Help & Docs** — it is not a separate site or static bundle.
 
 ```mermaid
 flowchart TB
@@ -19,7 +19,7 @@ flowchart TB
 
   subgraph hosting [Application hosting - typical]
     V[Vercel]
-    N[Next.js app - UI and API routes]
+    N[Next.js app - UI, API routes, in-app documentation]
   end
 
   subgraph data [Data and auth - Supabase]
@@ -27,9 +27,8 @@ flowchart TB
     A[Supabase Auth]
   end
 
-  subgraph meta [Source and static docs]
+  subgraph source [Source]
     G[GitHub repository]
-    D[Docs site - Docusaurus static build]
   end
 
   B -->|HTTPS| V
@@ -38,15 +37,14 @@ flowchart TB
   N --> P
   N --> A
   G -->|CI or manual deploy| V
-  G -->|optional deploy| D
 ```
 
 | Component | Role | Typical hosting |
-|-----------|------|------------------|
-| **Next.js app** | Web UI, protected pages, REST API (batches, customers, logs, OTP auth) | **Vercel** (or any Node host: Docker, VM, etc.) |
+| --------- | ---- | ----------------- |
+| **Next.js app** | Web UI, protected pages, REST API (batches, customers, logs, OTP auth), in-app help | **Vercel** (or any Node host: Docker, VM, etc.) |
 | **Supabase** | Database (schema in `supabase/migrations/`), row-level security, **Auth** for users | **Supabase Cloud** project, or local Docker via Supabase CLI for development |
 | **Windows upload service** | Watches folders, uploads `*.txt` / `*.csv` to `/api/log-files/ingest` | **On-premises Windows Server** (not hosted by Vercel) |
-| **Docs site** | Static help (this `docs-site` package) | **Vercel**, Netlify, GitHub Pages, or any static host |
+| **In-app documentation** | Markdown in `content/docs/`, rendered when you open **Help & Docs** | **Same origin** and session as the app (no separate docs deployment) |
 | **GitHub** | Source code, branches, pull requests, optional Actions | **github.com** (or GitHub Enterprise) |
 
 **Data flow (simplified):**
@@ -69,7 +67,7 @@ flowchart TB
 ## Administration: GitHub
 
 | Task | Where / how |
-|------|-------------|
+| ---- | ------------ |
 | **Source of truth** | `main` (or your default branch) and feature branches. |
 | **Change control** | Pull requests, code review, branch protection (recommended: require review, CI passing). |
 | **Secrets** | **Do not** commit `.env` or API keys. Store production secrets in **Vercel** and **Supabase** dashboards, or your org’s secret manager. |
@@ -81,7 +79,7 @@ flowchart TB
 ## Administration: Supabase
 
 | Task | Where / how |
-|------|-------------|
+| ---- | ------------ |
 | **Dashboard** | [app.supabase.com](https://app.supabase.com) → your project: **Table Editor**, **SQL**, **Auth** users, **Database** → backups, **Settings** → API URL and keys. |
 | **Apply schema** | Migrations in the repo are the **source of truth**. For hosted DB: [Supabase CLI](https://supabase.com/docs/guides/cli) `supabase link` then `supabase db push` (see `supabase/README.md` in the repo). |
 | **Auth** | Users for OTP login; allowed users may also be seeded in `supabase/seed.sql` for local dev. |
@@ -93,14 +91,14 @@ flowchart TB
 ## Administration: Vercel
 
 | Task | Where / how |
-|------|-------------|
+| ---- | ------------ |
 | **Import project** | [vercel.com](https://vercel.com) → New project → import the **GitHub** repo. |
 | **Environment variables** | Project → **Settings** → **Environment** — set the same names as `.env.local` (e.g. `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SESSION_SECRET`, optional `LOG_FILES_INGEST_API_KEY` for the Windows uploader, SMTP for OTP). |
 | **Supabase on Vercel** | You can use the [Vercel Supabase integration](https://vercel.com/integrations/supabase) to sync some variables; still confirm service role and app-specific keys manually. |
 | **Domains** | **Settings** → **Domains** — attach production and preview URLs. |
 | **Preview deployments** | Each PR can get a preview URL; use **Preview** env vars if keys differ. |
 | **Deployment Protection** | If you enable Vercel Authentication / password on previews, the **Windows upload service** must send the [Protection Bypass for Automation](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) header (`x-vercel-protection-bypass`); see `windows-upload-service/README.md` in the repo. The ingest **API key** is separate and still required. |
-| **Docs (Docusaurus)** | Served at **`/docs`** on the same deployment as the app (`pnpm build` copies `docs-site/build` → `public/docs`). See `docs-site/README.md` for Docusaurus-only dev and optional **separate** Vercel project. |
+| **In-app help** | Documentation lives in **`content/docs/`** and is rendered at **`/protected/docs/...`**. It deploys with the same **`pnpm build`** as the app. |
 
 ---
 
@@ -113,9 +111,9 @@ Not hosted on Vercel or Supabase. It runs on **Windows**, reads `config.json` (o
 ## Quick reference: who uses what
 
 | Operator | Systems |
-|----------|---------|
+| -------- | ------- |
 | **End user** | Browser → Vercel → Next.js → Supabase (Auth + DB) |
 | **IT / printer integration** | Windows service → HTTPS → Vercel (ingest API) → Next.js → Supabase (DB) |
 | **Dev / DBA (local machine)** | See [Local development](./local-development.md) — then GitHub, Supabase Dashboard, Vercel as needed |
 
-For day-to-day **product help** (login, navigation), see the [Quick start](./help.md) page.
+For day-to-day **product help** (login, navigation), see the [Quick Start Guide](./help.md) page.

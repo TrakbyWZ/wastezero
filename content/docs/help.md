@@ -1,8 +1,4 @@
----
-sidebar_position: 1
-slug: /
-title: Quick Start Guide
----
+# Quick Start Guide
 
 This guide explains how to open the WasteZero website, sign in, and use the main screens.
 
@@ -12,14 +8,12 @@ This guide explains how to open the WasteZero website, sign in, and use the main
 
 - Open your web browser (Chrome, Edge, Safari, or Firefox).
 - Type the following website address into the address bar, or click the link from your email or bookmark:
-   `https://wastezero-nrc7omq75-elvis-dsouzas-projects.vercel.app`
+  `https://wastezero-gold.vercel.app/`
 - Press **Enter**.
 
 You should see the **sign-in page** (email and password boxes).
 
-:::tip
-If the page does not load, check your internet connection and that you are using the correct address.
-:::
+> **Tip:** If the page does not load, check your internet connection and that you are using the correct address.
 
 ---
 
@@ -31,10 +25,10 @@ If the page does not load, check your internet connection and that you are using
 
 If your details are correct, you will be taken to the **Batches** screen.
 
-- **Wrong password or email?** Double-check for typos. If you forgot your password, contact your administrator. As of this writing, it is `dsouzae03@gmail.com`.
+- **Wrong password or email?** Double-check for typos. If you forgot your password, contact your administrator. As of this writing, it is Todd Cannon `tcannon@wastezero.com`.
 - **"Account is inactive"?** Contact your administrator to activate your account.
 
-![Login screen — enter your email and password, then click Sign in](/img/help-login.png)
+![Login screen — enter your email and password, then click Sign in](/docs-images/help-login.png)
 
 ---
 
@@ -43,7 +37,7 @@ If your details are correct, you will be taken to the **Batches** screen.
 After you sign in, you will see the main area and a **menu** at the top (or under the ☰ icon on a phone or tablet). Use it to switch between screens:
 
 | Menu item            | What it's for |
-|----------------------|----------------|
+| -------------------- | ------------- |
 | **Batches**          | View and manage batches. Create new batches, see batch list, and filter by customer or date. This is usually the first screen you see after login. |
 | **Customers**        | View and manage customers. Search customers, add new ones, and edit details (e.g. name, email, active status). |
 | **Customer Sequences** | Set up and view number sequences for customers (e.g. batch labels). You can filter by customer and add or edit sequences. |
@@ -51,7 +45,7 @@ After you sign in, you will see the main area and a **menu** at the top (or unde
 
 Click any menu item to go to that screen.
 
-![Top menu: Batches, Customers, Customer Sequences, Data Logs](/img/help-menu.png)
+![Top menu: Batches, Customers, Customer Sequences, Data Logs](/docs-images/help-menu.png)
 
 ---
 
@@ -83,4 +77,4 @@ Click any menu item to go to that screen.
 
 - **Sign out:** Use the **Sign out** (or similar) control in the top-right area of the screen. This logs you out safely.
 - **Dark/Light mode:** If you see a sun/moon or theme icon, click it to switch between light and dark appearance.
-- **Need help?** Contact your administrator or support for account or access issues.
+- **Need help?** Open **Help & Docs** in the app menu, or contact your administrator or support for account or access issues.

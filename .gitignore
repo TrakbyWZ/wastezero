@@ -50,14 +50,7 @@ supabase/.branches
 
 .downloads/**/*
 
-# built docs (legacy)
-/docs/build
-
-# Docusaurus: copied into Next for /docs (regenerated on `pnpm build`)
+# Stale static tree if ever regenerated at this path
 public/docs
-# Docusaurus (docs-site)
-/docs-site/build
-/docs-site/.docusaurus
-/docs-site/node_modules
 
 dist

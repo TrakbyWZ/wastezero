@@ -2,17 +2,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:full": "pnpm exec supabase stop && pnpm exec supabase start && pnpm run docs:build && pnpm run docs:sync && pnpm dev",
-    "build": "pnpm run docs:build && node scripts/copy-docs-to-public.cjs && next build",
-    "docs:sync": "node scripts/copy-docs-to-public.cjs",
+    "dev:full": "pnpm exec supabase stop && pnpm exec supabase start && pnpm dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "test:sequence": "tsx scripts/test-sequence.ts",
     "test:log-parser": "tsx scripts/test-log-parser.ts",
     "test:log-ingest-pressure": "tsx scripts/pressure-test-log-ingest.ts",
-    "create-users": "tsx scripts/create-user.ts",
-    "docs:start": "cd docs-site && pnpm install && pnpm exec docusaurus start --port 3001",
-    "docs:build": "cd docs-site && pnpm install && pnpm build"
+    "create-users": "tsx scripts/create-user.ts"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.1",
@@ -25,11 +22,14 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.511.0",
+    "mermaid": "^11.14.0",
     "next": "latest",
     "next-themes": "^0.4.6",
     "nodemailer": "^6.9.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^4.0.0",
     "tailwind-merge": "^3.3.0",
     "vercel": "^50.22.1",
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
