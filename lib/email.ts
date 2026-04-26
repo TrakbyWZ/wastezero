@@ -1,5 +1,4 @@
 import nodemailer from "nodemailer";
-import { Resend } from "resend";
 
 const FROM_EMAIL = process.env.OTP_FROM_EMAIL ?? "WasteZero <no-reply@wastezero.com>";
 
@@ -8,11 +7,6 @@ const SMTP_PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 
 const SMTP_SECURE = process.env.SMTP_SECURE === "true";
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASSWORD = process.env.SMTP_PASSWORD;
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-
-function hasResendConfig(): boolean {
-  return !!RESEND_API_KEY;
-}
 
 function hasSmtpConfig(): boolean {
   return !!(SMTP_HOST && SMTP_USER && SMTP_PASSWORD);

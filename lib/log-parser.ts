@@ -86,10 +86,6 @@ function isCameraLogFileHeaderLine(line: string): boolean {
   return /^Camera\s+\d+\s+Log\s+File$/i.test(line.trim());
 }
 
-function isTableHeaderLine(line: string): boolean {
-  return isCameraDataHeaderLine(line) || isCameraTwoColumnHeaderLine(line);
-}
-
 type BlockMetadata = {
   logFileHeader: string | null;
   jobName: string;

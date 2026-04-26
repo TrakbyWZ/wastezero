@@ -3,8 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/session";
 import {
-  generateSequence,
-  formatSequenceToCsv,
+  createBatchLabelCsvReadableStream,
   interpolateLabelPrefixDateTokens,
 } from "@/lib/sequence";
 import { batchCsvFilename } from "@/app/api/batches/route";
@@ -67,7 +66,6 @@ export async function GET(
     );
   }
 
-  const sequence = generateSequence(startSeq, endSeq, offsetSeq);
   const customerSequence = batch.customer_sequence as unknown as {
     label_prefix: string | null;
     number_format: string | null;
@@ -81,7 +79,13 @@ export async function GET(
   );
   const numberFormat =
     customerSequence?.number_format?.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
-  const csv = formatSequenceToCsv(sequence, labelPrefix, numberFormat);
+  const body = createBatchLabelCsvReadableStream(
+    startSeq,
+    endSeq,
+    offsetSeq,
+    labelPrefix,
+    numberFormat,
+  );
   const filename =
     batch.filename ||
     (() => {
@@ -96,7 +100,7 @@ export async function GET(
     user_id: session?.userId ?? null,
   });
 
-  return new NextResponse(csv, {
+  return new NextResponse(body, {
     status: 200,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

@@ -4,7 +4,13 @@
  * No test framework required; exits with code 0 on success, 1 on failure.
  */
 
-import { generateSequence, interpolateLabelPrefixDateTokens } from "../lib/sequence";
+import {
+  countSequenceSteps,
+  createBatchLabelCsvReadableStream,
+  formatSequenceToCsv,
+  generateSequence,
+  interpolateLabelPrefixDateTokens,
+} from "../lib/sequence";
 
 function assertEqual<T>(actual: T, expected: T, label: string): void {
   const ok =
@@ -16,6 +22,22 @@ function assertEqual<T>(actual: T, expected: T, label: string): void {
     process.exit(1);
   }
   console.log(`OK   ${label}`);
+}
+
+// countSequenceSteps matches materialized length
+{
+  const cases: Array<[number, number, number]> = [
+    [10, 25, 5],
+    [1, 1, 1],
+    [0, 3, 1],
+    [0, 6, 2],
+    [5, 12, 3],
+    [10, 0, -2],
+  ];
+  for (const [s, e, o] of cases) {
+    const g = generateSequence(s, e, o);
+    assertEqual(countSequenceSteps(s, e, o), g.length, `countSequenceSteps==len(${s},${e},${o})`);
+  }
 }
 
 // Basic progression
@@ -102,4 +124,22 @@ assertEqual(
   "null prefix stays null",
 );
 
-console.log("\nAll SequenceLib tests passed.");
+// Streaming CSV matches array path for a small range
+void (async () => {
+  const s = 0;
+  const e = 6;
+  const o = 2;
+  const fromStream = await new Response(
+    createBatchLabelCsvReadableStream(s, e, o, "P", "0000"),
+  ).text();
+  const fromArray = formatSequenceToCsv(generateSequence(s, e, o), "P", "0000");
+  assertEqual(
+    fromStream,
+    fromArray,
+    "createBatchLabelCsvReadableStream matches formatSequenceToCsv",
+  );
+  console.log("\nAll SequenceLib tests passed.");
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

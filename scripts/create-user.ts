@@ -60,12 +60,6 @@ if (!password) {
   process.exit(1);
 }
 
-/** Display name for Auth user_metadata when public.users has no name column. */
-function nameFromEmail(email: string): string {
-  const local = email.split("@")[0];
-  return local ? local : email;
-}
-
 async function main() {
   const supabase = createAdminClient();
   const { data: rows, error: fetchError } = await supabase
