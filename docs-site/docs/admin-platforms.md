@@ -1,6 +1,8 @@
 # Users, GitHub, Supabase, and Vercel
 
-This page covers **adding people to the app** and how to work in **GitHub**, **Supabase**, and **Vercel** for operations and deployment. For **app folder layout, Supabase clients, and how migrations build the database**, see [App structure, Supabase connection, and database construction](./app-structure-and-database.md). For a high-level **deployment** diagram, see [Architecture & operations](./architecture.md).
+This page is the **production and hosted-operations** guide: **adding users**, using **GitHub** for code and releases, the **Supabase** and **Vercel** dashboards, and the usual path for **applying migrations** to a **remote** database. It is **not** a substitute for a local machine setup — for that, use [Local development](./local-development.md) first.
+
+For **repository layout, keys, and how migrations define the database**, see [App structure, Supabase connection, and database construction](./app-structure-and-database.md). For a **one-page system diagram** (Vercel, clients, data flow), see [System Overview](./architecture.md).
 
 ---
 
@@ -154,6 +156,12 @@ For day-to-day CLI usage (`supabase link`, `db push`, `db reset` locally), see `
 - **Preview** URLs are useful for QA; they need **valid env vars** (e.g. Supabase project for staging) if you do not use production data.
 - If **Deployment Protection** is on (Vercel Authentication / password on previews), server-to-server clients (e.g. the **Windows log upload service**) need the [protection bypass](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) for automation, **in addition to** the app’s ingest **API key**.
 
+### Documentation URL (same site as the app)
+
+By default, the Docusaurus content is **built into the main Next app** and served at **`/docs` on the same deployment** (e.g. `https://your-app.vercel.app/docs`). The root **`pnpm build`** runs the docs build, copies output to `public/docs`, then builds Next — no separate docs project is required. Users open **Help & docs** in the app navbar.
+
+Optional: a **second Vercel project** only for docs is still documented in **`docs-site/README.md`** if you want a separate origin or build pipeline.
+
 ---
 
 ## Checklist (operators)
@@ -166,5 +174,6 @@ For day-to-day CLI usage (`supabase link`, `db push`, `db reset` locally), see `
 | Run a report or inspect rows | Supabase **SQL Editor** (read carefully in prod) |
 | Rotate web env secrets | Vercel **Environment variables** |
 | Rotate or audit DB deploy to Supabase from CI | GitHub **Actions** secrets and **deploy-db** workflow logs |
+| Update **documentation** and publish | Merge to `main`; the main app’s Vercel build runs **`pnpm build`**, which rebuilds Docusaurus and deploys it under **`/docs`** (no separate project unless you use one) |
 
 For product-oriented steps (e.g. logging in, UI), use the [Quick start](./help.md) guide.

@@ -2,9 +2,17 @@
 const sidebars = {
   docs: [
     'help',
-    'architecture',
-    'app-structure-and-database',
-    'admin-platforms',
+    {
+      type: 'category',
+      label: 'For Developers',
+      collapsed: false,
+      items: [
+        'architecture',
+        'local-development',
+        'app-structure-and-database',
+        'admin-platforms',
+      ],
+    },
   ],
 };
 

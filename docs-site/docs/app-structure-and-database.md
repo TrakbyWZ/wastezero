@@ -6,7 +6,7 @@ This page is aimed at **IT and technical stakeholders** who asked for:
 - **How the app connects to Supabase** (which keys, which code paths, and what runs where).
 - **How the Supabase (Postgres) database is constructed and evolved** (migrations, not free‑hand changes in production only).
 
-The [Architecture & operations](./architecture.md) page complements this with deployment topology (Vercel, GitHub, etc.). [Users, GitHub, Supabase, and Vercel](./admin-platforms.md) covers day‑to‑day admin tasks.
+For a **concrete, local** workflow (Docker, `pnpm dev`, `supabase db reset`, `/docs`), use [Local development](./local-development.md) first, then return here for deeper detail. The [System Overview](./architecture.md) page is the high-level **production** topology. [Users, GitHub, Supabase, and Vercel](./admin-platforms.md) covers **hosted** operations and the **GitHub → deploy** path.
 
 ---
 
@@ -20,7 +20,7 @@ The **root** of the monorepo holds the main web app, database definitions, and s
 | `lib/` | **Shared server/browser utilities**: Supabase client factories (`lib/supabase/*`), session handling, log parsing, sequence/CSV logic, email helpers. |
 | `components/` | **Reusable UI** (buttons, forms, theme) used by routes. |
 | `supabase/` | **Database** — `migrations/` (versioned SQL), `seed.sql` (local data), `config.toml` (local Supabase stack). This is the **authoritative** definition of schema for environments that apply migrations. |
-| `docs-site/` | **Docusaurus** documentation (this site; static after build). |
+| `docs-site/` | **Docusaurus** source; build output is copied to **`public/docs`** and served at **`/docs`** on the main app. |
 | `windows-upload-service/` | **Node service** (runs on customer Windows Server) that uploads log files to the app’s **ingest API** — it does **not** talk to Supabase directly. |
 | `scripts/` | **Maintenance/utility** scripts (e.g. `create-user.ts` for creating Auth users from `public.users`). |
 
@@ -122,10 +122,10 @@ Many behaviors (e.g. duplicate flagging, report refresh, ingest finalization) ar
 
 | Request | Where it is covered now |
 |--------|-------------------------|
-| **Structure of the app** | This page (§1) + [Architecture & operations](./architecture.md) (diagram, hosting). |
+| **Structure of the app** | This page (§1) + [System Overview](./architecture.md) (diagram, hosting). |
 | **How the app connects to Supabase** | This page (§2), including keys and the three client patterns. |
-| **How the DB is constructed** | This page (§3) + [Architecture](./architecture.md) and [admin-platforms](./admin-platforms.md) (push/CI) + `supabase/README.md` in the repository for CLI commands. |
+| **How the DB is constructed** | This page (§3) + [System Overview](./architecture.md) and [admin-platforms](./admin-platforms.md) (push/CI) + `supabase/README.md` in the repository for CLI commands. |
 
-**Recommendation:** point IT to **this page first** for the three bullets above, then to **Architecture** for the big picture, and **admin-platforms** for GitHub/Vercel/Supabase dashboards and user onboarding.
+**Recommendation:** for someone **setting up a dev machine**, start with [Local development](./local-development.md). For the **three bullets** above in depth, use **this page**, then [System Overview](./architecture.md) for the big picture, and [admin-platforms](./admin-platforms.md) for production GitHub/Vercel/Supabase dashboards and user onboarding.
 
 For end-user **using** the app (clicks, menus), the [Quick start](./help.md) page remains the right place.

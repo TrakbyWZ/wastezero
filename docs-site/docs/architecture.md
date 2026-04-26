@@ -1,9 +1,10 @@
-# Architecture & operations
+# System Overview
 
-This page is for **IT and administrators**: how the WasteZero system is structured, where components run, and how to run, deploy, and operate it with **GitHub**, **Supabase**, and **Vercel**.
+This page is for **IT and administrators**: a **system-level** view of the WasteZero stack and how **production** and **hosting** fit together (**GitHub**, **Supabase**, **Vercel**). It does not replace a step-by-step for your laptop — for that, use [Local development](./local-development.md).
 
-- For **repository layout**, **how the Next.js app connects to Supabase (keys and clients)**, and **how the database is built from migrations**, start with [App structure, Supabase connection, and database construction](./app-structure-and-database.md).
-- For **adding users**, **GitHub/Supabase/Vercel navigation**, **CI database deploys**, and **migrations vs ad-hoc SQL**, see [Users, GitHub, Supabase, and Vercel](./admin-platforms.md).
+- For **running the app, local Supabase, and `/docs` on your machine**, see [Local development](./local-development.md).
+- For **repository layout**, **how the Next.js app connects to Supabase (keys and clients)**, and **how the database is built from migrations**, see [App structure, Supabase connection, and database construction](./app-structure-and-database.md).
+- For **adding users in hosted environments**, **GitHub/Supabase/Vercel** operations, and **applying migrations** to a remote project, see [Users, GitHub, Supabase, and Vercel](./admin-platforms.md).
 
 ## System diagram
 
@@ -65,23 +66,6 @@ flowchart TB
 
 ---
 
-## Run locally (developers / staging)
-
-1. **Install:** Node 18+, [pnpm](https://pnpm.io), and (for local DB) [Docker](https://docker.com) + [Supabase CLI](https://supabase.com/docs/guides/cli).
-2. **Clone** the repo from GitHub and `pnpm install` at the repo root.
-3. **Environment:** copy `.env.example` to `.env.local` and set at least:
-   - `SUPABASE_URL`
-   - `SUPABASE_PUBLISHABLE_KEY` (anon / browser-safe)
-   - `SUPABASE_SECRET_KEY` (service role — server only; never expose to the client)
-   - `SESSION_SECRET`
-4. **Local database (optional but typical):** `pnpm exec supabase start`, then `pnpm exec supabase status -o env` and merge keys into `.env.local`. Apply schema with `pnpm exec supabase db reset` (runs migrations + seed). For hosted databases, use the Supabase CLI (`supabase link`, `supabase db push`); details are in `supabase/README.md` in the repository.
-5. **Start app:** `pnpm dev` → [http://localhost:3000](http://localhost:3000).  
-   Convenience: `pnpm run dev:full` stops/starts local Supabase then the dev server.
-
-**Docs site locally:** from repo root, `pnpm docs:start` (Docusaurus dev server; default port is often 3000 — stop the Next app or set a different port if both run at once).
-
----
-
 ## Administration: GitHub
 
 | Task | Where / how |
@@ -116,7 +100,7 @@ flowchart TB
 | **Domains** | **Settings** → **Domains** — attach production and preview URLs. |
 | **Preview deployments** | Each PR can get a preview URL; use **Preview** env vars if keys differ. |
 | **Deployment Protection** | If you enable Vercel Authentication / password on previews, the **Windows upload service** must send the [Protection Bypass for Automation](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) header (`x-vercel-protection-bypass`); see `windows-upload-service/README.md` in the repo. The ingest **API key** is separate and still required. |
-| **Docs static site** | Build `docs-site` with `pnpm docs:build`, deploy the `docs-site/build/` output as a second Vercel project or subpath (static). |
+| **Docs (Docusaurus)** | Served at **`/docs`** on the same deployment as the app (`pnpm build` copies `docs-site/build` → `public/docs`). See `docs-site/README.md` for Docusaurus-only dev and optional **separate** Vercel project. |
 
 ---
 
@@ -132,6 +116,6 @@ Not hosted on Vercel or Supabase. It runs on **Windows**, reads `config.json` (o
 |----------|---------|
 | **End user** | Browser → Vercel → Next.js → Supabase (Auth + DB) |
 | **IT / printer integration** | Windows service → HTTPS → Vercel (ingest API) → Next.js → Supabase (DB) |
-| **Dev / DBA** | GitHub, local Supabase CLI, Supabase Dashboard, Vercel env and deploys |
+| **Dev / DBA (local machine)** | See [Local development](./local-development.md) — then GitHub, Supabase Dashboard, Vercel as needed |
 
 For day-to-day **product help** (login, navigation), see the [Quick start](./help.md) page.
