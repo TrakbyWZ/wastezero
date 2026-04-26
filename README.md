@@ -20,7 +20,7 @@ A Next.js app for managing production batches, customers, and printer logs. Supp
 ## Project structure
 
 - **`app/`** — Routes and route handlers: `page.tsx`, `layout.tsx`, `loading.tsx`, `not-found.tsx`; `api/` for API routes; `auth/` for login and password lifecycle (no sign-up; users are pre-authorized); `protected/` for authenticated pages (batch, customers, logs).
-- **Documentation** — Docusaurus in **`docs-site/`**; build output is copied to **`public/docs`**, so help is at **`/docs`** on the app. **Local dev** (Supabase, env, `dev:full`, `/docs`) is documented in **`docs-site/docs/local-development.md`** in the repo and, after a docs build, under **For Developers → Local development** in `/docs`. Run `pnpm docs:build && pnpm docs:sync` before `pnpm dev` if you need `/docs` without `pnpm run dev:full`, or see `docs-site/README.md`.
+- **Documentation** — Markdown in **`content/docs/`** is rendered in-app for signed-in users (see `app/protected/docs/[[...slug]]/page.tsx`) at **`/protected/docs/...`**, with the same top navigation and session as the rest of Trak. The **Local development** guide is **[content/docs/local-development.md](content/docs/local-development.md)**. Screenshot assets live in **`public/docs-images/`** (referenced as `/docs-images/...` in Markdown). Prior **`/docs/...`** URLs may redirect to **`/protected/docs/...`** (see `next.config.ts`).
 - **`app/*/_components/`** — Private (non-routable) UI for a route segment (e.g. `protected/batch/_components/`).
 - **`components/`** — Shared UI (forms, buttons, cards, theme switcher).
 - **`lib/`** — Utilities, Supabase client/server/admin, session, email, sequence logic, log parser, shared types (`lib/types.ts`).
@@ -55,7 +55,7 @@ A Next.js app for managing production batches, customers, and printer logs. Supp
    pnpm dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000). With local Supabase (see below), use `pnpm run dev:full` to restart Supabase, build and sync Docusaurus into `public/docs`, then start the dev server.
+   Open [http://localhost:3000](http://localhost:3000). With local Supabase (see below), use `pnpm run dev:full` to restart the Supabase stack, then start the dev server.
 
 ### Environment variables
 
@@ -91,7 +91,7 @@ To run against a **local** Supabase instance:
    - `SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
 
-4. Run the app: `pnpm dev`, or use `pnpm run dev:full` to restart Supabase, build and sync docs, then start the dev server.
+4. Run the app: `pnpm dev`, or use `pnpm run dev:full` to restart Supabase, then start the dev server.
 
 **OTP login (local):**
 
@@ -104,7 +104,7 @@ To run against a **local** Supabase instance:
 | Script | Description |
 |--------|-------------|
 | `pnpm dev` | Start Next.js dev server |
-| `pnpm run dev:full` | Stop/start local Supabase, `docs:build` + `docs:sync`, then `pnpm dev` |
+| `pnpm run dev:full` | Stop/start local Supabase, then `pnpm dev` |
 | `pnpm build` | Production build |
 | `pnpm start` | Run production server |
 | `pnpm lint` | Run ESLint |

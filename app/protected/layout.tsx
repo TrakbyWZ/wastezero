@@ -35,7 +35,7 @@ async function ProtectedLayoutInner({
         }
       />
       <main className="flex-1 flex flex-col min-h-screen pt-14">
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl w-full p-5 mx-auto">
+        <div className="flex-1 flex flex-col gap-20 max-w-6xl w-full p-5 mx-auto">
           {children}
         </div>
         <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs py-16">
