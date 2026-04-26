@@ -22,6 +22,7 @@ import {
   computeEndFromStartOffsetCount,
   computeStartFromLastEnd,
   interpolateLabelPrefixDateTokens,
+  MAX_BATCH_LABEL_COUNT,
   padSequenceNumber,
 } from "@/lib/sequence";
 import type { BatchRow, CustomerRow } from "@/lib/types";
@@ -360,8 +361,10 @@ export default function BatchDashboardClient() {
       setFormError("This customer has no sequence pattern configured. Configure offset in Customer Sequence.");
       return;
     }
-    if (Number.isNaN(count) || count < 1 || count > 1_000_000) {
-      setFormError("Number of sequences must be between 1 and 1,000,000.");
+    if (Number.isNaN(count) || count < 1 || count > MAX_BATCH_LABEL_COUNT) {
+      setFormError(
+        `Number of sequences must be between 1 and ${MAX_BATCH_LABEL_COUNT.toLocaleString("en-US")} (maximum per batch).`,
+      );
       return;
     }
     if (computedStartSequence == null || computedEndSequence == null) {
@@ -618,7 +621,9 @@ export default function BatchDashboardClient() {
               <div>
                 <CardTitle id="new-batch-title">New batch</CardTitle>
                 <CardDescription>
-                  Create a new batch. Start sequence is taken from the last batch for the selected sequence (last end + offset), or from that sequence&apos;s default start value if no prior batch exists. Enter how many sequences to print (1–1,000,000). A CSV file will download.
+                  Create a new batch. Start sequence is taken from the last batch for the selected sequence (last end + offset), or from that sequence&apos;s default start value if no prior batch exists. Enter how
+                  many sequences to print (1–{MAX_BATCH_LABEL_COUNT.toLocaleString("en-US")}). A CSV file
+                  will download.
                 </CardDescription>
               </div>
             </CardHeader>
@@ -771,12 +776,14 @@ export default function BatchDashboardClient() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sequence_count">Number of sequences to print (1–1,000,000) *</Label>
+                  <Label htmlFor="sequence_count">
+                    {`Number of sequences to print (1–${MAX_BATCH_LABEL_COUNT.toLocaleString("en-US")}) *`}
+                  </Label>
                   <Input
                     id="sequence_count"
                     type="number"
                     min={1}
-                    max={1_000_000}
+                    max={MAX_BATCH_LABEL_COUNT}
                     step={1}
                     value={form.sequence_count}
                     onChange={(e) => setForm((f) => ({ ...f, sequence_count: e.target.value }))}

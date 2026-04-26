@@ -3,9 +3,10 @@ import { getSession } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
-  generateSequence,
-  formatSequenceToCsv,
+  countSequenceSteps,
+  createBatchLabelCsvReadableStream,
   interpolateLabelPrefixDateTokens,
+  MAX_BATCH_LABEL_COUNT,
 } from "@/lib/sequence";
 import type { BatchRow } from "@/lib/types";
 import { NextResponse } from "next/server";
@@ -241,8 +242,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const sequence = generateSequence(startSeq, endSeq, offsetSeq);
-  const labelCount = sequence.length;
+  const labelCount = countSequenceSteps(startSeq, endSeq, offsetSeq);
+  if (labelCount < 1) {
+    return NextResponse.json(
+      { error: "No sequence values in the given start/end range for this offset." },
+      { status: 400 },
+    );
+  }
+  if (labelCount > MAX_BATCH_LABEL_COUNT) {
+    return NextResponse.json(
+      {
+        error: `Sequence length exceeds the maximum allowed per batch (${MAX_BATCH_LABEL_COUNT.toLocaleString("en-US")} labels).`,
+      },
+      { status: 400 },
+    );
+  }
+
   const startTime = new Date().toISOString();
   const createdAt = new Date(startTime);
   const csvFilename = batchCsvFilename(customer.customer_num, createdAt);
@@ -280,7 +295,13 @@ export async function POST(request: Request) {
   );
   const numberFormat =
     customerSequence.number_format?.trim() || DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT;
-  const csv = formatSequenceToCsv(sequence, labelPrefix, numberFormat);
+  const csvStream = createBatchLabelCsvReadableStream(
+    startSeq,
+    endSeq,
+    offsetSeq,
+    labelPrefix,
+    numberFormat,
+  );
   const filename = csvFilename;
 
   await admin.from("batch_downloads").insert({
@@ -288,7 +309,7 @@ export async function POST(request: Request) {
     user_id: userId,
   });
 
-  return new NextResponse(csv, {
+  return new NextResponse(csvStream, {
     status: 201,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

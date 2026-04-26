@@ -4,6 +4,9 @@
  * All sequence logic (generation, end from count, next start from last end) lives here.
  */
 
+/** Max labels per batch (application cap; `public.batch.label_count` is INTEGER in the DB). */
+export const MAX_BATCH_LABEL_COUNT = 9_999_999;
+
 /**
  * Computes the start value for the next batch given the previous batch's end value and the offset.
  * next_start = lastEnd + offset.
@@ -146,6 +149,64 @@ export function formatSequenceToCsv(
   return formatted.join("\n");
 }
 
+const UTF8 = new TextEncoder();
+/** Flush CSV text when buffer is at least this many characters (keeps many rows per enqueue, ASCII-safe). */
+const CSV_STREAM_BUFFER_CHARS = 256 * 1024;
+
+/**
+ * Stream batch label lines as UTF-8 without materializing a number[] (avoids
+ * "Invalid array length" / OOM for large `label_count`).
+ * Newlines between rows only, same as `formatSequenceToCsv` + `join("\n")`.
+ */
+export function createBatchLabelCsvReadableStream(
+  startSeq: number,
+  endSeq: number,
+  offsetSeq: number,
+  labelPrefix: string | null,
+  numberFormat: string | null,
+): ReadableStream<Uint8Array> {
+  const a = Number(startSeq);
+  const b = Number(endSeq);
+  const o = Number(offsetSeq);
+  const prefix = labelPrefix ?? "";
+  const format = numberFormat ?? "";
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      let buf = "";
+      let isFirstInFile = true;
+      const flush = () => {
+        if (buf) {
+          controller.enqueue(UTF8.encode(buf));
+          buf = "";
+        }
+      };
+      const appendRow = (row: string) => {
+        if (!isFirstInFile) buf += "\n";
+        isFirstInFile = false;
+        buf += row;
+        if (buf.length >= CSV_STREAM_BUFFER_CHARS) {
+          flush();
+        }
+      };
+      try {
+        if (o > 0) {
+          for (let v = a; v <= b; v += o) {
+            appendRow(prefix + padSequenceNumber(v, format));
+          }
+        } else {
+          for (let v = a; v >= b; v += o) {
+            appendRow(prefix + padSequenceNumber(v, format));
+          }
+        }
+        flush();
+        controller.close();
+      } catch (e) {
+        controller.error(e);
+      }
+    },
+  });
+}
+
 /**
  * Generates an arithmetic progression of integers from start up to and including
  * the last value that does not exceed (ascending) or drop below (descending) end,
@@ -160,6 +221,24 @@ export function formatSequenceToCsv(
  * generateSequence(10, 25, 5)  // [10, 15, 20, 25]
  * generateSequence(10, 18, 2) // [10, 12, 14, 16, 18]
  */
+/**
+ * Count of values produced by `generateSequence` (same inputs, non-zero offset, valid direction).
+ * Used to bound batch size to `MAX_BATCH_LABEL_COUNT` without materializing the array.
+ */
+export function countSequenceSteps(
+  startSeq: number,
+  endSeq: number,
+  offsetSeq: number,
+): number {
+  if (offsetSeq === 0) return 0;
+  if (offsetSeq > 0) {
+    if (endSeq < startSeq) return 0;
+    return Math.floor((endSeq - startSeq) / offsetSeq) + 1;
+  }
+  if (endSeq > startSeq) return 0;
+  return Math.floor((startSeq - endSeq) / -offsetSeq) + 1;
+}
+
 export function generateSequence(
   startSeq: number,
   endSeq: number,

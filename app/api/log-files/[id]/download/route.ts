@@ -18,7 +18,7 @@ type LogEntryRow = {
 
 function recordsToCsv(records: LogEntryRow[]): string {
   const header = "#,Log File Header,Job Name,Job Number,Operator,Job Start Timestamp,Job End Timestamp,Data,Timestamp,Duplicate";
-  const rows = records.map((r, i) => {
+  const rows = records.map((r) => {
     const dataTs = r.data_timestamp ?? "";
     const jobStartTs = r.job_start_timestamp ?? "";
     const jobEndTs = r.job_end_timestamp ?? "";
