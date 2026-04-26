@@ -33,7 +33,9 @@ function PreForMarkdown(
   return (
     <pre
       className={cn(
-        "my-4 overflow-x-auto rounded-lg border border-border bg-muted/40 p-4 text-sm",
+        "my-4 overflow-x-auto rounded-lg border border-border p-4 font-mono text-sm leading-relaxed",
+        "bg-slate-100 text-slate-900 [color-scheme:light]",
+        "dark:bg-zinc-950/80 dark:text-zinc-100 [color-scheme:dark] dark:shadow-inner",
         className,
       )}
       {...rest}
@@ -86,14 +88,24 @@ const components: Components = {
     const { className, children, ...rest } = props;
     if (className?.includes("language-")) {
       return (
-        <code className={className} {...rest}>
+        <code
+          className={cn(
+            className,
+            "bg-transparent p-0 font-mono text-sm leading-relaxed [font-size:0.875em]",
+            "!text-slate-900 dark:!text-zinc-100",
+          )}
+          {...rest}
+        >
           {children}
         </code>
       );
     }
     return (
       <code
-        className="rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-sm"
+        className={cn(
+          "rounded border border-slate-200/90 bg-slate-100 px-1.5 py-0.5 font-mono text-sm",
+          "text-slate-900 [color-scheme:light] dark:border-border dark:bg-muted/80 dark:text-foreground [color-scheme:dark]",
+        )}
         {...rest}
       >
         {children}
