@@ -1,1 +1,5 @@
 /* Customize WasteZero docs theme (optional) */
+/* Text-only top-left brand: Docusaurus needs a logo `src`; hide the 1×1 placeholder. */
+.navbar__brand .navbar__logo img {
+  display: none;
+}

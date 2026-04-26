@@ -3,18 +3,48 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
 import { createAdminClient } from "./admin";
 
-const PUBLIC_PATHS = [
-  "/",
-  "/login",
-  "/force-reset",
-  "/auth",
-  "/api",
-];
+const PUBLIC_PATHS = ["/", "/login", "/force-reset", "/auth", "/api"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
     (p) => p === pathname || (p !== "/" && pathname.startsWith(`${p}/`))
   );
+}
+
+/**
+ * Next.js serves `public` by exact path: `public/docs/index.html` is at `/docs/index.html`, not
+ * `/docs` or `/docs/`. Docusaurus emits `.../folder/index.html` for each page. Map pretty URLs
+ * to those files so `/docs` and client-side doc routes work.
+ */
+function docusaurusRewriteToFile(pathname: string): string | null {
+  if (pathname !== "/docs" && !pathname.startsWith("/docs/")) {
+    return null;
+  }
+  if (pathname === "/docs" || pathname === "/docs/") {
+    return "/docs/index.html";
+  }
+  if (pathname.startsWith("/docs/assets/") || pathname.startsWith("/docs/img/")) {
+    return null;
+  }
+  const last = pathname.split("/").filter(Boolean).pop() ?? "";
+  // sitemap.xml, app.js, foo.min.js, etc. (not doc folder routes)
+  if (
+    last.includes(".") &&
+    !/\.html?$/i.test(last) &&
+    /\.(js|mjs|map|json|ico|png|jpe?g|gif|svg|webp|woff2?|ttf|eot|xml|txt|webmanifest|pdf|csv|xsl|xslt)$/i.test(
+      last,
+    )
+  ) {
+    return null;
+  }
+  if (last.match(/\.html?$/i)) {
+    return null; // already a file path
+  }
+  return `${pathname.replace(/\/$/, "")}/index.html`;
+}
+
+function isDocsPath(pathname: string): boolean {
+  return pathname === "/docs" || pathname.startsWith("/docs/");
 }
 
 export async function updateSession(request: NextRequest) {
@@ -50,7 +80,7 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh session (must run immediately after createServerClient).
-  const { data } = await supabase.auth.getClaims();
+  await supabase.auth.getClaims();
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
   const email = user?.email?.trim().toLowerCase() ?? null;
@@ -111,6 +141,20 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/force-reset";
     return NextResponse.redirect(url);
+  }
+
+  if (isDocsPath(path)) {
+    const docusaurusPath = docusaurusRewriteToFile(path);
+    if (docusaurusPath != null) {
+      const res = NextResponse.rewrite(
+        new URL(docusaurusPath, request.nextUrl),
+        { request },
+      );
+      for (const c of supabaseResponse.cookies.getAll()) {
+        res.cookies.set(c);
+      }
+      return res;
+    }
   }
 
   return supabaseResponse;

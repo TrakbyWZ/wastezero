@@ -2,15 +2,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:full": "pnpm exec supabase stop && pnpm exec supabase start && pnpm dev",
-    "build": "next build",
+    "dev:full": "pnpm exec supabase stop && pnpm exec supabase start && pnpm run docs:build && pnpm run docs:sync && pnpm dev",
+    "build": "pnpm run docs:build && node scripts/copy-docs-to-public.cjs && next build",
+    "docs:sync": "node scripts/copy-docs-to-public.cjs",
     "start": "next start",
     "lint": "eslint .",
     "test:sequence": "tsx scripts/test-sequence.ts",
     "test:log-parser": "tsx scripts/test-log-parser.ts",
     "test:log-ingest-pressure": "tsx scripts/pressure-test-log-ingest.ts",
     "create-users": "tsx scripts/create-user.ts",
-    "docs:start": "cd docs-site && pnpm install && pnpm start",
+    "docs:start": "cd docs-site && pnpm install && pnpm exec docusaurus start --port 3001",
     "docs:build": "cd docs-site && pnpm install && pnpm build"
   },
   "dependencies": {
