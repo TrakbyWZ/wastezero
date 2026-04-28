@@ -9,8 +9,16 @@ export type DocNavSection = {
 
 export const DOC_NAV: readonly DocNavSection[] = [
   {
-    label: "For Users",
-    items: [{ slug: "help", label: "Quick Start Guide" }],
+    label: "Quick Start Guide",
+    items: [
+      { slug: "help", label: "Overview" },
+      { slug: "quick-start-login", label: "1) Login and App Navigation" },
+      { slug: "quick-start-customers", label: "2) Create or Verify Customers" },
+      { slug: "quick-start-sequences", label: "3) Create Customer Sequences" },
+      { slug: "quick-start-batches", label: "4) Create Batches and Export CSV" },
+      { slug: "quick-start-data-logs", label: "5) Review Data Logs and Validate" },
+      { slug: "quick-start-sign-out", label: "6) Sign Out and Other Options" },
+    ],
   },
   {
     label: "For Developers",
