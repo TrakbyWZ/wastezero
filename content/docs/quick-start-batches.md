@@ -16,9 +16,21 @@ After customer and sequence setup, create the batch and generate printer files.
    - Sequence matches the intended label format/range.
    - Quantity/count values are correct.
 7. Click **Save** to create the batch.
-8. Open the saved batch record.
-9. Generate CSV output files from the batch.
-10. Download CSV files for printer-side automated processing.
+8. This should prompt you with a save dialog and a auto-generated csv file name in the format:
+   `{CUSTOMER_NUMBER}_{YYYYMMDD}_{HHMMSS}.csv`
+   
+   Here is an example one:
+   `EVERGREEN_20260428_122748.csv`
+
+   The date/time in the filename is the **time at which the file was generated (UTC)**.
+
+   > **Timezone note:** Batch filenames always use UTC, not local computer time.
+
+   ![Batch Save Dialog](/docs-images/batch-save-dialog.png)
+
+9. If you miss saving this file, you can always re-export it by using the "Download" button for that batch.
+11. Save the downloaded CSV for printer-side automated processing to the appropriate printer/computer.
+12. Then upload this file to the printing system so you can use it to run a print job for the labels.
 
 ---
 
@@ -54,10 +66,11 @@ Create new batch form:
 
 ## Operator checklist
 
-- Customer is correct.
-- Sequence is correct.
-- Batch saved successfully.
-- CSV files generated for automated printer processing.
+[] Customer is correct.
+[] Batch saved successfully.
+[] Sequence is correct by inspecting the first few lines of the file.
+[] File name matches the customer number.
+[] CSV files generated for automated printer processing.
 
 ---
 

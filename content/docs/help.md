@@ -20,4 +20,5 @@ Use this section as the entry point for end-to-end operations. Each major proces
 - Always verify customer details before sequence setup.
 - Always verify sequence definition before batch creation.
 - CSV files are exported from batches and processed by the printer-side Windows service.
+- Batch filename timestamps use UTC.
 - Always review Data Logs after the automated sync as final validation.

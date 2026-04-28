@@ -34,6 +34,8 @@ Data file detail preview:
 - **Duplicate indicators**: Repeated reads or duplicated entries.
 - **Ingest timing/context**: Audit and troubleshooting context.
 
+> **Timezone note:** System-generated timestamps are stored and displayed using UTC unless otherwise labeled.
+
 ---
 
 ## Validation checklist
