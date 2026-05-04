@@ -59,7 +59,7 @@ Settings use the standard **`appsettings.json`** hierarchy, bound to the **`Uplo
 |-----------------------------|-------------|
 | `WatchDirectories` | Array of absolute Windows paths to scan (non-recursive). |
 | `ApiEndpoint` | Full URL to `/api/log-files/ingest`. |
-| `ApiKey` | Must match `LOG_FILES_INGEST_API_KEY` (or `SYNCED_FILES_INGEST_API_KEY`) on the WasteZero app. **Do not commit real keys** — use user secrets locally and environment variables or a secured file on the server. |
+| `ApiKey` | Must match `LOG_FILES_INGEST_API_KEY` (or `SYNCED_FILES_INGEST_API_KEY`) on the WasteZero app. **Do not commit real keys.** Locally, put it in gitignored `appsettings.Development.json` (see below), or use environment variables or optional [user secrets](#optional-user-secrets). On the server, use environment variables or a secured file. |
 | `VercelProtectionBypass` | Optional. Sent as `x-vercel-protection-bypass` for Vercel deployment protection. |
 | `PollingIntervalSeconds` | Poll interval (minimum **5** after normalization). |
 | `DatabasePath` | SQLite file (absolute or relative to the [content root](#content-root)). |
@@ -74,7 +74,7 @@ Settings use the standard **`appsettings.json`** hierarchy, bound to the **`Uplo
 1. `appsettings.json` — safe defaults; **committed** to the repo.
 2. `appsettings.{Environment}.json` — optional file on disk (e.g. `appsettings.Development.json` when `DOTNET_ENVIRONMENT` is `Development`). **This repo does not commit** `appsettings.Development.json`; create it locally from the template (see [below](#local-only-appsettingsdevelopmentjson)).
 3. Environment variables — override any key; use **double underscores** for nesting (see below).
-4. [User secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) — in **Development** only (`dotnet user-secrets`), ideal for `ApiKey` on a dev machine.
+4. [User secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) — optional in **Development** only (`dotnet user-secrets`); same override rules as env vars if you prefer not to store `ApiKey` in `appsettings.Development.json` on disk.
 
 The host calls **`ValidateOnStart()`** for `UploadServiceOptions`: missing watch directories or API settings produce a clear error at startup.
 
@@ -111,19 +111,21 @@ Configuration files and relative paths (`DatabasePath`, `LogDir`) are resolved f
 Copy-Item appsettings.Development.json.example appsettings.Development.json
 ```
 
-Edit **`appsettings.Development.json`** for your machine: `WatchDirectories`, `ApiEndpoint`, optional overrides. The example’s **`DatabasePath`** is relative to the build output folder so SQLite resolves to **`windows-upload-service-dotnet/bin/upload_state.db`** (under `**/bin/` in `.gitignore`, so the DB is not tracked). Production installs should use an absolute `DatabasePath` or the default next to the executable.
+Edit **`appsettings.Development.json`** for your machine: `WatchDirectories`, `ApiEndpoint`, **`ApiKey`** (same value as `LOG_FILES_INGEST_API_KEY` in the app’s `.env.local`), and any other overrides. The file is listed in **`windows-upload-service-dotnet/.gitignore`** (`appsettings.*.json`), so it is never committed—storing `ApiKey` here is the usual local approach.
+
+The example’s **`DatabasePath`** is relative to the build output folder so SQLite resolves to **`windows-upload-service-dotnet/bin/upload_state.db`** (under `**/bin/` in `.gitignore`, so the DB is not tracked). Production installs should use an absolute `DatabasePath` or the default next to the executable.
 
 Rebuild or `dotnet run` after creating or changing this file so it is copied next to the built executable (same as `appsettings.json`).
 
-### Local developer: API key without committing secrets
+`Properties/launchSettings.json` sets **`DOTNET_ENVIRONMENT=Development`** so `appsettings.Development.json` is merged when present.
 
-From the same project directory:
+### Optional: user secrets
+
+If you prefer not to keep `ApiKey` in a JSON file on disk, you can omit it from `appsettings.Development.json` and set it with user secrets from the same project directory:
 
 ```powershell
 dotnet user-secrets set "UploadService:ApiKey" "your-local-dev-secret-matching-LOG_FILES_INGEST_API_KEY"
 ```
-
-`Properties/launchSettings.json` sets **`DOTNET_ENVIRONMENT=Development`** so `appsettings.Development.json` is merged when present. Keep **`ApiKey`** in user secrets only, not in JSON you commit.
 
 ---
 
@@ -294,7 +296,7 @@ Follow the repo guide **[Local development](../content/docs/local-development.md
 In the **repository root** `.env.local`, set a shared secret the upload service will send as `X-API-Key`:
 
 ```bash
-# .env.local (same value as UploadService:ApiKey — user secrets or env on the worker)
+# .env.local (same value as UploadService:ApiKey in gitignored appsettings.Development.json, or user secrets / env on the worker)
 LOG_FILES_INGEST_API_KEY=your-local-dev-secret
 ```
 
@@ -324,11 +326,7 @@ The app should be available at **`http://localhost:3000`**. The ingest URL for t
    Copy-Item appsettings.Development.json.example appsettings.Development.json
    ```
 
-   Edit `appsettings.Development.json` (watch folders, `ApiEndpoint`, etc.). Set the API key with **user secrets** (do not put the real key in committed files):
-
-   ```powershell
-   dotnet user-secrets set "UploadService:ApiKey" "same-as-LOG_FILES_INGEST_API_KEY"
-   ```
+   Edit `appsettings.Development.json`: set `WatchDirectories`, `ApiEndpoint`, and **`UploadService:ApiKey`** to the same value as `LOG_FILES_INGEST_API_KEY` in `.env.local` (the file is gitignored, so the key is not committed). Alternatively, leave `ApiKey` empty in that file and use **`dotnet user-secrets set "UploadService:ApiKey" "…"`** (see [Optional: user secrets](#optional-user-secrets)).
 
    `Properties/launchSettings.json` sets `DOTNET_ENVIRONMENT=Development` so `appsettings.Development.json` is merged over `appsettings.json` when the file exists.
 
@@ -364,7 +362,7 @@ After the next poll cycle, check:
 
 ## Development run (not as a service)
 
-Use **`appsettings.json`** (committed) plus a **local** **`appsettings.Development.json`** (from the `.example` template) and **user secrets** for `ApiKey`, then:
+Use **`appsettings.json`** (committed) plus a **local** **`appsettings.Development.json`** (from the `.example` template, gitignored) with your machine-specific values including **`ApiKey`**, then:
 
 ```powershell
 cd windows-upload-service-dotnet\src\WasteZero.WindowsUploadService
