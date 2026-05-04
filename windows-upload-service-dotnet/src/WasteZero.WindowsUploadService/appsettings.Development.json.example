@@ -1,0 +1,8 @@
+{
+  "UploadService": {
+    "WatchDirectories": [ "C:\\Temp\\WasteZeroUploadTest" ],
+    "ApiEndpoint": "http://localhost:3000/api/log-files/ingest",
+    "PollingIntervalSeconds": 10,
+    "DatabasePath": "../../../../../bin/upload_state.db"
+  }
+}

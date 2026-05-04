@@ -1,5 +1,5 @@
 **/bin/
 **/obj/
 *.user
-# Optional: production overrides with secrets (keep out of git)
-src/WasteZero.WindowsUploadService/appsettings.Production.json
+# Local-only (copy from appsettings.Development.json.example — see README)
+appsettings.*.json

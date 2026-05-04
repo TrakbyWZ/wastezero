@@ -71,8 +71,8 @@ Settings use the standard **`appsettings.json`** hierarchy, bound to the **`Uplo
 
 **Files (merged in the usual order):**
 
-1. `appsettings.json` — safe defaults; committed to the repo.
-2. `appsettings.{Environment}.json` — e.g. `appsettings.Development.json` for local URLs (still **no secrets** in git if your team prefers — use user secrets for keys).
+1. `appsettings.json` — safe defaults; **committed** to the repo.
+2. `appsettings.{Environment}.json` — optional file on disk (e.g. `appsettings.Development.json` when `DOTNET_ENVIRONMENT` is `Development`). **This repo does not commit** `appsettings.Development.json`; create it locally from the template (see [below](#local-only-appsettingsdevelopmentjson)).
 3. Environment variables — override any key; use **double underscores** for nesting (see below).
 4. [User secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) — in **Development** only (`dotnet user-secrets`), ideal for `ApiKey` on a dev machine.
 
@@ -101,17 +101,29 @@ Configuration files and relative paths (`DatabasePath`, `LogDir`) are resolved f
 
 `WasteZero.WindowsUploadService.exe --contentRoot="D:\Apps\UploadService"`
 
+### Local-only `appsettings.Development.json`
+
+`appsettings.Development.json` is **gitignored** and is **not** part of the committed project. Only **`appsettings.Development.json.example`** is in source control as a template.
+
+**One-time setup** (from `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`):
+
+```powershell
+Copy-Item appsettings.Development.json.example appsettings.Development.json
+```
+
+Edit **`appsettings.Development.json`** for your machine: `WatchDirectories`, `ApiEndpoint`, optional overrides. The example’s **`DatabasePath`** is relative to the build output folder so SQLite resolves to **`windows-upload-service-dotnet/bin/upload_state.db`** (under `**/bin/` in `.gitignore`, so the DB is not tracked). Production installs should use an absolute `DatabasePath` or the default next to the executable.
+
+Rebuild or `dotnet run` after creating or changing this file so it is copied next to the built executable (same as `appsettings.json`).
+
 ### Local developer: API key without committing secrets
 
-From `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`:
+From the same project directory:
 
 ```powershell
 dotnet user-secrets set "UploadService:ApiKey" "your-local-dev-secret-matching-LOG_FILES_INGEST_API_KEY"
 ```
 
-`appsettings.Development.json` in the project supplies sample **non-secret** values when `DOTNET_ENVIRONMENT` is `Development` (`dotnet run` sets this via `Properties/launchSettings.json`). Adjust paths and endpoint there for your machine; keep `ApiKey` out of source control and in user secrets.
-
-In Development, **`UploadService:DatabasePath`** is set to a path relative to the build output folder so SQLite resolves to **`windows-upload-service-dotnet/bin/upload_state.db`** (next to the solution `src/` tree, not inside it). That folder is covered by `.gitignore` (`**/bin/`), so the database file is not tracked by Git. Production installs should use an absolute `DatabasePath` or the default next to the executable.
+`Properties/launchSettings.json` sets **`DOTNET_ENVIRONMENT=Development`** so `appsettings.Development.json` is merged when present. Keep **`ApiKey`** in user secrets only, not in JSON you commit.
 
 ---
 
@@ -305,14 +317,20 @@ The app should be available at **`http://localhost:3000`**. The ingest URL for t
 ### 4. Configure and run the .NET upload service
 
 1. Pick a folder on disk for test logs (for example `C:\Temp\WasteZeroUploadTest`). Create a small **`sample.txt`** or **`sample.csv`** there so the worker has something to upload.
-2. In `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`, adjust **`appsettings.Development.json`** for your machine (watch folder, `ApiEndpoint`). Set the API key with **user secrets** (do not put the real key in JSON that you commit):
+2. In `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`, create **`appsettings.Development.json`** if you do not already have one:
 
    ```powershell
    cd windows-upload-service-dotnet\src\WasteZero.WindowsUploadService
+   Copy-Item appsettings.Development.json.example appsettings.Development.json
+   ```
+
+   Edit `appsettings.Development.json` (watch folders, `ApiEndpoint`, etc.). Set the API key with **user secrets** (do not put the real key in committed files):
+
+   ```powershell
    dotnet user-secrets set "UploadService:ApiKey" "same-as-LOG_FILES_INGEST_API_KEY"
    ```
 
-   `Properties/launchSettings.json` sets `DOTNET_ENVIRONMENT=Development` so `appsettings.Development.json` is merged over `appsettings.json`.
+   `Properties/launchSettings.json` sets `DOTNET_ENVIRONMENT=Development` so `appsettings.Development.json` is merged over `appsettings.json` when the file exists.
 
 3. Run the worker **interactively** (no Windows Service required for local testing):
 
@@ -325,7 +343,7 @@ After the next poll cycle, check:
 
 - **Next.js terminal** — request logs or errors from `/api/log-files/ingest`.
 - **`logs\service.log`** (next to the project output or under `bin\...\net6.0-windows\logs` depending on how you run) — upload success or HTTP errors.
-- **SQLite** `upload_state.db` — row with `status` = `SUCCESS` for your file path.
+- **SQLite** — with the example template, the DB is at **`windows-upload-service-dotnet/bin/upload_state.db`**; otherwise wherever `UploadService:DatabasePath` resolves. Look for `status` = `SUCCESS` for your file path.
 - **Supabase Studio** — URL is printed by `pnpm exec supabase status` (see [Local development](../content/docs/local-development.md#local-studio)); open **Table Editor** → **`log_files`** to see a new row for the uploaded filename.
 - **In-app** — after signing in, open the log / sync area in the app (if your build exposes it) to confirm the file appears in the UI.
 
@@ -338,6 +356,7 @@ After the next poll cycle, check:
 | **Connection refused** | Next.js not running, or wrong host/port in `UploadService:ApiEndpoint`. |
 | **Validation / 400** from ingest | File content may not match the parser’s expected log format; try a minimal `.txt` or use an existing sample from your team. |
 | Watch folder errors at startup | Every path in `UploadService:WatchDirectories` must exist and be a directory before the worker starts. |
+| **OptionsValidationException** / missing watch dirs in Development | Create `appsettings.Development.json` from `appsettings.Development.json.example` and set paths, or set `UploadService__*` environment variables. |
 
 `UploadService:VercelProtectionBypass` is **not** needed for plain `http://localhost:3000` (it is only for protected Vercel deployments).
 
@@ -345,7 +364,7 @@ After the next poll cycle, check:
 
 ## Development run (not as a service)
 
-Same as the local testing flow: **`appsettings.json`** + **`appsettings.Development.json`** + user secrets for `ApiKey`, then:
+Use **`appsettings.json`** (committed) plus a **local** **`appsettings.Development.json`** (from the `.example` template) and **user secrets** for `ApiKey`, then:
 
 ```powershell
 cd windows-upload-service-dotnet\src\WasteZero.WindowsUploadService
@@ -368,7 +387,7 @@ windows-upload-service-dotnet/
 └── src/WasteZero.WindowsUploadService/
     ├── Program.cs
     ├── appsettings.json
-    ├── appsettings.Development.json
+    ├── appsettings.Development.json.example   # copy → appsettings.Development.json (gitignored)
     ├── Properties/launchSettings.json
     ├── Configuration/
     ├── Logging/
