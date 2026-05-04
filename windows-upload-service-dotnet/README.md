@@ -362,7 +362,9 @@ After the next poll cycle, check:
 
 ## Development run (not as a service)
 
-Use **`appsettings.json`** (committed) plus a **local** **`appsettings.Development.json`** (from the `.example` template, gitignored) with your machine-specific values including **`ApiKey`**, then:
+Use **`appsettings.json`** (committed) plus a **local** **`appsettings.Development.json`** (from the `.example` template, gitignored) with your machine-specific values including **`ApiKey`**. Create that file once before the first run if you do not already have it (see [Local-only `appsettings.Development.json`](#local-only-appsettingsdevelopmentjson)).
+
+`dotnet run` applies **`Properties/launchSettings.json`**, which sets **`DOTNET_ENVIRONMENT=Development`**, so the host loads and merges **`appsettings.Development.json`** on top of **`appsettings.json`**. Configuration is read from the build output folder (`bin\Debug\net6.0-windows\` by default); the SDK copies `appsettings*.json` from the project directory when you build, so edit the file next to `Program.cs` and run again (or rebuild) after changes.
 
 ```powershell
 cd windows-upload-service-dotnet\src\WasteZero.WindowsUploadService
