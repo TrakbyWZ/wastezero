@@ -1,0 +1,4 @@
+**/bin/
+**/obj/
+*.user
+src/WasteZero.WindowsUploadService/config.json
