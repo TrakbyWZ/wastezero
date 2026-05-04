@@ -1,7 +1,7 @@
 namespace WasteZero.WindowsUploadService.Configuration;
 
 /// <summary>
-/// Runtime options for the upload worker (config.json + environment overrides).
+/// Runtime options for the upload worker, bound from configuration section <c>UploadService</c> (appsettings, environment variables, user secrets).
 /// </summary>
 public sealed class UploadServiceOptions
 {

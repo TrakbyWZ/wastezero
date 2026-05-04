@@ -51,7 +51,7 @@ cp .env.example .env.local
 | `SUPABASE_SECRET_KEY` | **Service role** key — **server only**; never in client bundles. Read by `lib/supabase/admin.ts` (if your `supabase status` output or `.env.example` used another name, copy the service role **value** into this variable so it matches the code). |
 | `SESSION_SECRET` | Random string for session cookies (e.g. `openssl rand -base64 32`). |
 
-Add any other variables your team uses (see the root **`.env.example`**) as needed. Optional: SMTP and `OTP_FROM_EMAIL` for real one-time login emails. If SMTP is not set, **OTP codes are printed in the dev server** terminal. Optional: `LOG_FILES_INGEST_API_KEY` to exercise `/api/log-files/ingest` with `X-API-Key` (for example from the **.NET** Windows upload service against `http://localhost:3000` — see **`windows-upload-service-dotnet/README.md`**, section *Testing with local Next.js and Supabase*).
+Add any other variables your team uses (see the root **`.env.example`**) as needed. Optional: SMTP and `OTP_FROM_EMAIL` for real one-time login emails. If SMTP is not set, **OTP codes are printed in the dev server** terminal. Optional: `LOG_FILES_INGEST_API_KEY` to exercise `/api/log-files/ingest` with `X-API-Key` (for example from the **.NET** Windows upload service against `http://localhost:3000` — set the same value with `dotnet user-secrets set "UploadService:ApiKey" "…"` in that project; see **`windows-upload-service-dotnet/README.md`**, section *Testing with local Next.js and Supabase*).
 
 ---
 

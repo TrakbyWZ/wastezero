@@ -51,7 +51,7 @@ flowchart TB
 
 - Browsers use the app over HTTPS; sessions use cookies (`SESSION_SECRET` on the server).
 - The app’s server code uses the Supabase **service role** key only on the server to manage data and admin Auth operations; the browser uses the **anon/publishable** key for user-scoped Supabase access.
-- The Windows service never connects to Supabase directly; it only calls your **deployed** Next.js URL with a shared **ingest API key** (`LOG_FILES_INGEST_API_KEY` on the server, `apiKey` in the service `config.json`).
+- The Windows service never connects to Supabase directly; it only calls your **deployed** Next.js URL with a shared **ingest API key** (`LOG_FILES_INGEST_API_KEY` on the server, `UploadService:ApiKey` in the .NET worker’s appsettings or environment variables).
 
 ---
 
@@ -104,7 +104,7 @@ flowchart TB
 
 ## Windows upload service (on your network)
 
-Not hosted on Vercel or Supabase. It runs on **Windows**, reads `config.json` (or env vars), and POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key. Point `apiEndpoint` at production or a preview URL as needed; if Vercel protection is on, add the bypass secret as documented in `windows-upload-service/README.md`.
+Not hosted on Vercel or Supabase. It runs on **Windows**, reads **`appsettings.json`** / **`appsettings.{Environment}.json`** and environment variables (standard .NET configuration; see `windows-upload-service-dotnet/README.md`), and POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key. Point `UploadService:ApiEndpoint` at production or a preview URL as needed; if Vercel protection is on, add the bypass secret as documented in `windows-upload-service/README.md`.
 
 ---
 

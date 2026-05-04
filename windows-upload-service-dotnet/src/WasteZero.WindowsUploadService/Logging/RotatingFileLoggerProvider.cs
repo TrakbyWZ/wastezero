@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using WasteZero.WindowsUploadService.Configuration;
@@ -12,10 +13,10 @@ public sealed class RotatingFileLoggerProvider : ILoggerProvider
     private readonly string _contentRoot;
     private readonly ConcurrentDictionary<string, RotatingFileLogger> _loggers = new();
 
-    public RotatingFileLoggerProvider(IOptions<UploadServiceOptions> options, string contentRoot)
+    public RotatingFileLoggerProvider(IOptions<UploadServiceOptions> options, IHostEnvironment hostEnvironment)
     {
         _options = options;
-        _contentRoot = contentRoot;
+        _contentRoot = hostEnvironment.ContentRootPath;
     }
 
     public ILogger CreateLogger(string categoryName) =>

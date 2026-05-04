@@ -4,7 +4,7 @@
   Registers WasteZero.WindowsUploadService as a Windows Service.
 
 .PARAMETER InstallPath
-  Folder containing the published executable and config.json (no trailing backslash).
+  Folder containing the published executable and appsettings*.json (no trailing backslash).
 
 .PARAMETER ServiceName
   Internal service name (sc.exe / Get-Service name).
@@ -67,5 +67,5 @@ if ($ServiceAccount -and $ServiceAccount -ne "LocalSystem") {
 
 Write-Host "Starting service..."
 Start-Service -Name $ServiceName
-Write-Host "Done. Service '$ServiceName' is running. Logs: $(Join-Path $InstallPath 'logs\service.log')"
+Write-Host "Done. Service '$ServiceName' is running. Logs: $(Join-Path $InstallPath 'logs\service.log'). Configure UploadService in appsettings or env vars."
 Write-Host "Event Viewer: Windows Logs -> Application (source WasteZeroUpload when registered)."

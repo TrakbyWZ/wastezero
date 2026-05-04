@@ -1,4 +1,5 @@
 **/bin/
 **/obj/
 *.user
-src/WasteZero.WindowsUploadService/config.json
+# Optional: production overrides with secrets (keep out of git)
+src/WasteZero.WindowsUploadService/appsettings.Production.json

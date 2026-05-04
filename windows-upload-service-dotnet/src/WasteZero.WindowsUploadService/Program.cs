@@ -1,40 +1,46 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using WasteZero.WindowsUploadService.Configuration;
 using WasteZero.WindowsUploadService.Logging;
 using WasteZero.WindowsUploadService.Services;
 
 var contentRoot = ResolveContentRoot(args);
 
-UploadServiceOptions uploadOptions;
 try
 {
-    uploadOptions = UploadServiceConfigurationLoader.Load(contentRoot);
+    var host = Host.CreateDefaultBuilder(args)
+        .UseContentRoot(contentRoot)
+        .UseWindowsService()
+        .ConfigureServices((ctx, services) =>
+        {
+            services.AddOptions<UploadServiceOptions>()
+                .Bind(ctx.Configuration.GetSection("UploadService"))
+                .ValidateOnStart();
+            services.AddSingleton<IValidateOptions<UploadServiceOptions>, UploadServiceOptionsValidator>();
+            services.AddSingleton<IPostConfigureOptions<UploadServiceOptions>, UploadServiceOptionsPostConfigure>();
+
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, RotatingFileLoggerProvider>());
+            services.AddSingleton<IUploadStateStore, SqliteUploadStateStore>();
+            services.AddHttpClient();
+            services.AddHostedService<UploadBackgroundService>();
+        })
+        .ConfigureLogging(logging =>
+        {
+            logging.AddEventLog(settings => settings.SourceName = "WasteZeroUpload");
+            logging.SetMinimumLevel(LogLevel.Information);
+        })
+        .Build();
+
+    await host.RunAsync().ConfigureAwait(false);
+    return 0;
 }
-catch (Exception ex)
+catch (OptionsValidationException ex)
 {
-    await Console.Error.WriteLineAsync("Configuration error: " + ex.Message).ConfigureAwait(false);
+    await Console.Error.WriteLineAsync("Configuration error:").ConfigureAwait(false);
+    foreach (var failure in ex.Failures)
+        await Console.Error.WriteLineAsync("  " + failure).ConfigureAwait(false);
     return 1;
 }
-
-var host = Host.CreateDefaultBuilder(args)
-    .UseContentRoot(contentRoot)
-    .UseWindowsService()
-    .ConfigureServices(services =>
-    {
-        services.AddSingleton(Microsoft.Extensions.Options.Options.Create(uploadOptions));
-        services.AddSingleton<IUploadStateStore, SqliteUploadStateStore>();
-        services.AddHttpClient();
-        services.AddHostedService<UploadBackgroundService>();
-    })
-    .ConfigureLogging(logging =>
-    {
-        logging.AddEventLog(settings => settings.SourceName = "WasteZeroUpload");
-        logging.AddProvider(new RotatingFileLoggerProvider(Microsoft.Extensions.Options.Options.Create(uploadOptions), contentRoot));
-        logging.SetMinimumLevel(LogLevel.Information);
-    })
-    .Build();
-
-await host.RunAsync().ConfigureAwait(false);
-return 0;
 
 static string ResolveContentRoot(string[] args)
 {

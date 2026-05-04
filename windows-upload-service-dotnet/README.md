@@ -51,47 +51,65 @@ Copy the output folder (for example `publish\sc`) to the server, for example:
 
 ---
 
-## Configuration
+## Configuration (.NET conventions)
 
-1. Copy `config.example.json` from the project (or from your build output) to **`config.json`** in the **same folder as** `WasteZero.WindowsUploadService.exe`.
-2. Edit values to match your environment.
+Settings use the standard **`appsettings.json`** hierarchy, bound to the **`UploadService`** section and the `UploadServiceOptions` class (see [Configuration in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/) — the same host model applies to this worker).
 
-| JSON property | Description |
-|---------------|-------------|
-| `watchDirectories` | Absolute Windows paths to scan (non-recursive). |
-| `apiEndpoint` | Full URL to `/api/log-files/ingest`. |
-| `apiKey` | Must match `LOG_FILES_INGEST_API_KEY` (or `SYNCED_FILES_INGEST_API_KEY`) on the WasteZero app. |
-| `vercelProtectionBypass` | Optional. Sent as `x-vercel-protection-bypass` when using Vercel deployment protection. |
-| `pollingIntervalSeconds` | Poll interval (minimum **5**). |
-| `databasePath` | SQLite database file (absolute or relative to the **install directory** / content root). |
-| `logDir` | Folder for `service.log` (absolute or relative to install directory). |
-| `logMaxSizeBytes` | Rotate `service.log` when it exceeds this size (`0` = no rotation). |
-| `logMaxBackups` | Number of rotated files to keep. |
-| `maxStateRecords` | Trim SQLite to the N newest rows by `sent_at` (`0` = no limit). Trimmed paths can be uploaded again if the file reappears. |
-| `maxStateAgeDays` | Drop rows older than N days (`0` = no limit). |
+| Setting (`UploadService:*`) | Description |
+|-----------------------------|-------------|
+| `WatchDirectories` | Array of absolute Windows paths to scan (non-recursive). |
+| `ApiEndpoint` | Full URL to `/api/log-files/ingest`. |
+| `ApiKey` | Must match `LOG_FILES_INGEST_API_KEY` (or `SYNCED_FILES_INGEST_API_KEY`) on the WasteZero app. **Do not commit real keys** — use user secrets locally and environment variables or a secured file on the server. |
+| `VercelProtectionBypass` | Optional. Sent as `x-vercel-protection-bypass` for Vercel deployment protection. |
+| `PollingIntervalSeconds` | Poll interval (minimum **5** after normalization). |
+| `DatabasePath` | SQLite file (absolute or relative to the [content root](#content-root)). |
+| `LogDir` | Folder for `service.log` (absolute or relative to content root). |
+| `LogMaxSizeBytes` | Rotate `service.log` at this size (`0` = no rotation). |
+| `LogMaxBackups` | Rotated files to keep. |
+| `MaxStateRecords` | Trim SQLite to the N newest rows by `sent_at` (`0` = no limit). |
+| `MaxStateAgeDays` | Drop rows older than N days (`0` = no limit). |
 
-### Environment variables (optional overrides)
+**Files (merged in the usual order):**
 
-Same semantics as the Node service where applicable:
+1. `appsettings.json` — safe defaults; committed to the repo.
+2. `appsettings.{Environment}.json` — e.g. `appsettings.Development.json` for local URLs (still **no secrets** in git if your team prefers — use user secrets for keys).
+3. Environment variables — override any key; use **double underscores** for nesting (see below).
+4. [User secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) — in **Development** only (`dotnet user-secrets`), ideal for `ApiKey` on a dev machine.
 
-| Variable | Purpose |
+The host calls **`ValidateOnStart()`** for `UploadServiceOptions`: missing watch directories or API settings produce a clear error at startup.
+
+### Environment variables (production-friendly)
+
+Set on the machine or in the Windows Service recovery environment as needed. Use `UploadService__` + property name; use `__` for nested array indices per [Microsoft’s env var syntax](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variables).
+
+| Variable | Example |
 |----------|---------|
-| `WATCH_DIRECTORIES` | JSON array or comma-separated paths. |
-| `API_ENDPOINT` | Ingest URL. |
-| `API_KEY` | Ingest API key. |
-| `VERCEL_PROTECTION_BYPASS` / `VERCEL_AUTOMATION_BYPASS_SECRET` | Vercel bypass secret. |
-| `POLLING_INTERVAL` | Seconds. |
-| `DATABASE_PATH` / `STATE_DATABASE` | SQLite file path. |
-| `LOG_DIR`, `LOG_MAX_SIZE_BYTES`, `LOG_MAX_BACKUPS` | Logging. |
-| `MAX_STATE_RECORDS`, `MAX_STATE_AGE_DAYS` | SQLite trimming. |
+| `UploadService__ApiKey` | Shared ingest secret |
+| `UploadService__ApiEndpoint` | `https://example.com/api/log-files/ingest` |
+| `UploadService__WatchDirectories__0` | `C:\PrinterLogs` |
+| `UploadService__WatchDirectories__1` | `D:\Logs\Printer` |
+| `UploadService__DatabasePath` | `D:\Data\upload_state.db` |
+| `UploadService__VercelProtectionBypass` | Vercel bypass secret |
+| `UploadService__PollingIntervalSeconds` | `60` |
+| `DOTNET_ENVIRONMENT` | `Production` (default when unset) — controls which optional `appsettings.{Environment}.json` is loaded. |
 
-You can set these via machine environment variables (`setx /M`, GPO, Intune, etc.). Most deployments rely on `config.json` next to the executable and do not need per-service env vars.
+On Windows, `setx` and the Services UI can set these for the account that runs the service.
 
 ### Content root
 
-The service resolves `config.json`, relative `databasePath`, and relative `logDir` from **`AppContext.BaseDirectory`** (the folder containing the main assembly / published files). To override (rare), pass:
+Configuration files and relative paths (`DatabasePath`, `LogDir`) are resolved from the host **content root** (the folder containing the published executable and `appsettings*.json`), which defaults to **`AppContext.BaseDirectory`**. To override (rare):
 
 `WasteZero.WindowsUploadService.exe --contentRoot="D:\Apps\UploadService"`
+
+### Local developer: API key without committing secrets
+
+From `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`:
+
+```powershell
+dotnet user-secrets set "UploadService:ApiKey" "your-local-dev-secret-matching-LOG_FILES_INGEST_API_KEY"
+```
+
+`appsettings.Development.json` in the project supplies sample **non-secret** values when `DOTNET_ENVIRONMENT` is `Development` (`dotnet run` sets this via `Properties/launchSettings.json`). Adjust paths and endpoint there for your machine; keep `ApiKey` out of source control and in user secrets.
 
 ---
 
@@ -126,8 +144,8 @@ Installation requires an **elevated** PowerShell or Command Prompt.
 ### Option A — PowerShell script (recommended)
 
 1. Publish to a permanent path on the server, for example `C:\Program Files\WasteZero\WindowsUploadService\`.
-2. Place `config.json` next to `WasteZero.WindowsUploadService.exe`.
-3. Grant the **service account** (see below) **Modify** on that folder (for SQLite, logs, and config) and **Read** (and **List folder contents**) on each `watchDirectories` path.
+2. Place **`appsettings.json`** (and optionally **`appsettings.Production.json`**) next to `WasteZero.WindowsUploadService.exe`, **or** configure the `UploadService` section entirely via environment variables (recommended for secrets).
+3. Grant the **service account** (see below) **Modify** on that folder (for SQLite, logs, and settings files) and **Read** (and **List folder contents**) on each watch directory path.
 
 ```powershell
 cd C:\path\to\repo\windows-upload-service-dotnet\scripts
@@ -171,7 +189,7 @@ The service account must be able to:
 - **Read** files in every `watchDirectories` entry.
 - **Read/Write/Create** the SQLite file (`databasePath`) and its directory.
 - **Write** under `logDir` (for `service.log`).
-- **Read** `config.json` in the install folder.
+- **Read** `appsettings*.json` in the install folder (if you use files instead of env-only configuration).
 
 For **HTTPS** to public endpoints, ensure TLS 1.2+ and normal outbound HTTPS (proxy if required) are allowed for that account.
 
@@ -214,7 +232,7 @@ Then remove the install folder if you no longer need logs or the SQLite database
 
 ### Service stops immediately or will not start
 
-1. Run the executable **interactively** from an elevated or normal console (same folder as `config.json`):
+1. Run the executable **interactively** from an elevated or normal console (same folder as `appsettings.json`):
 
    ```powershell
    cd "C:\Program Files\WasteZero\WindowsUploadService"
@@ -223,7 +241,7 @@ Then remove the install folder if you no longer need logs or the SQLite database
 
    Configuration errors are printed to stderr before the host starts.
 
-2. Confirm **`watchDirectories`** paths exist and are directories (startup validation fails otherwise).
+2. Confirm **`UploadService:WatchDirectories`** paths exist and are directories (startup validation fails otherwise).
 
 3. Confirm the service account has rights to the install folder, SQLite path, and log directory.
 
@@ -235,8 +253,9 @@ Then remove the install folder if you no longer need logs or the SQLite database
 Common cases:
 
 - **401** to `*.vercel.app` with HTML mentioning authentication: set `vercelProtectionBypass` (same as the Node README).
-- **401 Unauthorized** JSON from the app: wrong `apiKey` vs `LOG_FILES_INGEST_API_KEY`.
+- **401 Unauthorized** JSON from the app: wrong `UploadService:ApiKey` vs `LOG_FILES_INGEST_API_KEY`.
 - **503** “Ingest API key not configured”: fix server env on the WasteZero host.
+- **Configuration / OptionsValidationException** at startup: fix `UploadService` in appsettings or environment variables (see [Configuration](#configuration-net-conventions)).
 
 ### SQLite “database is locked”
 
@@ -261,7 +280,7 @@ Follow the repo guide **[Local development](../content/docs/local-development.md
 In the **repository root** `.env.local`, set a shared secret the upload service will send as `X-API-Key`:
 
 ```bash
-# .env.local (same value you will put in config.json apiKey)
+# .env.local (same value as UploadService:ApiKey — user secrets or env on the worker)
 LOG_FILES_INGEST_API_KEY=your-local-dev-secret
 ```
 
@@ -284,15 +303,14 @@ The app should be available at **`http://localhost:3000`**. The ingest URL for t
 ### 4. Configure and run the .NET upload service
 
 1. Pick a folder on disk for test logs (for example `C:\Temp\WasteZeroUploadTest`). Create a small **`sample.txt`** or **`sample.csv`** there so the worker has something to upload.
-2. In `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`, copy `config.example.json` to **`config.json`** and set at least:
+2. In `windows-upload-service-dotnet\src\WasteZero.WindowsUploadService`, adjust **`appsettings.Development.json`** for your machine (watch folder, `ApiEndpoint`). Set the API key with **user secrets** (do not put the real key in JSON that you commit):
 
-| Field | Example for local dev |
-|-------|------------------------|
-| `watchDirectories` | `["C:\\Temp\\WasteZeroUploadTest"]` (JSON string; escape backslashes in the file) |
-| `apiEndpoint` | `http://localhost:3000/api/log-files/ingest` |
-| `apiKey` | Same string as `LOG_FILES_INGEST_API_KEY` |
-| `pollingIntervalSeconds` | `10` (optional, faster feedback while testing) |
-| `databasePath` | `upload_state.db` (default is fine; stays next to the exe) |
+   ```powershell
+   cd windows-upload-service-dotnet\src\WasteZero.WindowsUploadService
+   dotnet user-secrets set "UploadService:ApiKey" "same-as-LOG_FILES_INGEST_API_KEY"
+   ```
+
+   `Properties/launchSettings.json` sets `DOTNET_ENVIRONMENT=Development` so `appsettings.Development.json` is merged over `appsettings.json`.
 
 3. Run the worker **interactively** (no Windows Service required for local testing):
 
@@ -314,18 +332,18 @@ After the next poll cycle, check:
 | Symptom | What to check |
 |--------|----------------|
 | **503** “Ingest API key not configured” | `LOG_FILES_INGEST_API_KEY` missing from `.env.local` or dev server not restarted. |
-| **401 Unauthorized** | `apiKey` in `config.json` does not exactly match the env var on the Next.js process. |
-| **Connection refused** | Next.js not running, or wrong host/port in `apiEndpoint`. |
+| **401 Unauthorized** | `UploadService:ApiKey` does not exactly match `LOG_FILES_INGEST_API_KEY` on the Next.js process. |
+| **Connection refused** | Next.js not running, or wrong host/port in `UploadService:ApiEndpoint`. |
 | **Validation / 400** from ingest | File content may not match the parser’s expected log format; try a minimal `.txt` or use an existing sample from your team. |
-| Watch folder errors at startup | Paths in `watchDirectories` must exist and be directories before the worker starts. |
+| Watch folder errors at startup | Every path in `UploadService:WatchDirectories` must exist and be a directory before the worker starts. |
 
-`vercelProtectionBypass` is **not** needed for plain `http://localhost:3000` (it is only for protected Vercel deployments).
+`UploadService:VercelProtectionBypass` is **not** needed for plain `http://localhost:3000` (it is only for protected Vercel deployments).
 
 ---
 
 ## Development run (not as a service)
 
-Same as step 4 above: use **`config.json`** next to the project, then:
+Same as the local testing flow: **`appsettings.json`** + **`appsettings.Development.json`** + user secrets for `ApiKey`, then:
 
 ```powershell
 cd windows-upload-service-dotnet\src\WasteZero.WindowsUploadService
@@ -347,8 +365,9 @@ windows-upload-service-dotnet/
 │   └── Uninstall-Service.ps1
 └── src/WasteZero.WindowsUploadService/
     ├── Program.cs
-    ├── appsettings.json          # optional; primary config is config.json
-    ├── config.example.json
+    ├── appsettings.json
+    ├── appsettings.Development.json
+    ├── Properties/launchSettings.json
     ├── Configuration/
     ├── Logging/
     └── Services/
@@ -360,7 +379,9 @@ windows-upload-service-dotnet/
 
 There is **no automatic import** of `sent_files.json` into SQLite. If you switch:
 
-1. Deploy the .NET service with a **new** `databasePath`.
+1. Deploy the .NET service with a **new** `UploadService:DatabasePath` (or default `upload_state.db`).
 2. Either accept one-time re-upload attempts (duplicates become `SKIP` when the API reports a unique filename conflict), or pre-seed SQLite from your old JSON using a one-off script of your choice.
+
+Configuration is no longer a single `config.json` file: map the same values into the **`UploadService`** section of `appsettings.json` / `appsettings.Production.json` or into `UploadService__*` environment variables.
 
 The ingest contract is unchanged: `POST` with JSON `{ "content": "...", "filename": "optional.txt" }` and header `X-API-Key`.
