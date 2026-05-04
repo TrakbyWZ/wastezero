@@ -111,6 +111,8 @@ dotnet user-secrets set "UploadService:ApiKey" "your-local-dev-secret-matching-L
 
 `appsettings.Development.json` in the project supplies sample **non-secret** values when `DOTNET_ENVIRONMENT` is `Development` (`dotnet run` sets this via `Properties/launchSettings.json`). Adjust paths and endpoint there for your machine; keep `ApiKey` out of source control and in user secrets.
 
+In Development, **`UploadService:DatabasePath`** is set to a path relative to the build output folder so SQLite resolves to **`windows-upload-service-dotnet/bin/upload_state.db`** (next to the solution `src/` tree, not inside it). That folder is covered by `.gitignore` (`**/bin/`), so the database file is not tracked by Git. Production installs should use an absolute `DatabasePath` or the default next to the executable.
+
 ---
 
 ## SQLite schema and operations
