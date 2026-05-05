@@ -1,7 +1,7 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-  Registers WasteZero.WindowsUploadService as a Windows Service.
+  Registers WasteZero.WindowsUploadService as a Windows Service (optionally publish+copy first).
 
 .PARAMETER InstallPath
   Folder containing the published executable and appsettings*.json (no trailing backslash).
@@ -28,11 +28,32 @@
   When true, sets start type to delayed-auto so the service starts after other automatic services
   (useful if outbound HTTPS or DNS must be ready right after machine boot).
 
+.PARAMETER PublishAndCopy
+  When set, runs `dotnet publish` and copies publish output to InstallPath before service registration.
+  Use this for one-command non-development installs/updates.
+
+.PARAMETER ProjectPath
+  Path to WasteZero.WindowsUploadService.csproj used with -PublishAndCopy.
+  Defaults to the project path relative to this scripts folder.
+
+.PARAMETER PublishConfiguration
+  Build configuration for publish when -PublishAndCopy is used. Default: Release.
+
+.PARAMETER Runtime
+  Runtime identifier used for publish when -PublishAndCopy is used. Default: win-x64.
+
+.PARAMETER SelfContained
+  Publish self-contained output (no runtime preinstall needed) when -PublishAndCopy is used.
+  When omitted, publish is framework-dependent.
+
 .EXAMPLE
   .\Install-Service.ps1
 
 .EXAMPLE
   .\Install-Service.ps1 -InstallPath "D:\Apps\WasteZero\WindowsUploadService"
+
+.EXAMPLE
+  .\Install-Service.ps1 -PublishAndCopy
 #>
 param(
     [string] $InstallPath = "C:\Program Files\WasteZero\WindowsUploadService",
@@ -47,15 +68,53 @@ param(
 
     [switch] $SkipFailureRecovery,
 
-    [switch] $DelayedAutoStart
+    [switch] $DelayedAutoStart,
+
+    [switch] $PublishAndCopy,
+
+    [string] $ProjectPath = (Join-Path $PSScriptRoot "..\src\WasteZero.WindowsUploadService\WasteZero.WindowsUploadService.csproj"),
+
+    [string] $PublishConfiguration = "Release",
+
+    [string] $Runtime = "win-x64",
+
+    [switch] $SelfContained
 )
 
 $ErrorActionPreference = "Stop"
 $InstallPath = $InstallPath.TrimEnd('\', '/')
 $exe = Join-Path $InstallPath "WasteZero.WindowsUploadService.exe"
 
+if ($PublishAndCopy) {
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        throw "dotnet SDK not found in PATH. Install .NET SDK or publish on another machine and copy output to InstallPath."
+    }
+
+    $resolvedProjectPath = [System.IO.Path]::GetFullPath($ProjectPath)
+    if (-not (Test-Path -LiteralPath $resolvedProjectPath)) {
+        throw "Project file not found: $resolvedProjectPath. Pass -ProjectPath to WasteZero.WindowsUploadService.csproj."
+    }
+
+    $publishOut = Join-Path ([System.IO.Path]::GetTempPath()) "WasteZero.WindowsUploadService.publish"
+    if (Test-Path -LiteralPath $publishOut) {
+        Remove-Item -LiteralPath $publishOut -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $publishOut -Force | Out-Null
+    New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+
+    $selfContainedValue = if ($SelfContained) { "true" } else { "false" }
+    Write-Host "Publishing service..."
+    & dotnet publish $resolvedProjectPath -c $PublishConfiguration -r $Runtime --self-contained $selfContainedValue -o $publishOut
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet publish failed with exit code $LASTEXITCODE"
+    }
+
+    Write-Host "Copying published output to $InstallPath..."
+    Copy-Item (Join-Path $publishOut "*") $InstallPath -Recurse -Force
+}
+
 if (-not (Test-Path -LiteralPath $exe)) {
-    throw "Executable not found: $exe. Publish/copy the service output there first (recommended non-dev path: C:\Program Files\WasteZero\WindowsUploadService)."
+    throw "Executable not found: $exe. Publish/copy the service output there first, or run this script with -PublishAndCopy."
 }
 
 $binPath = "`"$exe`""

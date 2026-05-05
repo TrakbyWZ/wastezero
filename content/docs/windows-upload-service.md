@@ -13,14 +13,22 @@ Use this together with [Local Development](./local-development.md) when testing 
 
 ## Install on Windows server
 
-1. Publish to a permanent install path.
-2. Place `appsettings.json` and environment-specific settings next to the executable (or provide all `UploadService__*` values via environment variables).
-3. Run install script (elevated PowerShell):
+Primary path: run one elevated command that publishes, copies to the install folder, and registers the Windows Service.
+
+Open **PowerShell as Administrator**:
 
 ```powershell
 cd windows-upload-service-dotnet\scripts
-.\Install-Service.ps1
+.\Install-Service.ps1 -PublishAndCopy
 ```
+
+By default this uses:
+
+- Install path: `C:\Program Files\WasteZero\WindowsUploadService`
+- Publish config/runtime: `Release`, `win-x64`
+- Framework-dependent publish (`--self-contained false`)
+
+Use `-SelfContained` if you do not want to preinstall .NET runtime on the server (larger output).
 
 **Recommended permanent install path**
 
@@ -30,9 +38,30 @@ Use a dedicated folder that only holds this publish output and runtime files—n
 
 Grant the **service account** **Modify** on that folder (SQLite DB, rotated logs, and optional settings updates live here). Keep backups or relocate heavy paths via config (`DatabasePath`, `LogDir`) if you prefer data on another volume—for example `D:\Data\WasteZero\upload_state.db` while the exe stays under Program Files.
 
+Verify the executable exists before install:
+
+```powershell
+Test-Path "C:\Program Files\WasteZero\WindowsUploadService\WasteZero.WindowsUploadService.exe"
+```
+
+### Alternative: pre-publish on a different machine
+
+If your server should not run the SDK build:
+
+1. Publish on a build/developer machine.
+2. Copy published output into the install folder on the server.
+3. Run install on the server without publish step:
+
+```powershell
+cd windows-upload-service-dotnet\scripts
+.\Install-Service.ps1
+```
+
 Useful options:
 
 - `-InstallPath` to override the default install folder (`C:\Program Files\WasteZero\WindowsUploadService`).
+- `-PublishAndCopy` to run publish + copy inside the install script.
+- `-ProjectPath`, `-PublishConfiguration`, `-Runtime`, `-SelfContained` to control publish behavior when using `-PublishAndCopy`.
 - `-DelayedAutoStart` to start after other automatic services at boot.
 - `-SkipFailureRecovery` if you do not want the script to configure automatic restart on process failure.
 
