@@ -131,6 +131,28 @@ In **Task Manager** → **Details**, add the **Image path name** column to see t
 - `503 Ingest API key not configured`: key is missing on the Next.js app process.
 - Validation startup error: one or more watch directories do not exist or are inaccessible to the service account.
 
+### Quick log checks (PowerShell)
+
+Check the last 100 lines of the file log:
+
+```powershell
+Get-Content "C:\Program Files\WasteZero\WindowsUploadService\logs\service.log" -Tail 100
+```
+
+Check recent Windows Application log entries for the service source:
+
+```powershell
+Get-WinEvent -LogName Application -MaxEvents 100 | Where-Object { $_.ProviderName -eq "WasteZeroUpload" } | Select-Object TimeCreated, LevelDisplayName, Message
+```
+
+If `service.log` is missing, the service usually failed very early at startup (for example config validation), so check Event Viewer output first.
+
+Single-command fallback (tries file log first, then Event Viewer):
+
+```powershell
+$log = "C:\Program Files\WasteZero\WindowsUploadService\logs\service.log"; if (Test-Path $log) { Get-Content $log -Tail 100 } else { Get-WinEvent -LogName Application -MaxEvents 100 | Where-Object { $_.ProviderName -eq "WasteZeroUpload" } | Select-Object TimeCreated, LevelDisplayName, Message }
+```
+
 
 ## Local development run
 
