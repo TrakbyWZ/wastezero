@@ -97,14 +97,14 @@ flowchart TB
 | **Supabase on Vercel** | You can use the [Vercel Supabase integration](https://vercel.com/integrations/supabase) to sync some variables; still confirm service role and app-specific keys manually. |
 | **Domains** | **Settings** → **Domains** — attach production and preview URLs. |
 | **Preview deployments** | Each PR can get a preview URL; use **Preview** env vars if keys differ. |
-| **Deployment Protection** | If you enable Vercel Authentication / password on previews, the **Windows upload service** must send the [Protection Bypass for Automation](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) header (`x-vercel-protection-bypass`); see `windows-upload-service/README.md` in the repo. The ingest **API key** is separate and still required. |
+| **Deployment Protection** | If you enable Vercel Authentication / password on previews, the **Windows upload service** must send the [Protection Bypass for Automation](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) header (`x-vercel-protection-bypass`). Configure this as `UploadService:VercelProtectionBypass` (or `UploadService__VercelProtectionBypass`). The ingest **API key** is separate and still required. |
 | **In-app help** | Documentation lives in **`content/docs/`** and is rendered at **`/protected/docs/...`**. It deploys with the same **`pnpm build`** as the app. |
 
 ---
 
 ## Windows upload service (on your network)
 
-Not hosted on Vercel or Supabase. The **.NET** worker runs on **Windows**, reads **`appsettings.json`** / **`appsettings.{Environment}.json`** and environment variables (standard .NET configuration). Setup and operations are documented in [Windows Upload Service](./windows-upload-service.md). It POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key; point **`UploadService:ApiEndpoint`** at production or a preview URL as needed. If Vercel deployment protection is on, configure **`UploadService:VercelProtectionBypass`** (see **Deployment Protection** above). The older **Node** variant lives under `windows-upload-service/` (`README.md` there).
+Not hosted on Vercel or Supabase. The **.NET** worker runs on **Windows**, reads **`appsettings.json`** / **`appsettings.{Environment}.json`** and environment variables (standard .NET configuration). Setup and operations are documented in [Windows Upload Service](./windows-upload-service.md). It POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key; point **`UploadService:ApiEndpoint`** at production or a preview URL as needed. If Vercel deployment protection is on, configure **`UploadService:VercelProtectionBypass`** (see **Deployment Protection** above).
 
 ---
 

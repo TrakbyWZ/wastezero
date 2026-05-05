@@ -21,7 +21,7 @@ The **root** of the monorepo holds the main web app, database definitions, and s
 | `components/` | **Reusable UI** (buttons, forms, theme) used by routes. |
 | `supabase/` | **Database** — `migrations/` (versioned SQL), `seed.sql` (local data), `config.toml` (local Supabase stack). This is the **authoritative** definition of schema for environments that apply migrations. |
 | `content/docs/` | **In-app help** source (Markdown) rendered on **`/protected/docs/...`**, same session as the app. |
-| `windows-upload-service/` | **Node service** (runs on customer Windows Server) that uploads log files to the app’s **ingest API** — it does **not** talk to Supabase directly. |
+| `windows-upload-service-dotnet/` | **.NET Windows service** (runs on customer Windows Server) that uploads log files to the app’s **ingest API** — it does **not** talk to Supabase directly. |
 | `scripts/` | **Maintenance/utility** scripts (e.g. `create-user.ts` for creating Auth users from `public.users`). |
 
 **Runtime model:** a single **Next.js** process serves HTML/API on Node.js. There is no separate “Java app server” — business logic is in the Next app (mostly `app/` and `lib/`). Long‑running background workers are not part of the default stack; the Windows uploader is a **separate** process on your network.

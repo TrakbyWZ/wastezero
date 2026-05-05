@@ -1,8 +1,0 @@
-node_modules/
-daemon/
-.env
-config.json
-config.prod.json
-logs/
-*.log
-sent_files.json

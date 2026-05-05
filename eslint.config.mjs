@@ -17,8 +17,6 @@ const eslintConfig = [
       "output/**",
       "node_modules/**",
       "public/docs/**",
-      // small CommonJS services / scripts
-      "windows-upload-service/**",
       "**/*.cjs",
     ],
   },
