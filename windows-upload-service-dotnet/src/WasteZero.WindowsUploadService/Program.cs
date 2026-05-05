@@ -9,6 +9,11 @@ var contentRoot = ResolveContentRoot(args);
 try
 {
     var host = Host.CreateDefaultBuilder(args)
+        .ConfigureHostOptions(o =>
+        {
+            // Allow in-flight HTTP upload (client timeout is 5m) to finish on graceful stop / reboot.
+            o.ShutdownTimeout = TimeSpan.FromMinutes(6);
+        })
         .UseContentRoot(contentRoot)
         .UseWindowsService()
         .ConfigureServices((ctx, services) =>

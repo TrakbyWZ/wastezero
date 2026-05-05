@@ -168,7 +168,7 @@ cd C:\path\to\repo\windows-upload-service-dotnet\scripts
 .\Install-Service.ps1 -InstallPath "C:\Program Files\WasteZero\WindowsUploadService"
 ```
 
-Optional parameters: `-ServiceName`, `-DisplayName`, `-ServiceAccount`.
+Optional parameters: `-ServiceName`, `-DisplayName`, `-ServiceAccount`, **`-DelayedAutoStart`** (starts after other automatic services at boot), **`-SkipFailureRecovery`** (omit automatic restart-on-crash configuration).
 
 ### Option B — `New-Service` manually
 
@@ -179,6 +179,8 @@ New-Service -Name "WasteZeroUpload" -BinaryPathName "`"$exe`"" `
 Start-Service -Name "WasteZeroUpload"
 ```
 
+Configure **Recovery** (restart on crash) the same way as in [Reboots, upgrades, and crash recovery](#reboots-upgrades-and-crash-recovery), or reinstall using `Install-Service.ps1`.
+
 ### Option C — `sc.exe`
 
 Mind the **space after `=`** in `binPath=` and `DisplayName=`:
@@ -187,6 +189,37 @@ Mind the **space after `=`** in `binPath=` and `DisplayName=`:
 sc.exe create WasteZeroUpload binPath= "C:\Program Files\WasteZero\WindowsUploadService\WasteZero.WindowsUploadService.exe" start= auto DisplayName= "WasteZero Windows Upload"
 sc.exe start WasteZeroUpload
 ```
+
+---
+
+## Reboots, upgrades, and crash recovery
+
+**Machine reboot**
+
+- The service is registered with **Automatic** start (or **Automatic (Delayed Start)** if you passed **`-DelayedAutoStart`** to `Install-Service.ps1`), so it comes back after a normal Windows restart.
+- **SQLite** (`databasePath`) and **rotating file logs** live on disk under the install folder (or paths you configured). Upload history survives reboot; the worker rescans watch folders on the next poll.
+
+**Process crash or unexpected exit**
+
+- `Install-Service.ps1` configures **Recovery** via `sc.exe failure`: Windows restarts the service after the first three failures, with delays of **1 min**, **2 min**, and **5 min** between attempts, and resets the failure counter after **24 hours** of uptime (`reset=86400`).
+- If you installed manually (`New-Service` / `sc create`) or skipped that step, set **Recovery** in **services.msc** (right-click the service → **Properties** → **Recovery**) or run (elevated, adjust the service name if needed):
+
+  ```cmd
+  sc failure WasteZeroUpload reset= 86400 actions= restart/60000/restart/120000/restart/300000
+  sc failureflag WasteZeroUpload 1
+  ```
+
+**Graceful stop and in-flight uploads**
+
+- The host **shutdown timeout** is **6 minutes** so a graceful stop (Services console, `Stop-Service`, or shutdown with time for services to stop) can outlast the **5-minute** HTTP client timeout on a single upload. If the process is killed mid-request, the file is **not** marked `SUCCESS` in SQLite and will be **retried** on the next cycle (the API should tolerate duplicate content for the same filename per your app rules).
+
+**Deploying updates (new build)**
+
+1. **Stop** the service: `Stop-Service WasteZeroUpload` (or your `-ServiceName`).
+2. **Copy** the new publish output over the install folder (`WasteZero.WindowsUploadService.exe`, `.dll`, `.deps.json`, `.runtimeconfig.json`, and any updated `appsettings*.json`). Do **not** delete the SQLite database or `logs` unless you intend to reset state.
+3. **Start** the service: `Start-Service WasteZeroUpload`.
+
+If the service is left running, Windows locks the **.exe** and in-use **.dll** files, so overwrite publish often fails—always stop first.
 
 ---
 
