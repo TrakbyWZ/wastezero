@@ -1,0 +1,5 @@
+**/bin/
+**/obj/
+*.user
+# Local-only (copy from appsettings.Development.json.example — see README)
+appsettings.*.json

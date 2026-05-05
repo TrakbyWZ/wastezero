@@ -51,7 +51,7 @@ flowchart TB
 
 - Browsers use the app over HTTPS; sessions use cookies (`SESSION_SECRET` on the server).
 - The app’s server code uses the Supabase **service role** key only on the server to manage data and admin Auth operations; the browser uses the **anon/publishable** key for user-scoped Supabase access.
-- The Windows service never connects to Supabase directly; it only calls your **deployed** Next.js URL with a shared **ingest API key** (`LOG_FILES_INGEST_API_KEY` on the server, `apiKey` in the service `config.json`).
+- The Windows service never connects to Supabase directly; it only calls your **deployed** Next.js URL with a shared **ingest API key** (`LOG_FILES_INGEST_API_KEY` on the server, `UploadService:ApiKey` in the .NET worker’s appsettings or environment variables).
 
 ---
 
@@ -97,14 +97,14 @@ flowchart TB
 | **Supabase on Vercel** | You can use the [Vercel Supabase integration](https://vercel.com/integrations/supabase) to sync some variables; still confirm service role and app-specific keys manually. |
 | **Domains** | **Settings** → **Domains** — attach production and preview URLs. |
 | **Preview deployments** | Each PR can get a preview URL; use **Preview** env vars if keys differ. |
-| **Deployment Protection** | If you enable Vercel Authentication / password on previews, the **Windows upload service** must send the [Protection Bypass for Automation](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) header (`x-vercel-protection-bypass`); see `windows-upload-service/README.md` in the repo. The ingest **API key** is separate and still required. |
+| **Deployment Protection** | If you enable Vercel Authentication / password on previews, the **Windows upload service** must send the [Protection Bypass for Automation](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) header (`x-vercel-protection-bypass`). Configure this as `UploadService:VercelProtectionBypass` (or `UploadService__VercelProtectionBypass`). The ingest **API key** is separate and still required. |
 | **In-app help** | Documentation lives in **`content/docs/`** and is rendered at **`/protected/docs/...`**. It deploys with the same **`pnpm build`** as the app. |
 
 ---
 
 ## Windows upload service (on your network)
 
-Not hosted on Vercel or Supabase. It runs on **Windows**, reads `config.json` (or env vars), and POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key. Point `apiEndpoint` at production or a preview URL as needed; if Vercel protection is on, add the bypass secret as documented in `windows-upload-service/README.md`.
+Not hosted on Vercel or Supabase. The **.NET** worker runs on **Windows**, reads **`appsettings.json`** / **`appsettings.{Environment}.json`** and environment variables (standard .NET configuration). Setup and operations are documented in [Windows Upload Service](./windows-upload-service.md). It POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key; point **`UploadService:ApiEndpoint`** at production or a preview URL as needed. If Vercel deployment protection is on, configure **`UploadService:VercelProtectionBypass`** (see **Deployment Protection** above).
 
 ---
 

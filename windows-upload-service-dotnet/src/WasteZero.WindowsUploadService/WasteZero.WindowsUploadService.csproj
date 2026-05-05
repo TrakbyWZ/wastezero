@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WasteZero.WindowsUploadService</RootNamespace>
+    <AssemblyName>WasteZero.WindowsUploadService</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <UseWindowsService>true</UseWindowsService>
+    <Description>Watches directories for .txt/.csv logs and uploads them to the WasteZero ingest API.</Description>
+    <UserSecretsId>WasteZero-WindowsUploadService-7c3e9a2b-4d1f-4a8e-9b2c-1a0e6f3d8c5b</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.Development.json.example">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
