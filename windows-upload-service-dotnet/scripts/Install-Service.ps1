@@ -5,6 +5,7 @@
 
 .PARAMETER InstallPath
   Folder containing the published executable and appsettings*.json (no trailing backslash).
+  Defaults to: C:\Program Files\WasteZero\WindowsUploadService
 
 .PARAMETER ServiceName
   Internal service name (sc.exe / Get-Service name).
@@ -28,11 +29,13 @@
   (useful if outbound HTTPS or DNS must be ready right after machine boot).
 
 .EXAMPLE
-  .\Install-Service.ps1 -InstallPath "C:\Program Files\WasteZero\WindowsUploadService"
+  .\Install-Service.ps1
+
+.EXAMPLE
+  .\Install-Service.ps1 -InstallPath "D:\Apps\WasteZero\WindowsUploadService"
 #>
 param(
-    [Parameter(Mandatory = $true)]
-    [string] $InstallPath,
+    [string] $InstallPath = "C:\Program Files\WasteZero\WindowsUploadService",
 
     [string] $ServiceName = "WasteZeroUpload",
 
@@ -52,7 +55,7 @@ $InstallPath = $InstallPath.TrimEnd('\', '/')
 $exe = Join-Path $InstallPath "WasteZero.WindowsUploadService.exe"
 
 if (-not (Test-Path -LiteralPath $exe)) {
-    throw "Executable not found: $exe. Publish the project to this folder first."
+    throw "Executable not found: $exe. Publish/copy the service output there first (recommended non-dev path: C:\Program Files\WasteZero\WindowsUploadService)."
 }
 
 $binPath = "`"$exe`""
@@ -104,6 +107,6 @@ Write-Host "Starting service..."
 Start-Service -Name $ServiceName
 Write-Host "Done. Service '$ServiceName' is running. Logs: $(Join-Path $InstallPath 'logs\service.log'). Configure UploadService in appsettings or env vars."
 if (-not $SkipFailureRecovery) {
-    Write-Host "Recovery: first three process failures trigger automatic restart (see README: Reboots, upgrades, and crash recovery)."
+    Write-Host "Recovery: first three process failures trigger automatic restart (see app docs: Windows Upload Service)."
 }
 Write-Host "Event Viewer: Windows Logs -> Application (source WasteZeroUpload when registered)."

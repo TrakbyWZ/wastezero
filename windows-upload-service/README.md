@@ -91,18 +91,38 @@ So the watcher starts automatically on boot and runs in the background, this pro
 
 ### 3.1 Install
 
-From an **elevated** Command Prompt or PowerShell, in the `windows-upload-service` folder (after `npm install`):
+From an **elevated** Command Prompt or PowerShell, in the **`windows-upload-service`** folder (after `npm install` so `npm ci` can resolve dependencies during deploy):
+
+#### Production (recommended path)
+
+**`npm run install-service`** (default) copies runtime files to:
+
+`%ProgramFiles%\WasteZero\WindowsUploadService`
+
+(alternate drive/path: set **`WASTEZERO_UPLOAD_INSTALL_PATH`** before running the command)
+
+Then it runs **`npm ci --omit=dev`** in that folder and registers the Windows Service with **`index.js`** and **`daemon/`** living **under that folder**—not inside your git clone.
+
+The machine needs **npm** on `PATH` and connectivity to the npm registry for that step (or run install from a network-connected admin session once).
+
+- Put **`config.json`** (or **`.env`**) in **`%ProgramFiles%\WasteZero\WindowsUploadService`** after install if it does not exist yet (the script copies **`config.example.json`** only). Editing config in the repo clone does not affect the running service until those files exist next to the installed **`index.js`**.
+- Logs and state files resolve relative to that folder (**`logs/`**, **`sent_files.json`** unless overridden).
+
+#### Development / repo-local install
+
+Use the previous behavior (service runs from the repo folder):
 
 ```bash
-npm run install-service
+npm run install-service:dev
 ```
 
-This registers the service, writes wrapper files under a **`daemon/`** folder next to `index.js`, and starts the service. Logs from the WinSW wrapper also go under **`logs/`** (alongside `service.log` from the app).
+Equivalent: `npm run install-service -- --local`
 
-Custom display name (still the same `index.js` and working directory):
+Custom service **name** (production uses Program Files path; dev keeps `--local`):
 
 ```bash
 node scripts/install-service.js install MyPrinterUpload
+node scripts/install-service.js install MyPrinterUpload --local
 ```
 
 ### 3.2 Manage the service
@@ -118,17 +138,26 @@ The internal service id matches the WinSW wrapper name in the `daemon` folder (f
 
 ### 3.3 Uninstall
 
-From an **elevated** prompt in `windows-upload-service`:
+From an **elevated** prompt in **`windows-upload-service`** (same repo used for install):
 
 ```bash
 npm run uninstall-service
+```
+
+For a **repo-local** service:
+
+```bash
+npm run uninstall-service:dev
 ```
 
 With a custom name:
 
 ```bash
 node scripts/install-service.js uninstall MyPrinterUpload
+node scripts/install-service.js uninstall MyPrinterUpload --local
 ```
+
+Use the same **production vs `--local`** mode as install so paths match what WinSW registered.
 
 ### 3.4 Migrating from NSSM
 
@@ -138,8 +167,9 @@ If you previously installed with **NSSM** under a name like `WasteZeroUpload`, r
 
 To remove all traces of the upload service:
 
-- Run **`npm run uninstall-service`** (or the matching `uninstall` command if you used a custom name).
-- Delete the **`windows-upload-service`** folder (or your install path). This removes `config.json`, `.env`, `sent_files.json`, `daemon/`, and `logs/`. Back up `sent_files.json` first if you need to preserve upload history.
+- Run **`npm run uninstall-service`** (and **`npm run uninstall-service:dev`** if you also experimented with a local install).
+- Delete **`%ProgramFiles%\WasteZero\WindowsUploadService`** if you used production install (back up **`config.json`**, **`.env`**, **`sent_files.json`** first if needed).
+- You may delete the **`windows-upload-service`** repo clone separately if you no longer need the source on that machine.
 
 ## 4. Test the ingest endpoint
 

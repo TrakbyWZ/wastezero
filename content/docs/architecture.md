@@ -104,7 +104,7 @@ flowchart TB
 
 ## Windows upload service (on your network)
 
-Not hosted on Vercel or Supabase. It runs on **Windows**, reads **`appsettings.json`** / **`appsettings.{Environment}.json`** and environment variables (standard .NET configuration; see `windows-upload-service-dotnet/README.md`), and POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key. Point `UploadService:ApiEndpoint` at production or a preview URL as needed; if Vercel protection is on, add the bypass secret as documented in `windows-upload-service/README.md`.
+Not hosted on Vercel or Supabase. The **.NET** worker runs on **Windows**, reads **`appsettings.json`** / **`appsettings.{Environment}.json`** and environment variables (standard .NET configuration). Setup and operations are documented in [Windows Upload Service](./windows-upload-service.md). It POSTs to `https://<your-vercel-app>/api/log-files/ingest` with the ingest API key; point **`UploadService:ApiEndpoint`** at production or a preview URL as needed. If Vercel deployment protection is on, configure **`UploadService:VercelProtectionBypass`** (see **Deployment Protection** above). The older **Node** variant lives under `windows-upload-service/` (`README.md` there).
 
 ---
 

@@ -29,6 +29,10 @@ export const DOC_NAV: readonly DocNavSection[] = [
       { slug: "admin-platforms", label: "Users, GitHub, Supabase, and Vercel" },
     ],
   },
+  {
+    label: "Windows Upload Service",
+    items: [{ slug: "windows-upload-service", label: "Setup and Operations (.NET)" }],
+  },
 ] as const;
 
 export function getAllDocSlugs(): string[] {

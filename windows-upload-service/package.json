@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node index.js",
     "install-service": "node scripts/install-service.js install",
+    "install-service:dev": "node scripts/install-service.js install --local",
     "uninstall-service": "node scripts/install-service.js uninstall",
+    "uninstall-service:dev": "node scripts/install-service.js uninstall --local",
     "test": "node --test",
     "upload": "tsx test/upload-file.ts"
   },
