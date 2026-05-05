@@ -36,6 +36,10 @@ Use a dedicated folder that only holds this publish output and runtime files—n
 
 `C:\Program Files\WasteZero\WindowsUploadService`
 
+After **`Install-Service.ps1 -PublishAndCopy`** (or a manual copy), that folder should contain the published **`WasteZero.WindowsUploadService.exe`**, dependency assemblies, **`appsettings.json`**, and related runtime files—everything the worker needs next to the executable.
+
+![Default install folder after publish: exe, DLLs, and appsettings under Program Files](/docs-images/win-upload-svc-appsettings.png)
+
 Grant the **service account** **Modify** on that folder (SQLite DB, rotated logs, and optional settings updates live here). Keep backups or relocate heavy paths via config (`DatabasePath`, `LogDir`) if you prefer data on another volume—for example `D:\Data\WasteZero\upload_state.db` while the exe stays under Program Files.
 
 Verify the executable exists before install:
@@ -64,6 +68,19 @@ Useful options:
 - `-ProjectPath`, `-PublishConfiguration`, `-Runtime`, `-SelfContained` to control publish behavior when using `-PublishAndCopy`.
 - `-DelayedAutoStart` to start after other automatic services at boot.
 - `-SkipFailureRecovery` if you do not want the script to configure automatic restart on process failure.
+
+### Verify in Services (`services.msc`)
+
+Open **Services** (Win+R → `services.msc`) and locate **WasteZero Windows Upload** (internal name **`WasteZeroUpload`** unless you changed **`-ServiceName`**).
+
+A healthy install should show:
+
+- **Status:** **Running** (after `Start-Service` / successful install script completion).
+- **Startup Type:** **Automatic** by default. If you passed **`-DelayedAutoStart`**, Windows shows **Automatic (Delayed Start)**—still correct; the service starts shortly after boot.
+
+![WasteZero Windows Upload in the Services list](/docs-images/win-upload-svc-services.png)
+
+If Status is blank or shows **Stopped** right after install, fix configuration (for example empty **`UploadService:ApiKey`**) and check [Troubleshooting quick checks](#troubleshooting-quick-checks) before restarting the service.
 
 ## Where to find logs
 
