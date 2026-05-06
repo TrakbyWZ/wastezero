@@ -15,7 +15,7 @@ These views back the HTTP GET API routes so that underlying SQL can change witho
 
 | View | GET route(s) |
 |------|----------------|
-| `vw_api_log_files_list` | `/api/log-files` |
+| `vw_api_log_files_list` | `/api/log-files` (core `log_files` columns; no duplicate aggregates) |
 | `vw_api_customers_list` | `/api/customers`, `/api/customers/[id]` |
 | `vw_api_customer_sequence_for_customer` | `/api/customers/[id]/sequence` |
 | `vw_api_customer_sequences_list` | `/api/customer-sequences`, `/api/customer-sequences/[id]` |

@@ -11,6 +11,22 @@ Use this together with [Local Development](./local-development.md) when testing 
 - Sends file content to `UploadService:ApiEndpoint` with `X-API-Key`.
 - Stores upload outcomes in SQLite (`file_upload_state`) so reboots/restarts do not lose state.
 
+### Ingest API response (success)
+
+On **201 Created**, `/api/log-files/ingest` returns JSON with metadata about the stored file, for example:
+
+| Field | Meaning |
+| ----- | ------- |
+| `id` | Database id of the `log_files` row. |
+| `filename` | Filename sent in the request. |
+| `upload_timestamp` | When the file record was created (ISO string). |
+| `total_reads` | Number of parsed data rows. |
+| `bad_reads` | Count of rows classified as bad reads. |
+| `sequence_reads` | Value summed from the log footer (“Sequence Reads”), when present. |
+| `uploaded_by` | Usually `null` for API-key uploads (browser uploads set the user email). |
+
+Parsed lines are stored as structured rows in **`log_entries`** only. The API does **not** include duplicate counts or per-row duplicate flags; downstream reporting or analysis can derive patterns from raw data if needed.
+
 ## Install on Windows server
 
 Primary path: run one elevated command that publishes, copies to the install folder, and registers the Windows Service.

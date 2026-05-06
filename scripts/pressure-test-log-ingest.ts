@@ -1,5 +1,5 @@
 /**
- * Pressure-test log file ingest and duplicate handling (log_entry_eligible_value_counts + finalize).
+ * Pressure-test log file ingest (chunked inserts + finalize).
  * Uses real camera rows from sampledata (default: 2.13.26__C + 2.13.26__P); only timestamps are
  * shifted per upload so each run replays the same data_values with a different timeline.
  *
@@ -153,24 +153,10 @@ function loadSampleTemplate(cam1Rel: string, cam2Rel: string | null): string {
   return `${cam1.trimEnd()}\n\n${cam2.trim()}\n`;
 }
 
-/** First eligible (non–Bad_Read) data value from two-column rows — for --verify. */
-function firstVerifyDataValueFromTemplate(raw: string): string | null {
-  for (const line of raw.split(/\r?\n/)) {
-    const m = line.match(DATA_ROW);
-    if (!m) continue;
-    const dv = m[1]!.trim();
-    if (!dv || dv.toLowerCase() === "bad_read") continue;
-    if (dv === "Bad Read" || dv === "Bad_Read") continue;
-    return dv;
-  }
-  return null;
-}
-
 type IngestTimings = {
   filename: string;
   ms: number;
   total_reads: number;
-  duplicate_count: number;
   bad_reads: number;
 };
 
@@ -197,14 +183,12 @@ async function ingestViaHttp(
   }
   const body = JSON.parse(text) as {
     total_reads: number;
-    duplicate_count: number;
     bad_reads: number;
   };
   return {
     filename,
     ms,
     total_reads: body.total_reads,
-    duplicate_count: body.duplicate_count,
     bad_reads: body.bad_reads,
   };
 }
@@ -220,39 +204,6 @@ function summarizeMs(samples: number[]) {
     avg: sum / sorted.length,
     p95: sorted[p95Idx]!,
   };
-}
-
-async function verifyCountTable(sampleDataValue: string) {
-  const admin = createAdminClient();
-  const { data: countRow, error: e1 } = await admin
-    .from("log_entry_eligible_value_counts")
-    .select("cnt")
-    .eq("data_value", sampleDataValue)
-    .maybeSingle();
-
-  if (e1) throw new Error(e1.message);
-
-  const { count: entryCount, error: e2 } = await admin
-    .from("log_entries")
-    .select("*", { count: "exact", head: true })
-    .eq("data_value", sampleDataValue);
-
-  if (e2) throw new Error(e2.message);
-
-  const cnt = countRow?.cnt ?? null;
-  const eligibleActual = entryCount ?? 0;
-  const match = cnt !== null && BigInt(cnt) === BigInt(eligibleActual);
-
-  console.log("\n--- Verify log_entry_eligible_value_counts ---");
-  console.log(`Sample data_value: ${sampleDataValue}`);
-  console.log(`  counts.cnt:           ${cnt ?? "(missing row)"}`);
-  console.log(`  log_entries rows:      ${eligibleActual}`);
-
-  if (!match) {
-    console.error("MISMATCH: cnt should equal number of log_entries for this value.");
-    process.exit(1);
-  }
-  console.log("OK counts table matches log_entries row count for sample value.");
 }
 
 async function cleanupPressureFiles() {
@@ -309,7 +260,6 @@ async function main() {
 
   const files = parsePositiveInt("--files", 3);
   const concurrency = Math.min(files, parsePositiveInt("--concurrency", 1));
-  const verify = hasFlag("--verify");
 
   const cam1Path = argValue("--sample-cam1") ?? DEFAULT_CAM1;
   const cam2Path = hasFlag("--cam1-only") ? null : (argValue("--sample-cam2") ?? DEFAULT_CAM2);
@@ -329,7 +279,6 @@ async function main() {
   }
 
   const baseTemplate = loadSampleTemplate(cam1Path, cam2Path);
-  const verifyValue = firstVerifyDataValueFromTemplate(baseTemplate);
 
   console.log("Pressure test config:", {
     mode: httpMode ? "http" : "direct",
@@ -339,8 +288,6 @@ async function main() {
     sampleCam2: cam2Path ?? "(cam1 only)",
     timeSkewMinutesPerFile: skewMinutes,
     concurrency,
-    verify,
-    verifySampleValue: verifyValue ?? "(none found)",
   });
 
   const timings: IngestTimings[] = [];
@@ -366,7 +313,6 @@ async function main() {
       filename,
       ms,
       total_reads: result.total_reads,
-      duplicate_count: result.duplicate_count,
       bad_reads: result.bad_reads,
     };
   };
@@ -379,7 +325,7 @@ async function main() {
       const row = await runOne(i);
       timings.push(row);
       console.log(
-        `  [${i + 1}/${files}] ${row.filename}  ${row.ms.toFixed(0)} ms  reads=${row.total_reads} dup=${row.duplicate_count} bad=${row.bad_reads}`,
+        `  [${i + 1}/${files}] ${row.filename}  ${row.ms.toFixed(0)} ms  reads=${row.total_reads} bad=${row.bad_reads}`,
       );
     }
   }
@@ -395,19 +341,6 @@ async function main() {
   console.log("\n--- Summary ---");
   console.log(`Wall time (batch):     ${wallMs.toFixed(0)} ms`);
   console.log(`Per-file ingest (ms):  min=${stat.min.toFixed(0)} avg=${stat.avg.toFixed(0)} p95=${stat.p95.toFixed(0)} max=${stat.max.toFixed(0)}`);
-  console.log(
-    `Duplicate counts:      min=${Math.min(...timings.map((t) => t.duplicate_count))} max=${Math.max(...timings.map((t) => t.duplicate_count))}`,
-  );
-
-  if (verify) {
-    if (httpMode) {
-      console.warn("--verify requires direct DB access; load env and omit --http, or run verify separately.");
-    } else if (!verifyValue) {
-      console.warn("--verify skipped: no eligible data row found in sample template.");
-    } else {
-      await verifyCountTable(verifyValue);
-    }
-  }
 }
 
 main().catch((e) => {

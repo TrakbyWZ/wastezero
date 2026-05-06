@@ -29,10 +29,10 @@ Data file detail preview:
 ## What this page shows
 
 - **Uploaded file list**: Files received from printer sync.
-- **File detail view**: Parsed records for selected file.
-- **Read counts**: Processing totals and statistics.
-- **Duplicate indicators**: Repeated reads or duplicated entries.
-- **Ingest timing/context**: Audit and troubleshooting context.
+- **File detail view**: Parsed records for selected file (raw structured rows as stored in the database).
+- **Read counts**: Totals such as total reads, bad reads, and sequence reads from the file footer.
+- **Export**: Download original text or a cleansed CSV of parsed columns (see Preview table columns).
+- **Ingest timing/context**: Who uploaded the file and when (audit and troubleshooting).
 
 > **Timezone note:** System-generated timestamps are stored and displayed using UTC unless otherwise labeled.
 
@@ -41,8 +41,8 @@ Data file detail preview:
 ## Validation checklist
 
 - Expected file appears in Data Logs.
-- Counts match print expectations.
-- Duplicate alerts are reviewed and resolved.
+- Counts match print expectations (including bad reads and sequence reads where relevant).
+- Spot-check parsed rows in Preview or export if something looks off.
 - No unexpected errors remain.
 
 > **Note:** If no file appears after a run, check printer system status and Windows service health.

@@ -27,7 +27,6 @@ type PreviewData = {
     total_reads: number;
     bad_reads: number;
     sequence_reads: number;
-    duplicate_count: number;
     uploaded_by: string | null;
   };
   records: Array<{
@@ -40,12 +39,10 @@ type PreviewData = {
     data_value: string;
     data_timestamp: string | null;
     sort_order: number;
-    is_duplicate: boolean;
   }>;
   limit: number;
   page: number;
   total_count: number;
-  duplicate_filter?: "all" | "duplicates" | "non_duplicates";
 };
 
 type LogFilesResponse = {
@@ -68,7 +65,6 @@ export default function LogSyncDashboardPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewPage, setPreviewPage] = useState(1);
   const [previewLimit, setPreviewLimit] = useState(DEFAULT_PAGE_SIZE);
-  const [previewDuplicateFilter, setPreviewDuplicateFilter] = useState<"all" | "duplicates" | "non_duplicates">("all");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,7 +110,6 @@ export default function LogSyncDashboardPage() {
     setPreview(null);
     setPreviewPage(1);
     setPreviewLimit(DEFAULT_PAGE_SIZE);
-    setPreviewDuplicateFilter("all");
   }, []);
 
   const fetchPreview = useCallback(async () => {
@@ -124,7 +119,6 @@ export default function LogSyncDashboardPage() {
       const params = new URLSearchParams({
         limit: String(previewLimit),
         page: String(previewPage),
-        duplicate_filter: previewDuplicateFilter,
       });
       const res = await fetch(`/api/log-files/${previewId}/preview?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to load preview");
@@ -135,7 +129,7 @@ export default function LogSyncDashboardPage() {
     } finally {
       setPreviewLoading(false);
     }
-  }, [previewId, previewPage, previewLimit, previewDuplicateFilter]);
+  }, [previewId, previewPage, previewLimit]);
 
   useEffect(() => {
     if (previewId) fetchPreview();
@@ -377,7 +371,6 @@ export default function LogSyncDashboardPage() {
                 <th className="text-left font-medium p-3">Total Reads</th>
                 <th className="text-left font-medium p-3">Bad Reads</th>
                 <th className="text-left font-medium p-3">Sequence Reads</th>
-                <th className="text-left font-medium p-3">Duplicates</th>
                 <th className="text-left font-medium p-3">Uploaded By</th>
                 <th className="text-left font-medium p-3">Uploaded Date</th>
                 <th className="text-left font-medium p-3">Actions</th>
@@ -386,13 +379,13 @@ export default function LogSyncDashboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : files.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     {filesPage === 1
                       ? "No log files match the current filters."
                       : "No more log files on this page."}
@@ -420,11 +413,6 @@ export default function LogSyncDashboardPage() {
                       </span>
                     </td>
                     <td className="p-3">{row.sequence_reads.toLocaleString()}</td>
-                    <td className="p-3">
-                      <span className={row.duplicate_count > 0 ? "text-destructive font-medium" : ""}>
-                        {row.duplicate_count.toLocaleString()}
-                      </span>
-                    </td>
                     <td className="p-3 text-muted-foreground">
                       {row.uploaded_by ?? "—"}
                     </td>
@@ -511,7 +499,6 @@ export default function LogSyncDashboardPage() {
                     <span>Total reads: {preview.file.total_reads.toLocaleString()}</span>
                     <span>Bad reads: {preview.file.bad_reads.toLocaleString()}</span>
                     <span>Sequence errors: {preview.file.sequence_reads.toLocaleString()}</span>
-                    <span>Duplicates: {preview.file.duplicate_count.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -541,26 +528,6 @@ export default function LogSyncDashboardPage() {
                             {n}
                           </option>
                         ))}
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="preview-duplicate-filter" className="text-sm text-muted-foreground">
-                        Duplicate:
-                      </Label>
-                      <select
-                        id="preview-duplicate-filter"
-                        value={previewDuplicateFilter}
-                        onChange={(e) => {
-                          setPreviewDuplicateFilter(
-                            e.target.value as "all" | "duplicates" | "non_duplicates"
-                          );
-                          setPreviewPage(1);
-                        }}
-                        className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                      >
-                        <option value="all">All</option>
-                        <option value="duplicates">Duplicates only</option>
-                        <option value="non_duplicates">Non-duplicates only</option>
                       </select>
                     </div>
                   </div>
@@ -610,7 +577,6 @@ export default function LogSyncDashboardPage() {
                         <th className="text-left font-medium p-2">Job End Timestamp</th>
                         <th className="text-left font-medium p-2">Data</th>
                         <th className="text-left font-medium p-2">Timestamp</th>
-                        <th className="text-left font-medium p-2">Duplicate</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -625,15 +591,6 @@ export default function LogSyncDashboardPage() {
                           <td className="p-2 text-muted-foreground">{formatDate(r.job_end_timestamp)}</td>
                           <td className="p-2 font-mono text-xs">{r.data_value}</td>
                           <td className="p-2 text-muted-foreground">{formatDate(r.data_timestamp)}</td>
-                          <td className="p-2">
-                            {r.is_duplicate === true ? (
-                              <span className="inline-flex items-center rounded-md bg-destructive/20 px-2 py-0.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/30">
-                                Duplicate
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
                         </tr>
                       ))}
                     </tbody>

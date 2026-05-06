@@ -7,7 +7,7 @@ import {
 
 const LOG_ENTRY_INSERT_CHUNK_SIZE = 1000;
 const MAX_INGEST_BYTES = 10 * 1024 * 1024;
-const MAX_INGEST_RECORDS = 100_000;
+const MAX_INGEST_RECORDS = 100_000_000;
 
 export class IngestValidationError extends Error {
   status: number;
@@ -31,7 +31,6 @@ type IngestLogFileResult = {
   total_reads: number;
   bad_reads: number;
   sequence_reads: number;
-  duplicate_count: number;
   uploaded_by: string | null;
   upload_timestamp: string;
 };
@@ -108,7 +107,6 @@ export async function ingestLogFile({
       total_reads: 0,
       bad_reads: 0,
       sequence_reads: 0,
-      duplicate_count: 0,
       uploaded_by: uploadedBy,
     })
     .select("id, upload_timestamp")
@@ -125,7 +123,6 @@ export async function ingestLogFile({
         total_reads: parsed.records.length,
         bad_reads: badReads,
         sequence_reads: parsed.sequenceReadsFromFile,
-        duplicate_count: 0,
         uploaded_by: uploadedBy,
       })
       .eq("id", logFile.id);
@@ -163,25 +160,12 @@ export async function ingestLogFile({
     throw error;
   }
 
-  const { data: finalizedLogFile, error: finalizedLogFileError } = await admin
-    .from("log_files")
-    .select("duplicate_count")
-    .eq("id", logFile.id)
-    .single();
-
-  if (finalizedLogFileError || !finalizedLogFile) {
-    throw new Error(
-      finalizedLogFileError?.message ?? "Failed to load finalized log file metadata",
-    );
-  }
-
   return {
     id: logFile.id,
     filename,
     total_reads: parsed.records.length,
     bad_reads: badReads,
     sequence_reads: parsed.sequenceReadsFromFile,
-    duplicate_count: finalizedLogFile.duplicate_count ?? 0,
     uploaded_by: uploadedBy,
     upload_timestamp: logFile.upload_timestamp,
   };

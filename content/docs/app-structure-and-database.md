@@ -106,7 +106,7 @@ Migrations add and evolve, among other things:
 
 - **App users (allow list):** `public.users` (emails allowed to use the app), related OTP/login tables, RLS.  
 - **Core business:** `customer`, `customer_sequence`, `batch`, `batch_downloads`, triggers (e.g. `modified` timestamps).  
-- **Printer / camera logs:** `log_files`, `log_entries`, duplicate handling, materialized or derived fields (e.g. duplicate counts), support tables for performance.  
+- **Printer / camera logs:** `log_files` (file metadata and optional raw content), `log_entries` (structured rows parsed from each file—no derived duplicate flags on rows). Ingest finalization runs report refresh (e.g. Customer Bags) via PostgreSQL functions.  
 - **Reporting:** report tables/views (e.g. customer bags) and `vw_api_*` views that back read APIs.  
 - **API abstraction:** some **SQL views** (`vw_api_*`) isolate API consumers from raw table renames.  
 
@@ -114,7 +114,7 @@ Exact names and behavior change over time — always use **current** migrations 
 
 ### Functions and triggers
 
-Many behaviors (e.g. duplicate flagging, report refresh, ingest finalization) are implemented as **PostgreSQL functions** and **triggers** inside migrations. The app calls some of them via `rpc()` from the server. That is still “Supabase” in the sense of your hosted Postgres + PostgREST / client RPC.
+Many behaviors (e.g. report refresh after log ingest, ingest finalization) are implemented as **PostgreSQL functions** and **triggers** inside migrations. The app calls some of them via `rpc()` from the server. That is still “Supabase” in the sense of your hosted Postgres + PostgREST / client RPC.
 
 ---
 

@@ -75,7 +75,5 @@ export type LogFileRow = {
   total_reads: number;
   bad_reads: number;
   sequence_reads: number;
-  /** Materialized duplicate count maintained on public.log_files */
-  duplicate_count: number;
   uploaded_by: string | null;
 };
