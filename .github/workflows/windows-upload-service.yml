@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - buid/add-github-dotnet-build
+      - main
     paths:
       - "windows-upload-service-dotnet/**"
       - ".github/workflows/windows-upload-service.yml"
@@ -32,6 +32,25 @@ jobs:
           --self-contained true
           -p:PublishSingleFile=false
           --output "${{ github.workspace }}/artifacts/publish"
+
+      - name: Bundle Install-Service and Uninstall-Service scripts
+        shell: pwsh
+        run: |
+          Copy-Item -Path @(
+            "windows-upload-service-dotnet/scripts/Install-Service.ps1",
+            "windows-upload-service-dotnet/scripts/Uninstall-Service.ps1"
+          ) -Destination "artifacts/publish/" -Force
+
+      - name: Bundle project source for PublishAndCopy
+        shell: pwsh
+        run: |
+          $src = Join-Path "${{ github.workspace }}" "windows-upload-service-dotnet/src/WasteZero.WindowsUploadService"
+          $dest = Join-Path "${{ github.workspace }}" "artifacts/publish/project-source"
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          Get-ChildItem -LiteralPath $src -Force | ForEach-Object {
+            if ($_.Name -in @('bin', 'obj')) { return }
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dest $_.Name) -Recurse -Force
+          }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
