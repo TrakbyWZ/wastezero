@@ -12,5 +12,6 @@
 - **Project:** `src/WasteZero.WindowsUploadService/`
 - **Solution:** `WasteZero.WindowsUploadService.sln`
 - **Service install scripts:** `scripts/Install-Service.ps1`, `scripts/Uninstall-Service.ps1`
+- **CI:** `.github/workflows/windows-upload-service.yml` builds a **self-contained win-x64** publish on **GitHub Actions**; download the **`WasteZero.WindowsUploadService-win-x64-self-contained`** artifact from the successful workflow run (no .NET install needed on the server). The artifact includes **`Install-Service.ps1`**, **`Uninstall-Service.ps1`**, and **`project-source/`** (full service project) beside the published exe so **`Install-Service.ps1 -PublishAndCopy`** works when the SDK is present (`-SelfContained` matches CI).
 
 Change **code** here; change **product docs** only under `content/docs/windows-upload-service.md`.

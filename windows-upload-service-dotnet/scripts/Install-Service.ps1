@@ -34,7 +34,8 @@
 
 .PARAMETER ProjectPath
   Path to WasteZero.WindowsUploadService.csproj used with -PublishAndCopy.
-  Defaults to the project path relative to this scripts folder.
+  If omitted, resolves in order: (1) project-source\ next to this script (GitHub artifact bundle),
+  (2) ..\src\WasteZero.WindowsUploadService\ relative to scripts folder (full repo checkout).
 
 .PARAMETER PublishConfiguration
   Build configuration for publish when -PublishAndCopy is used. Default: Release.
@@ -72,7 +73,7 @@ param(
 
     [switch] $PublishAndCopy,
 
-    [string] $ProjectPath = (Join-Path $PSScriptRoot "..\src\WasteZero.WindowsUploadService\WasteZero.WindowsUploadService.csproj"),
+    [string] $ProjectPath = $null,
 
     [string] $PublishConfiguration = "Release",
 
@@ -90,6 +91,24 @@ if ($PublishAndCopy) {
         throw "dotnet SDK not found in PATH. Install .NET SDK or publish on another machine and copy output to InstallPath."
     }
 
+    if (-not $ProjectPath -or [string]::IsNullOrWhiteSpace($ProjectPath)) {
+        $candidates = @(
+            (Join-Path $PSScriptRoot "project-source\WasteZero.WindowsUploadService.csproj"),
+            (Join-Path $PSScriptRoot "..\src\WasteZero.WindowsUploadService\WasteZero.WindowsUploadService.csproj")
+        )
+        foreach ($c in $candidates) {
+            $fullCandidate = [System.IO.Path]::GetFullPath($c)
+            if (Test-Path -LiteralPath $fullCandidate) {
+                $ProjectPath = $fullCandidate
+                break
+            }
+        }
+    }
+
+    if (-not $ProjectPath -or [string]::IsNullOrWhiteSpace($ProjectPath)) {
+        throw "Could not find WasteZero.WindowsUploadService.csproj. Expected project-source\ next to this script (artifact bundle) or ..\src\WasteZero.WindowsUploadService\ (repo layout). Pass -ProjectPath explicitly."
+    }
+
     $resolvedProjectPath = [System.IO.Path]::GetFullPath($ProjectPath)
     if (-not (Test-Path -LiteralPath $resolvedProjectPath)) {
         throw "Project file not found: $resolvedProjectPath. Pass -ProjectPath to WasteZero.WindowsUploadService.csproj."
@@ -104,7 +123,7 @@ if ($PublishAndCopy) {
 
     $selfContainedValue = if ($SelfContained) { "true" } else { "false" }
     Write-Host "Publishing service..."
-    & dotnet publish $resolvedProjectPath -c $PublishConfiguration -r $Runtime --self-contained $selfContainedValue -o $publishOut
+    & dotnet publish $resolvedProjectPath -c $PublishConfiguration -r $Runtime --self-contained $selfContainedValue -p:PublishSingleFile=false -o $publishOut
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet publish failed with exit code $LASTEXITCODE"
     }

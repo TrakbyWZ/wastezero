@@ -13,7 +13,62 @@ Use this together with [Local Development](./local-development.md) when testing 
 
 ## Install on Windows server
 
-Primary path: run one elevated command that publishes, copies to the install folder, and registers the Windows Service.
+Typical choices:
+
+1. **[Self-contained build from GitHub Actions](#download-self-contained-build-github-actions)** (recommended when the server should **not** install the .NET SDK or runtime).
+2. **`Install-Service.ps1 -PublishAndCopy`** on a machine that has the **.NET SDK**, optionally with **`-SelfContained`** so the server still needs no separate runtime.
+3. **Copy a publish folder** produced elsewhere, then run **`Install-Service.ps1`** without **`-PublishAndCopy`** (register/update service only).
+
+---
+
+### Download self-contained build (GitHub Actions)
+
+The repository workflow **Build Windows Upload Service** (`.github/workflows/windows-upload-service.yml`) publishes a **self-contained** **win-x64** build: the **.NET 6 runtime is included** next to the executable, so production servers do not need the SDK or the shared .NET Desktop Runtime. The zip also includes **`Install-Service.ps1`** and **`Uninstall-Service.ps1`** next to the exe, plus a **`project-source`** folder (full **`WasteZero.WindowsUploadService`** project sources) so **`Install-Service.ps1 -PublishAndCopy`** can rebuild from the bundle when the **.NET SDK** is installed—pass **`-SelfContained`** to match CI output.
+
+**Download**
+
+1. Open the GitHub repository → **Actions**.
+2. Select **Build Windows Upload Service**.
+3. Open a successful run (runs on pushes to **`main`** that touch `windows-upload-service-dotnet/`, or use **Run workflow** for **workflow_dispatch**).
+4. Under **Artifacts**, download **`WasteZero.WindowsUploadService-win-x64-self-contained`** (a zip file).
+
+**Install**
+
+1. On the Windows Server, unpack the zip so **`WasteZero.WindowsUploadService.exe`**, **`Install-Service.ps1`**, **`Uninstall-Service.ps1`**, **`project-source\`**, **`appsettings.json`**, DLLs, and runtime files all live in one folder—by default use:
+
+   `C:\Program Files\WasteZero\WindowsUploadService`
+
+   If the zip adds an extra directory layer, move the **contents** up so the exe, scripts, and **`project-source`** sit directly in the install folder.
+
+2. Edit **`appsettings.json`** (`WatchDirectories`, **`UploadService:ApiEndpoint`**, **`UploadService:ApiKey`**, etc.).
+
+3. Open **PowerShell as Administrator**, **cd** into that folder (the same directory as **`Install-Service.ps1`**).
+
+   **Typical install (use the pre-built binaries):** register the service **without** **`-PublishAndCopy`**:
+
+```powershell
+cd "C:\Program Files\WasteZero\WindowsUploadService"
+.\Install-Service.ps1
+```
+
+   **Rebuild from sources on this machine** (requires **.NET 6 SDK** on `PATH`): run **`Install-Service.ps1 -PublishAndCopy`**. The script picks **`project-source\WasteZero.WindowsUploadService.csproj`** automatically when it sits next to **`Install-Service.ps1`**. Use **`-SelfContained`** to publish a self-contained **win-x64** output like CI:
+
+```powershell
+cd "C:\Program Files\WasteZero\WindowsUploadService"
+.\Install-Service.ps1 -PublishAndCopy -SelfContained
+```
+
+   If the service is **already installed**, run **`.\Uninstall-Service.ps1`** before **`Install-Service.ps1 -PublishAndCopy`** (the install script refuses to overwrite an existing service registration).
+
+If you unpacked somewhere else, pass **`-InstallPath`** with that folder’s path.
+
+For upgrades without recompiling, stop the service, replace the publish folder contents with a newly downloaded artifact, then start the service again (see [Resilience expectations](#resilience-expectations)).
+
+---
+
+### One-command install using .NET SDK on the server
+
+Run one elevated command that publishes, copies to the install folder, and registers the Windows Service.
 
 Open **PowerShell as Administrator**:
 
@@ -26,9 +81,9 @@ By default this uses:
 
 - Install path: `C:\Program Files\WasteZero\WindowsUploadService`
 - Publish config/runtime: `Release`, `win-x64`
-- Framework-dependent publish (`--self-contained false`)
+- Framework-dependent publish (`--self-contained false`), which requires the **.NET 6 runtime** to be installed on that machine.
 
-Use `-SelfContained` if you do not want to preinstall .NET runtime on the server (larger output).
+Use **`-SelfContained`** with **`-PublishAndCopy`** if you are publishing from the SDK on that machine but still want a **folder that bundles the runtime** (similar to the GitHub artifact, larger output).
 
 **Recommended permanent install path**
 
@@ -50,11 +105,11 @@ Test-Path "C:\Program Files\WasteZero\WindowsUploadService\WasteZero.WindowsUplo
 
 ### Alternative: pre-publish on a different machine
 
-If your server should not run the SDK build:
+If your server should not run the SDK build, prefer the **[GitHub Actions artifact](#download-self-contained-build-github-actions)** above, or:
 
-1. Publish on a build/developer machine.
-2. Copy published output into the install folder on the server.
-3. Run install on the server without publish step:
+1. Publish on a build/developer machine (`dotnet publish` with **`--self-contained true`** and **`-r win-x64`** if the server has no .NET runtime).
+2. Copy the full publish output into the install folder on the server.
+3. Run install on the server without the publish step:
 
 ```powershell
 cd windows-upload-service-dotnet\scripts
