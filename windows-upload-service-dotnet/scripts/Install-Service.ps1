@@ -55,6 +55,14 @@
 
 .EXAMPLE
   .\Install-Service.ps1 -PublishAndCopy
+
+.NOTES
+  Network folders: Windows services do not see user mapped drive letters (e.g. Z: from Explorer).
+  Set UploadService:WatchDirectories to a UNC path (\\fileserver\share\camera-logs) in appsettings
+  or environment variables. If the service runs as Local System on a domain-joined machine,
+  grant the computer account (DOMAIN\COMPUTERNAME$) read access on the share and folder ACLs.
+  For workgroup PCs or shares that require a specific user, install with -ServiceAccount using an
+  account that has permission to the UNC path (set the password in Services.msc if needed).
 #>
 param(
     [string] $InstallPath = "C:\Program Files\WasteZero\WindowsUploadService",
@@ -148,6 +156,20 @@ New-Service -Name $ServiceName `
     -DisplayName $DisplayName `
     -Description $Description `
     -StartupType Automatic | Out-Null
+
+# SCM can lag briefly after New-Service; sc.exe OpenService may return 1060 until the service is queryable.
+$deadline = (Get-Date).AddSeconds(20)
+do {
+    sc.exe query $ServiceName 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { break }
+    if ($LASTEXITCODE -ne 1060) {
+        throw "sc.exe query '$ServiceName' failed with exit code $LASTEXITCODE right after New-Service."
+    }
+    if ((Get-Date) -ge $deadline) {
+        throw "Service '$ServiceName' was not visible to SCM within 20s after New-Service. Reboot and run Uninstall-Service.ps1 if a partial install exists, then retry."
+    }
+    Start-Sleep -Milliseconds 200
+} while ($true)
 
 # Run as specified account (LocalSystem is the default for New-Service when not using -Credential)
 if ($ServiceAccount -and $ServiceAccount -ne "LocalSystem") {
