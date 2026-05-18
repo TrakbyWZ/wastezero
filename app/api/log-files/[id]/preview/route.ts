@@ -17,7 +17,6 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const limitParam = searchParams.get("limit");
   const pageParam = searchParams.get("page");
-  const duplicateFilter = searchParams.get("duplicate_filter") ?? "all"; // "all" | "duplicates" | "non_duplicates"
   const requestedLimit = Number(limitParam);
   const limit = isPageSizeOption(requestedLimit)
     ? requestedLimit
@@ -30,7 +29,7 @@ export async function GET(
 
   const { data: file, error: fileError } = await admin
     .from("log_files")
-    .select("id, filename, total_reads, bad_reads, sequence_reads, duplicate_count, uploaded_by")
+    .select("id, filename, total_reads, bad_reads, sequence_reads, uploaded_by")
     .eq("id", id)
     .single();
 
@@ -41,18 +40,10 @@ export async function GET(
     );
   }
 
-  let query = admin
+  const { data: entries } = await admin
     .from("log_entries")
-    .select("log_file_header, job_name, job_number, operator, job_start_timestamp, job_end_timestamp, data_value, data_timestamp, sort_order, is_duplicate")
-    .eq("log_file_id", id);
-
-  if (duplicateFilter === "duplicates") {
-    query = query.eq("is_duplicate", true);
-  } else if (duplicateFilter === "non_duplicates") {
-    query = query.eq("is_duplicate", false);
-  }
-
-  const { data: entries } = await query
+    .select("log_file_header, job_name, job_number, operator, job_start_timestamp, job_end_timestamp, data_value, data_timestamp, sort_order")
+    .eq("log_file_id", id)
     .order("sort_order", { ascending: true })
     .range(from, to);
 
@@ -66,7 +57,6 @@ export async function GET(
     data_value: string;
     data_timestamp: string | null;
     sort_order: number;
-    is_duplicate: boolean;
   };
   const first = (entries ?? [])[0] as Entry | undefined;
   const records = (entries ?? []).map((e: Entry) => ({
@@ -79,14 +69,7 @@ export async function GET(
     data_value: e.data_value,
     data_timestamp: e.data_timestamp,
     sort_order: e.sort_order,
-    is_duplicate: e.is_duplicate === true,
   }));
-
-  const totalCount = duplicateFilter === "duplicates"
-    ? file.duplicate_count
-    : duplicateFilter === "non_duplicates"
-      ? Math.max(file.total_reads - file.duplicate_count, 0)
-      : file.total_reads;
 
   return NextResponse.json({
     file: {
@@ -98,13 +81,11 @@ export async function GET(
       total_reads: file.total_reads,
       bad_reads: file.bad_reads,
       sequence_reads: file.sequence_reads ?? 0,
-      duplicate_count: file.duplicate_count ?? 0,
       uploaded_by: file.uploaded_by ?? null,
     },
     records,
     limit,
     page,
-    total_count: totalCount,
-    duplicate_filter: duplicateFilter,
+    total_count: file.total_reads,
   });
 }

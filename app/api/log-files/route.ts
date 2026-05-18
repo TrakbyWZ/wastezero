@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   let query = admin
     .from("log_files")
-    .select("id, filename, upload_timestamp, total_reads, bad_reads, sequence_reads, uploaded_by, duplicate_count")
+    .select("id, filename, upload_timestamp, total_reads, bad_reads, sequence_reads, uploaded_by")
     .order("upload_timestamp", { ascending: false })
     .order("id", { ascending: false })
     .range(fromIndex, toIndex);
