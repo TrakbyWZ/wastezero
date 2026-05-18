@@ -121,3 +121,5 @@ Schema and migrations live in `supabase/migrations/`. See [supabase/README.md](s
 ## Deploying
 
 Build and run as a standard Next.js app. Ensure your host has the same environment variables set (Supabase URL and keys, `SESSION_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and optional SMTP / ingest API key). For Vercel, you can use the [Supabase integration](https://vercel.com/integrations/supabase) to attach URL and keys to the project.
+
+## Contributing Guide
