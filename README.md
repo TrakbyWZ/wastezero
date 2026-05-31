@@ -110,6 +110,8 @@ To run against a **local** Supabase instance:
 | `pnpm lint` | Run ESLint |
 | `pnpm test:sequence` | Run sequence lib tests |
 | `pnpm test:log-parser` | Run log parser tests |
+| `pnpm db:backup` | Dump Postgres to `backups/` (see below) |
+| `pnpm db:restore` | Restore a backup onto local Supabase (see below) |
 
 ## Database and migrations
 
@@ -117,6 +119,44 @@ Schema and migrations live in `supabase/migrations/`. See [supabase/README.md](s
 
 - Applying migrations locally (`supabase start` / `supabase db reset`)
 - Pushing migrations to a hosted project (`supabase link` and `supabase db push`)
+
+### Backup and restore
+
+Requires the [Supabase CLI](https://supabase.com/docs/guides/cli) and PostgreSQL client tools (`pg_dump`, `psql`) on your PATH. Backups are written to `backups/` (gitignored).
+
+**Backup from hosted Supabase** — use any one of:
+
+```bash
+# Linked project (supabase link; uses .env.prod.local)
+pnpm db:backup --linked
+
+# Direct connection string (Session pooler or direct URL from Supabase dashboard)
+pnpm db:backup --db-url "postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"
+
+# DB_URL from .env.prod.local (default) or .env.local (--env local)
+pnpm db:backup --db-url
+pnpm db:backup --db-url --env local
+```
+
+**Backup local Supabase** (stack must be running):
+
+```bash
+pnpm db:backup --local
+```
+
+**Restore over local Supabase** (local stack must be running; `--reset-first` clears the local DB and reapplies migrations before importing):
+
+```bash
+pnpm db:restore --file backups/wastezero-linked-YYYY-MM-DD_HH-MM-SS.sql --reset-first --yes
+```
+
+Or restore the newest file in `backups/`:
+
+```bash
+pnpm db:restore --latest --reset-first --yes
+```
+
+Without `--yes`, type `restore` at the prompt to confirm.
 
 ## Deploying
 
