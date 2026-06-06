@@ -2,6 +2,8 @@
  * Backup the Supabase Postgres database to a timestamped SQL file.
  * Uses `supabase db dump` (requires Supabase CLI and pg_dump on PATH).
  *
+ * Default: schema + data in one file. Pass --data-only for data rows only.
+ *
  * Exactly one target is required:
  *   pnpm db:backup --local
  *   pnpm db:backup --linked
@@ -12,13 +14,19 @@
  *   --env local|prod   Env file for --db-url without inline URL (default: prod)
  *   --out <dir>        Output directory (default: backups/)
  *   --data-only        Dump data rows only (no schema DDL)
- *   --dry-run          Print pg_dump command without running
+ *   --dry-run          Print pg_dump command without executing
  *
- * Restore: pnpm db:restore --file <this-backup.sql> [--reset-first] --yes
+ * Restore: pnpm db:restore --local --file <this-backup.sql> --yes
  */
 
 import { spawnSync } from "child_process";
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+} from "fs";
 import { join } from "path";
 
 const argv = process.argv.slice(2);
@@ -76,7 +84,7 @@ Targets:
 Options:
   --env local|prod                Env file for --db-url without inline URL (default: prod)
   --out <dir>                     Output directory (default: backups/)
-  --data-only                     Dump data only
+  --data-only                     Dump data only (default is schema + data)
   --dry-run                       Show pg_dump command without executing`);
   process.exit(1);
 }
@@ -126,47 +134,27 @@ function backupTimestamp(): string {
     .slice(0, 19);
 }
 
-function main() {
-  const outDir = argValue("--out") ?? join(process.cwd(), "backups");
-  mkdirSync(outDir, { recursive: true });
-
-  const targetLabel = useLocal ? "local" : useLinked ? "linked" : "remote";
-  const filePath = join(outDir, `wastezero-${targetLabel}-${backupTimestamp()}.sql`);
-
-  const dumpArgs = ["exec", "supabase", "db", "dump", "-f", filePath];
-
-  let connectionLabel: string | undefined;
+function buildTargetArgs(): string[] {
+  const args = ["exec", "supabase", "db", "dump"];
   if (useLocal) {
-    dumpArgs.push("--local");
+    args.push("--local");
   } else if (useLinked) {
-    dumpArgs.push("--linked");
+    args.push("--linked");
   } else {
-    const dbUrl = resolveDbUrl();
-    connectionLabel = maskDbUrl(dbUrl);
-    dumpArgs.push("--db-url", dbUrl);
-  }
-
-  if (hasFlag("--data-only")) {
-    dumpArgs.push("--data-only");
+    args.push("--db-url", resolveDbUrl());
   }
   if (hasFlag("--dry-run")) {
-    dumpArgs.push("--dry-run");
+    args.push("--dry-run");
   }
+  return args;
+}
 
-  console.log(`Target:     ${targetLabel}`);
-  if (connectionLabel) {
-    console.log(`Database:   ${connectionLabel}`);
-  }
-  if (useDbUrl && !argValue("--db-url")) {
-    console.log(`Env file:   ${envFile} (DB_URL)`);
-  } else if (useLinked) {
-    console.log(`Env file:   ${envFile}`);
-  }
-  console.log(`Output:     ${filePath}`);
-  console.log(`Command:    pnpm ${dumpArgs.map((a) => (a.includes("postgres") ? maskDbUrl(a) : a)).join(" ")}`);
-  console.log("");
+function formatCommand(args: string[]): string {
+  return `pnpm ${args.map((a) => (a.includes("postgres") ? maskDbUrl(a) : a)).join(" ")}`;
+}
 
-  const result = spawnSync("pnpm", dumpArgs, {
+function runSupabaseDump(args: string[]): void {
+  const result = spawnSync("pnpm", args, {
     stdio: "inherit",
     cwd: process.cwd(),
     shell: process.platform === "win32",
@@ -180,8 +168,58 @@ function main() {
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
+}
 
-  if (!hasFlag("--dry-run") && existsSync(filePath)) {
+function main() {
+  const dryRun = hasFlag("--dry-run");
+  const dataOnly = hasFlag("--data-only");
+  const outDir = argValue("--out") ?? join(process.cwd(), "backups");
+  mkdirSync(outDir, { recursive: true });
+
+  const targetLabel = useLocal ? "local" : useLinked ? "linked" : "remote";
+  const filePath = join(outDir, `wastezero-${targetLabel}-${backupTimestamp()}.sql`);
+  const targetArgs = buildTargetArgs();
+
+  console.log(`Target:     ${targetLabel}`);
+  if (useDbUrl) {
+    console.log(`Database:   ${maskDbUrl(resolveDbUrl())}`);
+  }
+  if (useDbUrl && !argValue("--db-url")) {
+    console.log(`Env file:   ${envFile} (DB_URL)`);
+  } else if (useLinked) {
+    console.log(`Env file:   ${envFile}`);
+  }
+  console.log(`Output:     ${filePath}`);
+  console.log(`Contents:   ${dataOnly ? "data only" : "schema + data"}`);
+  console.log("");
+
+  if (dataOnly) {
+    const dataArgs = [...targetArgs, "--data-only", "--use-copy", "-f", filePath];
+    console.log(`Command:    ${formatCommand(dataArgs)}`);
+    console.log("");
+    runSupabaseDump(dataArgs);
+  } else {
+    const schemaArgs = [...targetArgs, "-f", filePath];
+    console.log(`Schema:     ${formatCommand(schemaArgs)}`);
+    runSupabaseDump(schemaArgs);
+
+    const dataTempPath = `${filePath}.data.tmp`;
+    const dataArgs = [...targetArgs, "--data-only", "--use-copy", "--schema", "public", "-f", dataTempPath];
+    console.log(`Data:       ${formatCommand(dataArgs)}`);
+    console.log("");
+    runSupabaseDump(dataArgs);
+
+    if (!dryRun) {
+      appendFileSync(
+        filePath,
+        "\n\n-- Data dump (appended by pnpm db:backup)\n\n",
+      );
+      appendFileSync(filePath, readFileSync(dataTempPath, "utf-8"));
+      unlinkSync(dataTempPath);
+    }
+  }
+
+  if (!dryRun && existsSync(filePath)) {
     console.log(`\nBackup saved: ${filePath}`);
   }
 }

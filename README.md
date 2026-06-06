@@ -122,7 +122,13 @@ Schema and migrations live in `supabase/migrations/`. See [supabase/README.md](s
 
 ### Backup and restore
 
-Requires the [Supabase CLI](https://supabase.com/docs/guides/cli) and PostgreSQL client tools (`pg_dump`, `psql`) on your PATH. Backups are written to `backups/` (gitignored).
+Requires the [Supabase CLI](https://supabase.com/docs/guides/cli), Docker (for local Supabase), and PostgreSQL client tools (`pg_dump` for backup; `psql` optional for restore — restore falls back to `docker exec` into the Supabase DB container). Backups are written to `backups/` (gitignored) and include **schema and data** by default.
+
+| Command | Target |
+|---------|--------|
+| `pnpm db:backup --local` | Local Supabase (Docker, port 54322) |
+| `pnpm db:backup --linked` / `--db-url` | Hosted Supabase (read-only dump to `backups/`) |
+| `pnpm db:restore --local` | **Local only** — drops and recreates local Docker DB |
 
 **Backup from hosted Supabase** — use any one of:
 
@@ -144,16 +150,16 @@ pnpm db:backup --db-url --env local
 pnpm db:backup --local
 ```
 
-**Restore over local Supabase** (local stack must be running; `--reset-first` clears the local DB and reapplies migrations before importing):
+**Restore over local Supabase** (`--local` is **required**; never touches linked/remote; drops and recreates the local `postgres` database, then applies the full backup):
 
 ```bash
-pnpm db:restore --file backups/wastezero-linked-YYYY-MM-DD_HH-MM-SS.sql --reset-first --yes
+pnpm db:restore --local --file backups/wastezero-remote-YYYY-MM-DD_HH-MM-SS.sql --yes
 ```
 
 Or restore the newest file in `backups/`:
 
 ```bash
-pnpm db:restore --latest --reset-first --yes
+pnpm db:restore --local --latest --yes
 ```
 
 Without `--yes`, type `restore` at the prompt to confirm.
