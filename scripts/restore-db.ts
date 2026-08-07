@@ -33,6 +33,8 @@ const useLocal = argv.includes("--local");
 const LOCAL_DB_NAME = "postgres";
 const PSQL_SUPERUSER = "supabase_admin";
 const CONTAINER_RESTORE_PATH = "/tmp/wastezero-restore.sql";
+/** Default local Supabase Docker password (POSTGRES_PASSWORD in config.toml); pg_hba requires it for supabase_admin over the container's local socket. */
+const CONTAINER_DB_PASSWORD = "postgres";
 
 function argValue(name: string): string | undefined {
   const i = argv.indexOf(name);
@@ -307,6 +309,8 @@ function runDockerPsqlCommand(
     "docker",
     [
       "exec",
+      "-e",
+      `PGPASSWORD=${CONTAINER_DB_PASSWORD}`,
       container,
       "psql",
       "-U",
@@ -353,6 +357,8 @@ function runDockerPsqlFile(
     "docker",
     [
       "exec",
+      "-e",
+      `PGPASSWORD=${CONTAINER_DB_PASSWORD}`,
       container,
       "psql",
       "-U",
