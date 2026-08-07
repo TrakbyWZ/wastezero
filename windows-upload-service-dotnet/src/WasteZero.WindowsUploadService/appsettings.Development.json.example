@@ -11,4 +11,5 @@
     "LogMaxBackups": 3,
     "MaxStateRecords": 0,
     "MaxStateAgeDays": 0
+  }
 }
