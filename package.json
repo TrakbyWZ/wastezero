@@ -11,7 +11,8 @@
     "test:log-ingest-pressure": "tsx scripts/pressure-test-log-ingest.ts",
     "create-users": "tsx scripts/create-user.ts",
     "db:backup": "tsx scripts/backup-db.ts",
-    "db:restore": "tsx scripts/restore-db.ts"
+    "db:restore": "tsx scripts/restore-db.ts",
+    "db:refresh:local": "pnpm run db:backup -- --linked && pnpm run db:restore -- --local --latest --yes"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

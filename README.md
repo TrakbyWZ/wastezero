@@ -112,6 +112,7 @@ To run against a **local** Supabase instance:
 | `pnpm test:log-parser` | Run log parser tests |
 | `pnpm db:backup` | Dump Postgres to `backups/` (see below) |
 | `pnpm db:restore` | Restore a backup onto local Supabase (see below) |
+| `pnpm db:refresh:local` | Backup the linked remote project, then restore it onto local Supabase (see below) |
 
 ## Database and migrations
 
@@ -163,6 +164,8 @@ pnpm db:restore --local --latest --yes
 ```
 
 Without `--yes`, type `restore` at the prompt to confirm.
+
+**Refresh local from the linked remote project (one command):** once the project is linked (`pnpm exec supabase link --project-ref <ref>`), `pnpm db:refresh:local` runs `db:backup --linked` followed by `db:restore --local --latest --yes` — a fresh backup is dumped to `backups/`, then applied straight onto the local Docker DB. This **only ever writes to the local Docker DB**; the remote project is read-only for this command (dump only, never modified).
 
 ## Deploying
 

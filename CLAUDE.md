@@ -30,6 +30,7 @@ pnpm create-users     # Create a Supabase Auth user from scripts/create-user.ts
 
 pnpm db:backup --local | --linked | --db-url [...]   # Dump Postgres to backups/ (gitignored)
 pnpm db:restore --local --file <path> | --latest [--yes]  # Restore onto LOCAL Supabase only
+pnpm db:refresh:local   # db:backup --linked + db:restore --local --latest --yes, chained (requires `supabase link` first)
 ```
 
 There is no top-level test framework — `test:sequence` and `test:log-parser` are standalone `tsx` scripts (not jest/vitest); run them directly with `pnpm exec tsx scripts/test-sequence.ts` if iterating on a single case. There is no `test:*` script for `lib/log-ingest.ts` beyond the pressure test.
