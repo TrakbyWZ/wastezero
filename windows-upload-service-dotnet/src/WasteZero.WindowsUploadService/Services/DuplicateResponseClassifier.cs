@@ -25,7 +25,8 @@ public static class DuplicateResponseClassifier
         }
 
         var lower = text.ToLowerInvariant();
-        return lower.Contains("idx_unique_log_files_filename", StringComparison.Ordinal)
+        return lower.Contains("already exists", StringComparison.Ordinal)
+               || lower.Contains("idx_unique_log_files_filename", StringComparison.Ordinal)
                || lower.Contains("duplicate key value", StringComparison.Ordinal)
                || (lower.Contains("unique constraint", StringComparison.Ordinal)
                    && lower.Contains("filename", StringComparison.Ordinal));

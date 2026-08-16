@@ -110,6 +110,9 @@ To run against a **local** Supabase instance:
 | `pnpm lint` | Run ESLint |
 | `pnpm test:sequence` | Run sequence lib tests |
 | `pnpm test:log-parser` | Run log parser tests |
+| `pnpm db:backup` | Dump Postgres to `backups/` (see below) |
+| `pnpm db:restore` | Restore a backup onto local Supabase (see below) |
+| `pnpm db:refresh:local` | Backup the linked remote project, then restore it onto local Supabase (see below) |
 
 ## Database and migrations
 
@@ -118,6 +121,54 @@ Schema and migrations live in `supabase/migrations/`. See [supabase/README.md](s
 - Applying migrations locally (`supabase start` / `supabase db reset`)
 - Pushing migrations to a hosted project (`supabase link` and `supabase db push`)
 
+### Backup and restore
+
+Requires the [Supabase CLI](https://supabase.com/docs/guides/cli), Docker (for local Supabase), and PostgreSQL client tools (`pg_dump` for backup; `psql` optional for restore — restore falls back to `docker exec` into the Supabase DB container). Backups are written to `backups/` (gitignored) and include **schema and data** by default.
+
+| Command | Target |
+|---------|--------|
+| `pnpm db:backup --local` | Local Supabase (Docker, port 54322) |
+| `pnpm db:backup --linked` / `--db-url` | Hosted Supabase (read-only dump to `backups/`) |
+| `pnpm db:restore --local` | **Local only** — drops and recreates local Docker DB |
+
+**Backup from hosted Supabase** — use any one of:
+
+```bash
+# Linked project (supabase link; uses .env.prod.local)
+pnpm db:backup --linked
+
+# Direct connection string (Session pooler or direct URL from Supabase dashboard)
+pnpm db:backup --db-url "postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"
+
+# DB_URL from .env.prod.local (default) or .env.local (--env local)
+pnpm db:backup --db-url
+pnpm db:backup --db-url --env local
+```
+
+**Backup local Supabase** (stack must be running):
+
+```bash
+pnpm db:backup --local
+```
+
+**Restore over local Supabase** (`--local` is **required**; never touches linked/remote; drops and recreates the local `postgres` database, then applies the full backup):
+
+```bash
+pnpm db:restore --local --file backups/wastezero-remote-YYYY-MM-DD_HH-MM-SS.sql --yes
+```
+
+Or restore the newest file in `backups/`:
+
+```bash
+pnpm db:restore --local --latest --yes
+```
+
+Without `--yes`, type `restore` at the prompt to confirm.
+
+**Refresh local from the linked remote project (one command):** once the project is linked (`pnpm exec supabase link --project-ref <ref>`), `pnpm db:refresh:local` runs `db:backup --linked` followed by `db:restore --local --latest --yes` — a fresh backup is dumped to `backups/`, then applied straight onto the local Docker DB. This **only ever writes to the local Docker DB**; the remote project is read-only for this command (dump only, never modified).
+
 ## Deploying
 
 Build and run as a standard Next.js app. Ensure your host has the same environment variables set (Supabase URL and keys, `SESSION_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and optional SMTP / ingest API key). For Vercel, you can use the [Supabase integration](https://vercel.com/integrations/supabase) to attach URL and keys to the project.
+
+## Contributing Guide

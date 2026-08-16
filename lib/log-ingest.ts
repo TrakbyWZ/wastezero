@@ -9,6 +9,8 @@ const LOG_ENTRY_INSERT_CHUNK_SIZE = 1000;
 const MAX_INGEST_BYTES = 10 * 1024 * 1024;
 const MAX_INGEST_RECORDS = 100_000;
 
+const DUPLICATE_FILENAME_MESSAGE = "A file with this name already exists";
+
 export class IngestValidationError extends Error {
   status: number;
 
@@ -31,10 +33,32 @@ type IngestLogFileResult = {
   total_reads: number;
   bad_reads: number;
   sequence_reads: number;
-  duplicate_count: number;
   uploaded_by: string | null;
   upload_timestamp: string;
 };
+
+type PostgrestErrorLike = {
+  code?: string;
+  message?: string;
+  details?: string;
+};
+
+function isDuplicateLogFilenameError(error: PostgrestErrorLike | null | undefined): boolean {
+  if (!error || error.code !== "23505") {
+    return false;
+  }
+  const haystack = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return (
+    haystack.includes("idx_unique_log_files_filename")
+    || (haystack.includes("log_files") && haystack.includes("filename"))
+  );
+}
+
+function assertNotDuplicateFilename(error: PostgrestErrorLike | null | undefined) {
+  if (isDuplicateLogFilenameError(error)) {
+    throw new IngestValidationError(DUPLICATE_FILENAME_MESSAGE, 409);
+  }
+}
 
 function validateIngestPayload(filename: string, rawText: string) {
   if (!filename.trim()) {
@@ -105,35 +129,20 @@ export async function ingestLogFile({
     .insert({
       filename,
       raw_content: rawText,
-      total_reads: 0,
-      bad_reads: 0,
-      sequence_reads: 0,
-      duplicate_count: 0,
+      total_reads: parsed.records.length,
+      bad_reads: badReads,
+      sequence_reads: parsed.sequenceReadsFromFile,
       uploaded_by: uploadedBy,
     })
     .select("id, upload_timestamp")
     .single();
 
   if (insertFileError || !logFile) {
+    assertNotDuplicateFilename(insertFileError);
     throw new Error(insertFileError?.message ?? "Failed to create log file");
   }
 
   try {
-    const { error: updateError } = await admin
-      .from("log_files")
-      .update({
-        total_reads: parsed.records.length,
-        bad_reads: badReads,
-        sequence_reads: parsed.sequenceReadsFromFile,
-        duplicate_count: 0,
-        uploaded_by: uploadedBy,
-      })
-      .eq("id", logFile.id);
-
-    if (updateError) {
-      throw new Error(updateError.message ?? "Failed to update log file metadata");
-    }
-
     if (parsed.records.length > 0) {
       const fallbackTimestamp = new Date().toISOString();
       const rows = parsed.records.map((record, index) => ({
@@ -150,29 +159,10 @@ export async function ingestLogFile({
       }));
 
       await insertLogEntriesInChunks(logFile.id, rows);
-
-      const { error: finalizeError } = await admin.rpc("finalize_log_file_ingest", {
-        p_log_file_id: logFile.id,
-      });
-      if (finalizeError) {
-        throw new Error(finalizeError.message ?? "Failed to finalize log file ingest");
-      }
     }
   } catch (error) {
     await admin.from("log_files").delete().eq("id", logFile.id);
     throw error;
-  }
-
-  const { data: finalizedLogFile, error: finalizedLogFileError } = await admin
-    .from("log_files")
-    .select("duplicate_count")
-    .eq("id", logFile.id)
-    .single();
-
-  if (finalizedLogFileError || !finalizedLogFile) {
-    throw new Error(
-      finalizedLogFileError?.message ?? "Failed to load finalized log file metadata",
-    );
   }
 
   return {
@@ -181,7 +171,6 @@ export async function ingestLogFile({
     total_reads: parsed.records.length,
     bad_reads: badReads,
     sequence_reads: parsed.sequenceReadsFromFile,
-    duplicate_count: finalizedLogFile.duplicate_count ?? 0,
     uploaded_by: uploadedBy,
     upload_timestamp: logFile.upload_timestamp,
   };

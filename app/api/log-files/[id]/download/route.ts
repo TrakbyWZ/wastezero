@@ -13,11 +13,10 @@ type LogEntryRow = {
   data_value: string;
   data_timestamp: string | null;
   sort_order: number;
-  is_duplicate: boolean;
 };
 
 function recordsToCsv(records: LogEntryRow[]): string {
-  const header = "#,Log File Header,Job Name,Job Number,Operator,Job Start Timestamp,Job End Timestamp,Data,Timestamp,Duplicate";
+  const header = "#,Log File Header,Job Name,Job Number,Operator,Job Start Timestamp,Job End Timestamp,Data,Timestamp";
   const rows = records.map((r) => {
     const dataTs = r.data_timestamp ?? "";
     const jobStartTs = r.job_start_timestamp ?? "";
@@ -32,7 +31,6 @@ function recordsToCsv(records: LogEntryRow[]): string {
       escapeCsv(jobEndTs),
       escapeCsv(r.data_value),
       escapeCsv(dataTs),
-      r.is_duplicate ? "Yes" : "No",
     ].join(",");
   });
   return [header, ...rows].join("\n");
@@ -87,7 +85,7 @@ export async function GET(
 
   const { data: entries } = await admin
     .from("log_entries")
-    .select("log_file_header, job_name, job_number, operator, job_start_timestamp, job_end_timestamp, data_value, data_timestamp, sort_order, is_duplicate")
+    .select("log_file_header, job_name, job_number, operator, job_start_timestamp, job_end_timestamp, data_value, data_timestamp, sort_order")
     .eq("log_file_id", id)
     .order("sort_order", { ascending: true });
 
@@ -108,7 +106,6 @@ export async function GET(
     data_value: (e.data_value as string) ?? "",
     data_timestamp: toIso(e.data_timestamp),
     sort_order: typeof e.sort_order === "number" ? e.sort_order : 0,
-    is_duplicate: e.is_duplicate === true,
   }));
   const csv = recordsToCsv(rows);
 
