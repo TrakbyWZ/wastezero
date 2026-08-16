@@ -37,19 +37,28 @@ This mirrors the range-bucketing shape of `vw_customer_sequence_xref` (which use
 
 ### `log_correlations`
 
-One row per camera1 `log_entries` row. Deliberately lean — everything else (code values, timestamps, job name, operator, filename) is derived by joining back through `child_log_entry_id`/`parent_log_entry_id` to `log_entries` (and `log_files` for filename), so there's no denormalized data to drift out of sync.
+One row per camera1 `log_entries` row. `child_log_entry_id`/`parent_log_entry_id` are kept for audit lineage (joining back to `log_entries`/`log_files` for operator/filename when needed), but the values a QC query actually filters/sorts/reads by — the codes, their timestamps, and the job join keys — are denormalized directly onto the row so the common QC read path never has to join at all.
 
 | column | type | notes |
 |---|---|---|
 | `id` | `uuid pk` | |
 | `child_log_entry_id` | `uuid fk -> log_entries.id` | **unique** — the upsert key; one row per camera1 entry |
 | `parent_log_entry_id` | `uuid fk -> log_entries.id`, nullable | null = unresolved |
+| `child_code` | `text` | denormalized `log_entries.data_value` for the child |
+| `parent_code` | `text`, nullable | denormalized `log_entries.data_value` for the resolved parent; null = unresolved |
+| `child_code_timestamp` | `timestamptz` | denormalized `log_entries.data_timestamp` for the child |
+| `parent_code_timestamp` | `timestamptz`, nullable | denormalized `log_entries.data_timestamp` for the resolved parent |
+| `job_name` | `text` | join key used to pair this row's job |
+| `job_number` | `text` | join key used to pair this row's job |
+| `job_date` | `date` | join key used to pair this row's job (`date_trunc('day', job_start_timestamp)`) |
 | `created_timestamp` | `timestamptz` | |
 | `created_by` | `uuid fk -> log_correlation_runs.id` | which run first created this row |
 | `modified_timestamp` | `timestamptz` | |
-| `modified_by` | `uuid fk -> log_correlation_runs.id` | which run last changed `parent_log_entry_id` |
+| `modified_by` | `uuid fk -> log_correlation_runs.id` | which run last changed this row's parent fields |
 
-Upsert semantics: `ON CONFLICT (child_log_entry_id) DO UPDATE SET parent_log_entry_id = excluded.parent_log_entry_id, modified_timestamp = now(), modified_by = <this run's id>` — but only when the resolved parent actually differs from what's stored, so `modified_timestamp` stays a meaningful "this changed on rerun" signal rather than updating on every no-op sweep.
+Indexes on `(job_name, job_number, job_date)` and `child_code`/`parent_code` support the QC query patterns directly against this table.
+
+Upsert semantics: `ON CONFLICT (child_log_entry_id) DO UPDATE SET parent_log_entry_id = excluded.parent_log_entry_id, parent_code = excluded.parent_code, parent_code_timestamp = excluded.parent_code_timestamp, modified_timestamp = now(), modified_by = <this run's id>` — but only when the resolved parent actually differs from what's stored, so `modified_timestamp` stays a meaningful "this changed on rerun" signal rather than updating on every no-op sweep. `child_code`/`child_code_timestamp`/job keys never change after insert, since they're keyed off the immutable `child_log_entry_id`.
 
 ### `log_correlation_runs`
 
@@ -91,7 +100,7 @@ Runs unscoped (all nulls) every 10 minutes. No Next.js/API involvement in the sw
 
 ## API exposure
 
-`GET /api/log-correlations` (new route, session-authenticated like the existing `GET /api/log-files` routes), backed by a new `vw_api_log_correlations` view joining `log_correlations` back to `log_entries`/`log_files` twice (once for child, once for parent) to surface: child code, child timestamp, parent code, parent timestamp, job name, job number, operator, filenames. Supports `job_name`/`job_number`/`from`/`to` filters analogous to the existing list route. Returns JSON only — no CSV export, no UI, in this pass.
+`GET /api/log-correlations` (new route, session-authenticated like the existing `GET /api/log-files` routes), backed by a new `vw_api_log_correlations` view. The QC-relevant columns (`child_code`, `child_code_timestamp`, `parent_code`, `parent_code_timestamp`, `job_name`, `job_number`, `job_date`) read straight off `log_correlations` with no join; the view additionally joins `child_log_entry_id`/`parent_log_entry_id` back to `log_entries`/`log_files` only to surface operator/filename, which aren't denormalized. Supports `job_name`/`job_number`/`from`/`to` filters analogous to the existing list route. Returns JSON only — no CSV export, no UI, in this pass.
 
 ## Testing
 
@@ -99,7 +108,7 @@ A SQL-level test (following the `scripts/test-log-parser.ts` standalone-script c
 
 1. Seeds `log_files`/`log_entries` directly with the exact sample data from `content/docs/data-correlation.md` (the camera1 sequence 177–190 and camera2 sequence with `Bad_Read` gaps).
 2. Calls `run_log_correlation()`.
-3. Asserts the resulting `log_correlations` rows match the doc's expected `Camera1Code,ParentEV` table exactly, including correct `Bad_Read` gap-skipping and the trailing-unresolved case if the sample is extended to exercise it.
+3. Asserts the resulting `log_correlations` rows match the doc's expected `Camera1Code,ParentEV` table exactly on both `child_code`/`parent_code` (the denormalized values) and `child_log_entry_id`/`parent_log_entry_id` (the fk lineage), including correct `Bad_Read` gap-skipping and the trailing-unresolved case if the sample is extended to exercise it.
 4. Reruns `run_log_correlation()` a second time with no new data and asserts no rows change (`modified_timestamp` untouched) — confirms idempotency.
 
 ## Explicitly deferred
