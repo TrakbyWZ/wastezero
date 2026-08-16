@@ -61,35 +61,37 @@ One row per camera1 `log_entries` row. `child_log_entry_id`/`parent_log_entry_id
 
 Indexes on `(job_name, job_number, job_date)`, `child_code`/`parent_code`, and `customer_id` support the QC query patterns directly against this table.
 
-Upsert semantics: `ON CONFLICT (child_log_entry_id) DO UPDATE SET parent_log_entry_id = excluded.parent_log_entry_id, parent_code = excluded.parent_code, parent_code_timestamp = excluded.parent_code_timestamp, customer_id = excluded.customer_id, customer_sequence_id = excluded.customer_sequence_id, modified_timestamp = now(), modified_by = <this run's id>` — but only when the resolved parent or customer linkage actually differs from what's stored, so `modified_timestamp` stays a meaningful "this changed on rerun" signal rather than updating on every no-op sweep. Re-resolving customer linkage on every rerun (rather than only at insert time) matters because `customer_sequence.label_prefix`/`number_format` can be edited after the fact — a later sweep should pick up that drift. `child_code`/`child_code_timestamp`/job keys never change after insert, since they're keyed off the immutable `child_log_entry_id`.
+**Scheduled runs never update existing rows — only manual reprocessing does.** A camera1 entry that already has a `log_correlations` row (resolved or not) is permanently out of scope for the scheduled sweep; it's plain `INSERT`, filtered by `child_log_entry_id NOT IN (select child_log_entry_id from log_correlations)`. Only an explicit manual run with `p_allow_reprocess = true` (see Processing function) re-touches already-correlated rows, via `ON CONFLICT (child_log_entry_id) DO UPDATE SET parent_log_entry_id = excluded.parent_log_entry_id, parent_code = excluded.parent_code, parent_code_timestamp = excluded.parent_code_timestamp, customer_id = excluded.customer_id, customer_sequence_id = excluded.customer_sequence_id, modified_timestamp = now(), modified_by = <this run's id>` — applied only when a value actually differs from what's stored, so `modified_timestamp` stays a meaningful "this changed on reprocess" signal. `child_code`/`child_code_timestamp`/job keys never change, since they're keyed off the immutable `child_log_entry_id`.
 
 ### `log_correlation_runs`
 
-Audit log of every execution of the correlation process — both scheduled sweeps and any future manual/scoped rerun, since both go through the same function.
+Audit log of every execution of the correlation process — both scheduled sweeps and any manual/scoped rerun, since both go through the same function.
 
 | column | type | notes |
 |---|---|---|
 | `id` | `uuid pk` | |
 | `run_started_at` | `timestamptz` | |
 | `run_completed_at` | `timestamptz`, nullable | null while running |
-| `triggered_by` | `text` | e.g. `'cron'`, or `'manual:<email>'` for a future manual rerun |
+| `triggered_by` | `text` | e.g. `'cron'`, or `'manual:<email>'` for a manual rerun |
+| `allow_reprocess` | `boolean` | whether this run was permitted to update already-correlated rows; always `false` for the scheduled sweep |
 | `job_name_param` | `text`, nullable | scope this run was invoked with; null = unscoped |
 | `job_number_param` | `text`, nullable | |
 | `job_date_param` | `date`, nullable | |
 | `rows_inserted` | `int` | |
-| `rows_updated` | `int` | |
+| `rows_updated` | `int` | only nonzero when `allow_reprocess = true` |
 | `rows_unresolved` | `int` | rows written this run with `parent_log_entry_id is null` |
 | `status` | `text` | `running` / `succeeded` / `failed` |
 | `error_message` | `text`, nullable | |
 
 ## Processing function
 
-`run_log_correlation(p_job_name text default null, p_job_number text default null, p_job_date date default null)` — `plpgsql`, defined in a migration:
+`run_log_correlation(p_job_name text default null, p_job_number text default null, p_job_date date default null, p_triggered_by text default 'cron', p_allow_reprocess boolean default false)` — `plpgsql`, defined in a migration. The defaults are exactly what the scheduled cron call uses (`select run_log_correlation()`), so "scheduled" and "insert-only, unscoped" are the same thing by construction — there's no separate code path to keep in sync.
 
-1. Insert a `log_correlation_runs` row (`status = 'running'`, captures the three params, `triggered_by` passed in or defaulted).
-2. Find ready job keys — if params are non-null, scope to that single job; if all null, sweep every ready job key that has at least one camera1 entry not yet in `log_correlations` (this is what keeps a scheduled sweep cheap: already-correlated jobs are `NOT EXISTS`-filtered out, so a rerun only does work where something is actually new or changed).
-3. Run the ceiling-join algorithm per job key, upsert into `log_correlations` as described above.
-4. Update the run row: `run_completed_at`, `status = 'succeeded'`, and the three row-count stats. On any error, catch, set `status = 'failed'`, `error_message`, still set `run_completed_at`, re-raise.
+1. Insert a `log_correlation_runs` row (`status = 'running'`, captures all params including `allow_reprocess`).
+2. Find ready job keys — if `p_job_name`/`p_job_number`/`p_job_date` are non-null, scope to that single job; if all null, consider every ready job key.
+3. **Always:** insert correlation rows (ceiling-join + customer resolution) for camera1 entries in scope that have **no** existing `log_correlations` row yet — this is the only thing a scheduled run does, and it's what keeps a scheduled sweep cheap: already-correlated jobs contribute no candidate rows, so a rerun only does work where something is genuinely new.
+4. **Only if `p_allow_reprocess = true`:** additionally re-run the algorithm for camera1 entries in scope that already have a `log_correlations` row, and upsert per the "Scheduled runs never update existing rows" rule above. A scheduled run (`p_allow_reprocess = false`, the default) never reaches this step — this is the mechanism that guarantees the cron sweep only ever touches new/unprocessed entries, and only a manual invocation with this flag set can revise a correlation that's already been computed.
+5. Update the run row: `run_completed_at`, `status = 'succeeded'`, and the row-count stats. On any error, catch, set `status = 'failed'`, `error_message`, still set `run_completed_at`, re-raise.
 
 ## Scheduling
 
@@ -113,7 +115,9 @@ A SQL-level test (following the `scripts/test-log-parser.ts` standalone-script c
 2. Calls `run_log_correlation()`.
 3. Asserts the resulting `log_correlations` rows match the doc's expected `Camera1Code,ParentEV` table exactly on both `child_code`/`parent_code` (the denormalized values) and `child_log_entry_id`/`parent_log_entry_id` (the fk lineage), including correct `Bad_Read` gap-skipping and the trailing-unresolved case if the sample is extended to exercise it; asserts every row resolves the seeded `customer_id`/`customer_sequence_id`.
 4. Seeds one additional camera1 code that matches no `customer_sequence` row and asserts it correlates with `customer_id`/`customer_sequence_id` null, without affecting its `parent_code` resolution.
-5. Reruns `run_log_correlation()` a second time with no new data and asserts no rows change (`modified_timestamp` untouched) — confirms idempotency.
+5. Reruns `run_log_correlation()` (default params — scheduled behavior) a second time with no new data and asserts no rows change (`modified_timestamp` untouched) — confirms idempotency.
+6. Mutates an already-correlated row's underlying data (e.g. edits the matching `customer_sequence.label_prefix` so the previously-resolved `customer_id` would now resolve differently) and reruns `run_log_correlation()` with default params: asserts the existing `log_correlations` row is untouched — proves the scheduled path never revises already-processed rows.
+7. Reruns with `run_log_correlation(p_allow_reprocess := true)` after that same mutation: asserts the affected row's `customer_id`/`customer_sequence_id` and `modified_timestamp`/`modified_by` do update — proves manual reprocessing is the only path that can revise existing rows.
 
 ## Explicitly deferred
 
