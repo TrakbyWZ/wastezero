@@ -12,7 +12,8 @@
     "create-users": "tsx scripts/create-user.ts",
     "db:backup": "tsx scripts/backup-db.ts",
     "db:restore": "tsx scripts/restore-db.ts",
-    "db:refresh:local": "pnpm run db:backup -- --linked && pnpm run db:restore -- --local --latest --yes"
+    "db:refresh:local": "pnpm run db:backup -- --linked && pnpm run db:restore -- --local --latest --yes",
+    "db:migrate:local": "tsx scripts/migrate-db.ts"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

@@ -387,7 +387,8 @@ function runDockerPsqlFile(
 
 const DROP_AND_RECREATE_STATEMENTS = [
   `DROP DATABASE IF EXISTS ${LOCAL_DB_NAME} WITH (FORCE)`,
-  `CREATE DATABASE ${LOCAL_DB_NAME}`,
+  /** OWNER postgres: without it the db is owned by supabase_admin, so the postgres role isn't a pg_database_owner member and lacks CREATE on schema public (breaks `supabase migration up --local` for anything that creates/replaces objects, e.g. views). */
+  `CREATE DATABASE ${LOCAL_DB_NAME} OWNER postgres`,
 ];
 
 function runDropAndRecreateStatements(
