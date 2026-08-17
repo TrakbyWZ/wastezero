@@ -20,6 +20,12 @@ select
   parent_file.filename as parent_filename,
   cust.customer_num,
   cust.customer_description,
+  lc.usr_child_code,
+  lc.usr_parent_code,
+  lc.usr_exclude_row,
+  lc.notes,
+  lc.overridden_by,
+  lc.overridden_at,
   lc.created_timestamp,
   lc.modified_timestamp
 from public.log_correlations lc
@@ -31,4 +37,4 @@ left join public.customer cust on cust.id = lc.customer_id
 order by lc.job_date desc, lc.job_name, lc.child_code;
 
 comment on view public.vw_api_log_correlations is
-  'Read model for GET /api/log-correlations: log_correlations joined out to operator/filename (log_entries/log_files) and customer_num/customer_description (customer) for QC display. Filter/sort columns (child_code, parent_code, timestamps, job keys) already live directly on log_correlations.';
+  'Read model for GET /api/log-correlations: log_correlations joined out to operator/filename (log_entries/log_files) and customer_num/customer_description (customer) for QC display. Filter/sort columns (child_code, parent_code, timestamps, job keys) already live directly on log_correlations. usr_child_code/usr_parent_code/usr_exclude_row/notes/overridden_by/overridden_at are passed through as-is - no write path exists yet, and this view does not filter out excluded rows (that is a report-level decision for callers to make).';

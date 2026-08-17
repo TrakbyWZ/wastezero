@@ -18,6 +18,12 @@ create table public.log_correlations (
   created_by uuid not null,
   modified_timestamp timestamp with time zone not null default now(),
   modified_by uuid not null,
+  usr_child_code text null,
+  usr_parent_code text null,
+  usr_exclude_row boolean not null default false,
+  notes text null,
+  overridden_by text null,
+  overridden_at timestamp with time zone null,
   constraint log_correlations_pkey primary key (id),
   constraint log_correlations_child_log_entry_id_key unique (child_log_entry_id),
   constraint log_correlations_child_log_entry_id_fkey
@@ -40,4 +46,4 @@ create index log_correlations_parent_code_idx on public.log_correlations (parent
 create index log_correlations_customer_id_idx on public.log_correlations (customer_id);
 
 comment on table public.log_correlations is
-  'One row per camera1 log_entries row, ceiling-matched to its nearest camera2 parent code and resolved to its owning customer_sequence. Written by run_log_correlation(); child_log_entry_id is unique and is the upsert key.';
+  'One row per camera1 log_entries row, ceiling-matched to its nearest camera2 parent code and resolved to its owning customer_sequence. Written by run_log_correlation(); child_log_entry_id is unique and is the upsert key. usr_child_code/usr_parent_code/usr_exclude_row/notes are user-entered data-quality corrections, never touched by run_log_correlation() - overridden_by/overridden_at track who made a correction and when, separate from created_by/modified_by (which track the automated run, not a human).';
