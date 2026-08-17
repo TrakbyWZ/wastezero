@@ -33,6 +33,13 @@ export const DOC_NAV: readonly DocNavSection[] = [
     label: "Windows Upload Service",
     items: [{ slug: "windows-upload-service", label: "Setup and Operations (.NET)" }],
   },
+  {
+    label: "Log Data Correlation",
+    items: [
+      { slug: "log-correlation-overview", label: "Overview and Architecture" },
+      { slug: "log-correlation-operations", label: "Manual Runs and Troubleshooting" },
+    ],
+  },
 ] as const;
 
 export function getAllDocSlugs(): string[] {
