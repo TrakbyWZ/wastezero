@@ -19,6 +19,26 @@ limit 20;
 
 `status = 'failed'` rows have `error_message` populated. `triggered_by = 'cron'` is the scheduled sweep; anything else is a manual invocation (see below). `resolved_parent_log_file_id` tells you which camera2 file actually got used, whether it was auto-resolved or came from `parent_log_file_id_param` (the override).
 
+## Checking the schedule itself
+
+`log_correlation_runs` only records runs that actually started executing `run_log_correlation_sweep()` — it says nothing about whether `pg_cron` is actually invoking it on schedule. To check the scheduler itself:
+
+```sql
+-- Is the job registered, and with what schedule?
+select jobid, jobname, schedule, command, active
+from cron.job
+where jobname = 'run-log-correlation';
+
+-- Did it actually fire, and did each invocation succeed at the SQL level?
+select jobid, runid, status, return_message, start_time, end_time
+from cron.job_run_details
+where jobid = (select jobid from cron.job where jobname = 'run-log-correlation')
+order by start_time desc
+limit 20;
+```
+
+`cron.job_run_details.status` reflects whether the SQL command itself errored (it shouldn't — `run_log_correlation_sweep()` doesn't raise); `log_correlation_runs` is where you look for whether the *correlation work itself* succeeded per file. See [Overview](./log-correlation-overview.md#how-the-scheduling-mechanism-works) for how the schedule is provisioned and how to change it.
+
 ## Finding unresolved rows
 
 Rows with `parent_code is null` have a camera1 code with no matching camera2 parent (yet, or ever, if that job's camera2 file is genuinely missing that read). Rows with `customer_id is null` have a code that doesn't match any `customer_sequence`'s `label_prefix`/`number_format`.

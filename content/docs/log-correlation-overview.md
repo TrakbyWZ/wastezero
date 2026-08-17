@@ -51,7 +51,31 @@ Both resolutions are independent: a row can have a resolved parent with no custo
 
 ## Scheduling
 
-A `pg_cron` job (`run-log-correlation`, registered in `supabase/migrations/20260816120300_schedule_log_correlation_cron.sql`) calls `select run_log_correlation_sweep();` every 10 minutes. The sweep finds every camera1 file that (a) has a resolvable parent file and (b) still has at least one row with no `log_correlations` entry, and calls `run_log_correlation()` once per file, with every parameter at its default. That default call **only ever inserts rows for camera1 entries that have no `log_correlations` row yet**; it can never revise a row that's already been written, no matter what changes in the underlying data. A per-file failure doesn't stop the sweep from processing the rest. See [Manual Runs and Troubleshooting](./log-correlation-operations.md) for the one mechanism that can revise an existing row.
+### What runs, and how often
+
+A `pg_cron` job named `run-log-correlation` calls `select run_log_correlation_sweep();` every 10 minutes (`*/10 * * * *`). The sweep finds every camera1 file that (a) has a resolvable parent file and (b) still has at least one row with no `log_correlations` entry, and calls `run_log_correlation()` once per file, with every parameter at its default. That default call **only ever inserts rows for camera1 entries that have no `log_correlations` row yet**; it can never revise a row that's already been written, no matter what changes in the underlying data. A per-file failure doesn't stop the sweep from processing the rest. See [Manual Runs and Troubleshooting](./log-correlation-operations.md) for the one mechanism that can revise an existing row, and for how to inspect/pause/change the schedule.
+
+### How the scheduling mechanism works
+
+This is **`pg_cron`**, a Postgres extension — not Vercel Cron, not a Next.js API route, not anything external. It runs entirely inside the database as a background worker, so it works the same way locally and on hosted Supabase, and keeps running even if the Next.js app itself is down.
+
+It's provisioned by `supabase/migrations/20260816120300_schedule_log_correlation_cron.sql`:
+
+```sql
+create extension if not exists pg_cron;
+
+select cron.schedule(
+  'run-log-correlation',
+  '*/10 * * * *',
+  $$select public.run_log_correlation_sweep()$$
+);
+```
+
+A few things worth knowing about how this behaves:
+
+- **`cron.schedule()` is registration, not migration-tracked state.** The job itself lives in the `cron.job` system table, not as a row this migration "owns" the way a table/function definition is. Calling `cron.schedule()` again with the same job name (`'run-log-correlation'`) **updates** the existing job in place rather than creating a duplicate — so re-running this migration (a full `supabase db reset`, or reapplying it) is always safe and idempotent.
+- **Changing the schedule later requires a new migration** (this one is already applied — see the "never edit an applied migration" rule in the main `CLAUDE.md`). A new migration just calls `cron.schedule('run-log-correlation', '<new interval>', $$...$$)` again; no need to `cron.unschedule()` first, since it's an upsert by name.
+- **`pg_cron` needs to be preloaded at the Postgres server level** (`shared_preload_libraries`) for the background worker to actually run, not just have its extension created. This was verified present on both local Supabase (`supabase start`) and is expected on hosted Supabase (Supabase's own "Supabase Cron" feature is built on the same extension) — but if the schedule ever silently stops working after a deploy, that's the first thing to check (see [Manual Runs and Troubleshooting](./log-correlation-operations.md)).
 
 **Note:** `run_log_correlation()` never raises for expected failures (not-ready, ambiguous parent) or even genuinely unexpected errors — it always returns a run id and records the outcome on `log_correlation_runs`. Re-raising would abort the whole transaction and roll back the very audit row meant to record the failure, so callers check the returned run's `status`/`error_message` instead of relying on an RPC-level error.
 
