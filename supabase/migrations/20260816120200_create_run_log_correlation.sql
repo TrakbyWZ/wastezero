@@ -1,3 +1,48 @@
+-- Speeds up the ceiling-match lateral join in log_correlation_candidates()
+-- below: without this, matching each camera1 code against its camera2
+-- candidates is an unindexed scan of every candidate parent row per child
+-- row (O(child_rows * parent_rows)) - measured at a ~131M cost plan / several
+-- minutes on real production files (~20k child x ~10k parent rows after
+-- Bad_Read filtering). The expression must match the query's
+-- substring(data_value from '(\d+)$')::bigint exactly, or Postgres won't use
+-- this index for the ORDER BY ... LIMIT 1 ceiling lookup.
+create index log_entries_camera2_numeric_value_idx
+  on public.log_entries (log_file_id, (substring(data_value from '(\d+)$')::bigint))
+  where log_file_header = 'Camera 2 Log File' and data_value <> 'Bad_Read';
+
+-- Speeds up job-identity matching (auto-resolving a child file's parent
+-- file, and the sweep's own readiness check) in run_log_correlation() and
+-- run_log_correlation_sweep(): without this, every "is there a camera2 file
+-- for this job" check is an unindexed scan of every camera2 row, once per
+-- candidate camera1 row.
+--
+-- Two deliberate expression choices, both required for the planner to
+-- actually use this index for a per-row parameterized nested-loop scan
+-- (not just to build a filtered set once and then compare row-by-row):
+--   1. `(job_start_timestamp at time zone 'UTC')::date` instead of
+--      `date_trunc('day', job_start_timestamp)::date` - the latter is only
+--      STABLE (depends on the session timezone GUC), and Postgres requires
+--      IMMUTABLE expressions in an index.
+--   2. `coalesce(col, chr(1))` instead of comparing with `IS NOT DISTINCT
+--      FROM` - job_name/job_number are frequently null in production data,
+--      so a null-safe comparison is required, but Postgres cannot push
+--      `IS NOT DISTINCT FROM` down as a per-row index condition in a
+--      correlated nested loop (observed: it materializes every camera2 row
+--      matching just the partial-index predicate, then compares each pair
+--      via a generic join filter - no better than not having the index).
+--      Coalescing both sides to a shared sentinel turns the comparison
+--      back into plain `=`, which Postgres can push down normally.
+-- Every query below must use this exact same coalesce(..., chr(1)) /
+-- UTC-pinned-date form for the planner to use this index; log_correlations
+-- rows now carry this same UTC-anchored job_date.
+create index log_entries_camera2_job_key_idx
+  on public.log_entries (
+    (coalesce(job_name, chr(1))),
+    (coalesce(job_number, chr(1))),
+    (coalesce((job_start_timestamp at time zone 'UTC')::date, '0001-01-01'::date))
+  )
+  where log_file_header = 'Camera 2 Log File';
+
 -- Internal helper for run_log_correlation(): computes, for every eligible
 -- camera1 (child) row in one specific log file, its ceiling-matched camera2
 -- (parent) row from one specific parent log file, and its owning
@@ -45,7 +90,7 @@ as $$
     c.data_timestamp,
     c.job_name,
     c.job_number,
-    date_trunc('day', c.job_start_timestamp)::date,
+    (c.job_start_timestamp at time zone 'UTC')::date,
     parent.id,
     parent.data_value,
     parent.data_timestamp,
@@ -120,7 +165,7 @@ begin
   returning id into v_run_id;
 
   begin
-    select job_name, job_number, date_trunc('day', job_start_timestamp)::date
+    select job_name, job_number, (job_start_timestamp at time zone 'UTC')::date
     into v_job_name, v_job_number, v_job_date
     from public.log_entries
     where log_file_id = p_child_log_file_id
@@ -138,9 +183,10 @@ begin
       into v_parent_candidates
       from public.log_entries
       where log_file_header = 'Camera 2 Log File'
-        and job_name is not distinct from v_job_name
-        and job_number is not distinct from v_job_number
-        and date_trunc('day', job_start_timestamp)::date is not distinct from v_job_date;
+        and coalesce(job_name, chr(1)) = coalesce(v_job_name, chr(1))
+        and coalesce(job_number, chr(1)) = coalesce(v_job_number, chr(1))
+        and coalesce((job_start_timestamp at time zone 'UTC')::date, '0001-01-01'::date)
+          = coalesce(v_job_date, '0001-01-01'::date);
 
       v_parent_match_count := coalesce(array_length(v_parent_candidates, 1), 0);
 
@@ -281,9 +327,10 @@ begin
         select 1
         from public.log_entries p
         where p.log_file_header = 'Camera 2 Log File'
-          and p.job_name is not distinct from le.job_name
-          and p.job_number is not distinct from le.job_number
-          and date_trunc('day', p.job_start_timestamp)::date is not distinct from date_trunc('day', le.job_start_timestamp)::date
+          and coalesce(p.job_name, chr(1)) = coalesce(le.job_name, chr(1))
+          and coalesce(p.job_number, chr(1)) = coalesce(le.job_number, chr(1))
+          and coalesce((p.job_start_timestamp at time zone 'UTC')::date, '0001-01-01'::date)
+            = coalesce((le.job_start_timestamp at time zone 'UTC')::date, '0001-01-01'::date)
       )
   loop
     begin
