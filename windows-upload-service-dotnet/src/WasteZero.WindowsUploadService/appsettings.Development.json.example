@@ -1,11 +1,11 @@
 {
   "UploadService": {
-    "WatchDirectories": [ "C:\\Temp\\WasteZeroUploadTest" ],
+    "WatchDirectories": [ "C:\\Datalog Files" ],
     "ApiEndpoint": "http://localhost:3000/api/log-files/ingest",
     "ApiKey": "",
     "PollingIntervalSeconds": 10,
     "VercelProtectionBypass": "",
-    "DatabasePath": "../../../../../bin/upload_state.db",
+    "DatabasePath": "./bin/upload_state.db",
     "LogDir": "logs",
     "LogMaxSizeBytes": 5242880,
     "LogMaxBackups": 3,
