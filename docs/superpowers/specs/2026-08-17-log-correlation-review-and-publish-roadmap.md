@@ -6,89 +6,52 @@ Branch: `feat/scheduled-file-processing`
 
 ## Problem
 
-`log_correlations` (schema + scheduled correlation job + `GET /api/log-correlations`) already exists and is read-only. Operations now needs a **data quality process**: QC staff review correlated records, fix or flag rows the algorithm got wrong or couldn't resolve, and then **publish** a reviewed set of records to a chosen customer via email. The customer wants this available in an interim, low-engineering form immediately, with a fully automated, in-app version to follow.
+`log_correlations` (schema + scheduled correlation job + `GET /api/log-correlations`) already exists and is read-only. Operations eventually needs a **data quality process** on top of it: QC staff review correlated records, fix or flag rows the algorithm got wrong or couldn't resolve, and then **publish** a reviewed set of records to a chosen customer via email. The customer wants to sequence this deliberately: get the correlation data itself solid and visible first (it already is), get it into the reporting tool operations already uses, and only then design the review/edit/publish workflow in detail.
 
 ## Constraints that shape this roadmap
 
-- One part-time developer, working alongside other responsibilities — timeline assumes roughly 2-3 focused days/week, not dedicated full-time weeks.
-- No transactional email provider exists today (confirmed: nothing for this app, nothing reusable from elsewhere). `lib/email.ts` / `/api/email/send` exist in code but are unused dead paths — SMTP creds aren't confirmed configured, and raw SMTP from a serverless host (Vercel) is not a reliable production path anyway. Real sending requires provisioning a provider (Resend/SendGrid/Postmark/SES) and verifying a sending domain (SPF/DKIM), which has calendar-time lead (DNS propagation/provider review), not just engineering time.
-- An existing Power BI report (from the `create-qa-reports` work) already reads correlation-adjacent data and can serve as the interim reporting surface with little to no new engineering.
+- One part-time developer, working alongside other responsibilities — near-term estimates assume roughly 2-3 focused days/week, not dedicated full-time weeks.
+- No transactional email provider exists today (confirmed: nothing for this app, nothing reusable from elsewhere). `lib/email.ts` / `/api/email/send` exist in code but are unused dead paths — SMTP creds aren't confirmed configured, and raw SMTP from a serverless host (Vercel) is not a reliable production path anyway. This is a known dependency for whatever the eventual "publish" mechanism turns out to be, not something to solve now.
+- A Power BI report template (`powerbi/TrakbyWz_Reports.pbit`, from the `create-qa-reports` work) already exists, but nothing in the migrations sets up a dedicated read-only database role for it — it likely prompts for connection parameters on open today rather than using a scoped credential.
 
-## Scope decisions (confirmed with the customer)
+## Sequencing (confirmed with the customer)
 
-- **Edit scope:** QC can (a) correct an incorrectly auto-resolved `parent_log_entry_id`/`customer_id` on a `log_correlations` row, and (b) exclude/flag a row (e.g. known bad read, test run) without deleting it, with a reason, so it's kept out of any published export but stays in the audit trail.
-- **Publish scope:** a publish is scoped to one customer + a job/date range, and is tracked (who/when/what rows/what recipients) so the same rows aren't accidentally re-sent.
-- **Recipients:** a new field on `customer` holding one or more email addresses, semicolon-delimited (supports multiple recipients per customer).
-- **Interim output:** the existing Power BI report, manually filtered/exported, manually emailed — no new engineering required to start this.
+1. **Correlation tables first** — the data engine itself, already built.
+2. **Wire it up to Power BI** — get operations looking at real correlated data in the tool they already use, before any custom UI exists.
+3. **Then** discuss reviewing/editing records and publishing them to customers — deliberately not scoped in detail yet; revisit once Power BI is in use and real usage patterns are visible.
 
-## Phase 0 — Interim manual process
+## Phase 0 — Correlation tables (done)
 
-**Goal:** give QC a working (if manual) publish path within days, covering the gap until Phase 3 ships.
+**Status: already built**, no further roadmap work needed here.
 
-- Confirm/adjust the Power BI dataset backing the existing report so it surfaces `child_code`, `parent_code`, `job_name`/`job_number`/`job_date`, `customer_description`, and both timestamps from `vw_api_log_correlations`.
-- QC filters the report to a customer/job, exports CSV/Excel, and manually emails it using whatever contact info ops has today (the `customer.contact_emails` field from Phase 1 will formalize this later).
-- No app deploy required. Runs continuously in parallel with Phases 1-4.
+- `log_correlations` / `log_correlation_runs` tables, `run_log_correlation()` function, `pg_cron` schedule (every 10 min, insert-only), and `vw_api_log_correlations` view are all in place (migrations `20260816120000`–`20260816120400`).
+- `GET /api/log-correlations` exposes it (session-authenticated), with `job_name`/`job_number`/`customer_id`/`from`/`to` filters and pagination.
+- Per the existing design spec, this phase deliberately excludes any UI, CSV export, or edit path — those are exactly what's being deferred to step 3 above.
 
-**Estimate:** 2-3 days to verify/adjust the report; effectively immediate.
+## Phase 1 — Wire up Power BI
 
-## Phase 1 — Data model foundation
+**Goal:** operations can see real, correlated child/parent/customer/job data in the existing Power BI report, without any new application code.
 
-**Goal:** the schema needed for review, exclusion, and publish-tracking, with no UI yet.
+- Connect `powerbi/TrakbyWz_Reports.pbit` (or a new page within it) to `vw_api_log_correlations`, which already denormalizes the fields a QC-style report needs: `child_code`, `parent_code`, both timestamps, `job_name`/`job_number`/`job_date`, and customer fields (`customer_num`/`customer_description`) via its join to `customer`.
+- Create a dedicated, least-privilege Postgres role for Power BI's connection (`SELECT` on `vw_api_log_correlations` only, or on a small set of existing `vw_api_*` views) rather than handing Power BI a service-role or admin credential — this is a small migration (`CREATE ROLE` + `GRANT SELECT`), not new schema.
+- Decide and configure refresh cadence (Power BI scheduled refresh vs. DirectQuery) — DirectQuery keeps it live given the 10-minute correlation sweep, Import is simpler operationally but goes stale between refreshes. Recommend DirectQuery unless there's a reason to avoid live connections from Power BI to the production database (e.g. licensing/connection-limit constraints Power BI Desktop vs. Service may impose) — flag this as a decision to confirm once account details.
+- Validate: filter by customer/job in the report and confirm figures match `GET /api/log-correlations` for the same filters.
 
-- Migration: `customer.contact_emails text` (semicolon-delimited).
-- Migration: `log_correlations` gains `is_excluded boolean default false`, `exclusion_reason text`, `excluded_by`, `excluded_at` — independent of the existing algorithmic `modified_by`/`modified_timestamp`, since exclusion is a review annotation, not a resolution change.
-- Human edits to `parent_log_entry_id`/`customer_id`/`customer_sequence_id` reuse the existing `log_correlation_runs` audit table: a lightweight row with `triggered_by = 'manual-edit:<email>'` is inserted per edit, and `log_correlations.modified_by` points at it — this keeps one audit mechanism instead of a parallel one, and the existing table's `triggered_by` column already anticipated a `'manual:<email>'` shape.
-- New table `log_correlation_publications`: `id`, `customer_id`, job/date scope (or explicit row list), `published_at`, `published_by`, `recipient_emails` (snapshot at publish time), `status` (`draft`/`sent`/`failed`), `row_count`. A batch-marker FK on `log_correlations` (or a join table) records which rows were included in which publication, so an already-published row is visibly not re-publishable by accident.
-- Extend `vw_api_log_correlations` (or add a sibling view) to expose exclusion/publication status for the UI built in Phase 2.
+**Estimate:** ~1-1.5 effort-weeks → ~2-3 calendar weeks part-time, mostly Power BI/DB configuration rather than app code.
 
-**Estimate:** ~1.5-2 effort-weeks → ~3-4 calendar weeks part-time.
+## Phase 2 — Review, edit, and publish workflow (to be scoped)
 
-## Phase 2 — Review & edit UI
+**Deliberately not detailed yet.** Once Power BI is in use, revisit this with the customer to confirm the shape below still holds before committing to a timeline. Carried forward as candidate scope from earlier discussion, not yet approved for implementation:
 
-**Goal:** QC can review, correct, and exclude records without SQL access.
+- **Edit scope (candidate):** QC corrects a wrong auto-resolved parent/customer match, and/or excludes a row with a reason (kept for audit, out of any published export).
+- **Publish scope (candidate):** scoped to one customer + job/date range, tracked (who/when/what rows/recipients) to prevent accidental re-sends.
+- **Recipients (candidate):** a `customer` field holding one or more semicolon-delimited email addresses.
+- **Known open dependency regardless of design:** no transactional email provider exists yet (see Constraints above) — provisioning one and verifying a sending domain is on the critical path for any automated "send" step, whenever that's scoped.
 
-- New authenticated page under `app/protected/` (e.g. `/protected/log-correlations`): paginated, filterable (job/customer/date) table, reusing/extending `GET /api/log-correlations`.
-- Inline edit for a wrong parent/customer resolution; exclude-with-reason action.
-- New `PATCH`/similar API route(s) implementing the manual-edit-as-run audit pattern from Phase 1, with validation.
-
-**Estimate:** ~2.5-3 effort-weeks → ~5-6 calendar weeks part-time.
-
-## Phase 3 — In-app publish (still manually emailed)
-
-**Goal:** retire Power BI as the export mechanism; formalize "already published" tracking, while sending stays a manual, human-in-the-loop step.
-
-- "Publish" action: QC picks a customer + job/date scope; the system snapshots the in-scope, non-excluded rows into a `log_correlation_publications` batch and generates a downloadable CSV matching the shape documented in `content/docs/data-correlation.md` ("Final Expected Result").
-- QC downloads the CSV and sends it manually to the customer's `contact_emails` (Phase 1) using their normal mail client.
-- Already-published rows/batches are visibly flagged so QC can't accidentally re-publish the same scope.
-
-**Estimate:** ~1.5-2 effort-weeks → ~3-4 calendar weeks part-time.
-
-## Phase 4 — Full automation (system sends the email)
-
-**Goal:** "Publish" sends the email itself; no more manual export/attach/send.
-
-- Pick and provision a transactional email provider — recommend **Resend** for a Next.js/Vercel stack (simple API, generous free tier); SendGrid/Postmark/SES are acceptable alternatives if there's an existing organizational preference.
-- Verify a sending domain (SPF/DKIM DNS records) — this has calendar-time lead (DNS propagation, provider review) that runs in parallel with, not blocking, Phases 1-3.
-- Replace the manual-send step: "Publish" generates the CSV attachment and sends it to every address in `recipient_emails`, updates `log_correlation_publications.status` to `sent`/`failed`, with basic retry and failure visibility (e.g. surfaced in the UI, not just logs).
-
-**Estimate:** ~1.5-2.5 effort-weeks engineering → ~3-5 calendar weeks part-time, including provider setup lead time.
-
-## Overall timeline
-
-| Phase | Deliverable | Calendar estimate (part-time solo) |
-|---|---|---|
-| 0 | Interim manual publish via Power BI | Days, starts immediately |
-| 1 | Schema: edit/exclude/publish audit, customer emails | ~3-4 weeks |
-| 2 | Review & edit UI | ~5-6 weeks |
-| 3 | In-app publish + CSV export, manual send | ~3-4 weeks |
-| 4 | Automated email send | ~3-5 weeks |
-| **Total (1-4)** | | **~14-19 weeks (~3.5-4.5 months)** |
-
-Phase 0 is live within the first week and covers the gap throughout. Meaningful in-app capability (review, edit, exclude, export — no more Power BI) lands around the Phase 3 mark, roughly 8-10 weeks in; full hands-off automation follows after Phase 4.
+No timeline is committed for this phase — it depends on decisions not yet made (e.g., whether publish stays Power-BI-export-plus-manual-email indefinitely, or a custom in-app review/publish UI gets built, and if so how much of it).
 
 ## Explicitly deferred / open items
 
-- **Email provider selection is an open decision** — no provider exists today; this is on Phase 4's critical path and should be raised with the customer as a dependency, not assumed solved.
-- Exact CSV export column shape should be re-confirmed against `content/docs/data-correlation.md`'s "Final Expected Result" table before Phase 3 implementation.
-- No scheduled/automatic publishing (e.g. "auto-publish nightly") — publish stays a human-triggered action in every phase, since the point of this process is human review before external send.
-- No handling yet for what happens if a `log_correlations` row is edited *after* it's already been included in a `sent` publication — flagged for the Phase 2/3 implementation plans to resolve explicitly, not decided here.
+- Phase 2's scope, phasing, and timeline — explicitly punted to a follow-up discussion per the customer's request.
+- Power BI DirectQuery vs. Import decision, and the exact least-privilege grant set for its role — to be finalized during Phase 1 implementation.
+- Email provider selection — open, not on the critical path until Phase 2 is scoped and if it turns out to require automated sending.
