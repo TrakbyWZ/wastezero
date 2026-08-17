@@ -20,6 +20,14 @@ Branch: `feat/scheduled-file-processing`
 2. **Wire it up to Power BI** — get operations looking at real correlated data in the tool they already use, before any custom UI exists.
 3. **Then** discuss reviewing/editing records and publishing them to customers — deliberately not scoped in detail yet; revisit once Power BI is in use and real usage patterns are visible.
 
+## Roadmap at a glance
+
+| Phase | Deliverable | Status | Estimate |
+|---|---|---|---|
+| 0 | Correlation tables, engine, scheduled job, read API | **Done** | Shipped |
+| 1 | Wire up Power BI to live correlated data | Next up | ~2-3 calendar weeks |
+| 2 | Review, edit, and publish workflow | To be scoped | Not yet estimated — pending follow-up discussion |
+
 ## Phase 0 — Correlation tables (done)
 
 **Status: already built**, no further roadmap work needed here.
