@@ -175,6 +175,7 @@ async function main() {
     ...Array.from({ length: 14 }, (_, i) => `R005C${String(177 + i).padStart(7, "0")}`),
     "R005C0000195",
     "ZZZZZ0000001",
+    "Bad_Read",
   ];
   await seedLogEntries(cam1FileA.id, "Camera 1 Log File", "EvergreenA", "EVG-A", cam1CodesA, 0);
 
@@ -202,6 +203,7 @@ async function main() {
     "R005C0000190": "R005C0000194",
     "R005C0000195": null,
     "ZZZZZ0000001": null,
+    "Bad_Read": null,
   };
 
   // Step A1: auto-resolve the parent file from job identity (no override).
@@ -219,7 +221,7 @@ async function main() {
     );
   }
 
-  const resolvedCustomerRowsA = rowsA.filter((r) => r.child_code !== "ZZZZZ0000001");
+  const resolvedCustomerRowsA = rowsA.filter((r) => r.child_code !== "ZZZZZ0000001" && r.child_code !== "Bad_Read");
   assert(
     resolvedCustomerRowsA.every((r) => r.customer_id === customer.id && r.customer_sequence_id === customerSequence.id),
     "all R005C-prefixed rows resolve to the seeded customer/customer_sequence",
@@ -228,6 +230,15 @@ async function main() {
   assert(
     unmatchedRowA?.customer_id === null && unmatchedRowA?.customer_sequence_id === null,
     "ZZZZZ0000001 has no matching customer_sequence -> customer_id/customer_sequence_id null",
+  );
+  const badReadRowA = rowsA.find((r) => r.child_code === "Bad_Read");
+  assert(
+    badReadRowA !== undefined,
+    "a Bad_Read camera1 row still gets a log_correlations row (visible as attempted-but-unresolved, not silently missing)",
+  );
+  assert(
+    badReadRowA?.parent_code === null && badReadRowA?.customer_id === null && badReadRowA?.customer_sequence_id === null,
+    "a Bad_Read camera1 row resolves to fully unresolved (parent and customer both null), with no special-casing needed",
   );
   assert(runIdA1 != null, "run_log_correlation() returns a run id");
 

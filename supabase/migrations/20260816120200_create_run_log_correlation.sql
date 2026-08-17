@@ -71,12 +71,18 @@ language sql
 stable
 as $$
   with candidates as (
+    -- Deliberately does NOT exclude Bad_Read/empty child data_value here (unlike
+    -- the parent-side lateral below, where Bad_Read/empty rows can never be a
+    -- valid ceiling-match target): every camera1 row in this file should get a
+    -- log_correlations row, so a bad camera1 read is visible as "attempted,
+    -- unresolved" rather than silently missing from the table. A Bad_Read/empty
+    -- child_code naturally never matches the parent lateral's prefix/numeric
+    -- conditions or the customer_sequence regex, so it resolves to fully
+    -- unresolved (parent + customer both null) without any special-casing.
     select le.*
     from public.log_entries le
     where le.log_file_id = p_child_log_file_id
       and le.log_file_header = 'Camera 1 Log File'
-      and le.data_value <> 'Bad_Read'
-      and nullif(trim(le.data_value), '') is not null
       and (
         p_allow_reprocess
         or not exists (
@@ -318,8 +324,6 @@ begin
     select distinct le.log_file_id
     from public.log_entries le
     where le.log_file_header = 'Camera 1 Log File'
-      and le.data_value <> 'Bad_Read'
-      and nullif(trim(le.data_value), '') is not null
       and not exists (
         select 1 from public.log_correlations lc where lc.child_log_entry_id = le.id
       )
