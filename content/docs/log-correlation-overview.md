@@ -36,12 +36,14 @@ Correlation is always scoped to one specific camera1 **file** (`p_child_log_file
 
 ## The matching algorithm
 
-Once a child file and its resolved parent file are known, for each camera1 row in the child file:
+Once a child file and its resolved parent file are known, **every** camera1 row in the child file gets a `log_correlations` row — including `Bad_Read`/empty ones. There's no upfront exclusion on the child side (unlike the parent side, where `Bad_Read`/empty rows are never valid ceiling-match targets): a bad camera1 read should still be visible as attempted-but-unresolved, not silently missing. `log_entries` and `log_correlations` row counts for a given child file should always match 1:1.
+
+For each camera1 row in the child file:
 
 1. Parse `data_value` into a prefix and trailing numeric run (e.g. `R005C0000177` → prefix `R005C`, numeric `177`).
 2. Among camera2 rows **in the resolved parent file** with a matching prefix and `data_value <> 'Bad_Read'`, find the smallest numeric value `>=` the child's.
-3. If found, that's the resolved parent. If not (a trailing child code past the last parent camera2 ever read), the parent stays **unresolved** (`null`) — never dropped, never clamped to the last known parent.
-4. Separately, resolve the child's `customer_sequence` by reusing `public.customer_sequence_cam1_data_value_regex(label_prefix, number_format)` — the same function `vw_customer_sequence_xref` uses. No match → `customer_id`/`customer_sequence_id` stay `null`.
+3. If found, that's the resolved parent. If not — a trailing child code past the last parent camera2 ever read, or the child itself was `Bad_Read`/empty (no prefix/number to match against) — the parent stays **unresolved** (`null`). Never dropped, never clamped to the last known parent.
+4. Separately, resolve the child's `customer_sequence` by reusing `public.customer_sequence_cam1_data_value_regex(label_prefix, number_format)` — the same function `vw_customer_sequence_xref` uses. No match (including `Bad_Read`/empty, which never matches any regex) → `customer_id`/`customer_sequence_id` stay `null`.
 
 Both resolutions are independent: a row can have a resolved parent with no customer match, or vice versa.
 
