@@ -1,0 +1,173 @@
+table 'public log_entries'
+	lineageTag: 30297e47-6c77-48c8-aa2b-f1ef8068844e
+
+	measure cnt_of_reads = CALCULATE(COUNTROWS('public log_entries'))
+		formatString: #,0
+		lineageTag: debf8aa5-ca09-47a8-b7a5-cffc380e9061
+
+	measure cnt_of_bad_reads = ```
+			CALCULATE(
+			    COUNTROWS('public log_entries'), 
+			    CONTAINSSTRING('public log_entries'[data_value], "bad")
+			)
+			```
+		formatString: #,0
+		lineageTag: 9d5eea68-02c5-4f66-ae6f-15d859191d7e
+
+	measure pct_good_reads = ([cnt_of_reads] - [cnt_of_bad_reads])/[cnt_of_reads]
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 44018589-e584-46e2-9136-0ec44d5a1e60
+
+	measure cnt_of_good_reads = [cnt_of_reads] - [cnt_of_bad_reads]
+		formatString: #,0
+		lineageTag: ec167129-6e1a-47a0-a636-8575a94072a5
+
+	measure job_duration_in_hrs = ```
+			DATEDIFF(
+			    SELECTEDVALUE('public log_entries'[job_start_timestamp]), 
+			    SELECTEDVALUE('public log_entries'[job_end_timestamp]), 
+			    HOUR
+			)
+			```
+		formatString: #,0.00
+		lineageTag: b76e4f74-5129-43fb-809c-32a8b2bf8909
+
+	column id
+		dataType: string
+		lineageTag: 958f41c5-4df8-405b-a960-a229327c816e
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column log_file_id
+		dataType: string
+		lineageTag: 09073f34-9dcb-405e-b577-94b0b61503a4
+		summarizeBy: none
+		sourceColumn: log_file_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column log_file_header
+		dataType: string
+		lineageTag: 0864b237-f8bf-4804-92a8-8ad2380e0455
+		summarizeBy: none
+		sourceColumn: log_file_header
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_name
+		dataType: string
+		lineageTag: f5d141b4-6ed8-4e5d-825b-77613b8008d6
+		summarizeBy: none
+		sourceColumn: job_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_number
+		dataType: string
+		lineageTag: ecf0b47f-624a-45fb-8d2f-4117985061e6
+		summarizeBy: none
+		sourceColumn: job_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column operator
+		dataType: string
+		lineageTag: 2d2bd467-3f71-4d2d-bafc-4f5b2333de0d
+		summarizeBy: none
+		sourceColumn: operator
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_start_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: aec0d20d-bc56-48fb-9d12-35318b4a1264
+		summarizeBy: none
+		sourceColumn: job_start_timestamp
+
+		variation Variation
+			isDefault
+			relationship: d0448ae0-4805-4a92-94ab-2ec63bc51c93
+			defaultHierarchy: LocalDateTable_1a93f0a5-7cf4-4f38-a135-a4235a1ae0c5.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_end_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 160ad1f9-fd02-4e43-a052-2a5b6d0b1515
+		summarizeBy: none
+		sourceColumn: job_end_timestamp
+
+		variation Variation
+			isDefault
+			relationship: bc3c2556-638f-4940-b9bb-19a4470e0821
+			defaultHierarchy: LocalDateTable_6bc19fbc-3f33-485c-82a2-623f831ecf05.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_value
+		dataType: string
+		lineageTag: ddefbdd9-546b-4978-ac1e-4ca1c2e58a66
+		summarizeBy: none
+		sourceColumn: data_value
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 1c20dff3-6a14-4490-8841-1400e13744ce
+		summarizeBy: none
+		sourceColumn: data_timestamp
+
+		variation Variation
+			isDefault
+			relationship: 8abb1843-5230-4af6-a3fb-841d746a63cb
+			defaultHierarchy: LocalDateTable_d9953f6c-007b-4bca-bfda-f9d068418405.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column sort_order
+		dataType: int64
+		formatString: 0
+		lineageTag: 01bf0bda-27c8-4f3b-a9ba-a1a20af8f2b2
+		summarizeBy: sum
+		sourceColumn: sort_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_type
+		dataType: string
+		lineageTag: 91065720-2e1f-4f64-9266-7aff88b32ef8
+		summarizeBy: none
+		sourceColumn: data_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Customer Code'
+		dataType: string
+		lineageTag: 28fc7dac-eecd-416c-b5f6-2c1af76bc7ef
+		summarizeBy: none
+		sourceColumn: Customer Code
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'public log_entries' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    public_log_entries = Source{[Schema="public",Item="log_entries"]}[Data],
+				    #"Added Custom" = Table.AddColumn(public_log_entries, "data_type", each if Text.Contains([data_value], "Bad") then "Bad Read" else "Good Read"),
+				    #"Duplicated Column" = Table.AddColumn(#"Added Custom", "Customer Code", each [data_value], type text),
+				    #"Trimmed Text" = Table.TransformColumns(#"Duplicated Column", {{"Customer Code", each Text.Start(_, 5), type text}})
+				in
+				    #"Trimmed Text"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

@@ -1,0 +1,99 @@
+table 'public customer'
+	lineageTag: 3feac9a6-ae9e-488b-a7ad-a5347d2ca55b
+
+	column id
+		dataType: string
+		lineageTag: aad07abb-edc7-40e6-b9d1-447c553d28e2
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_num
+		dataType: string
+		lineageTag: 3c63a93e-bb46-4d7c-b018-31db5e82fd0c
+		summarizeBy: none
+		sourceColumn: customer_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_description
+		dataType: string
+		lineageTag: 541b3f1c-85d5-4f31-88c2-cb023bb90121
+		summarizeBy: none
+		sourceColumn: customer_description
+
+		annotation SummarizationSetBy = Automatic
+
+	column contact_email
+		dataType: string
+		lineageTag: a66bae2d-c3be-4b44-92ac-b5c856e37a18
+		summarizeBy: none
+		sourceColumn: contact_email
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_active
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 2262efe0-f517-42e4-bd98-6a7fef4fc319
+		summarizeBy: none
+		sourceColumn: is_active
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_by
+		dataType: string
+		lineageTag: 211a0b66-5f37-469f-89bc-9a80f4fe91a6
+		summarizeBy: none
+		sourceColumn: created_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e2d70d78-c25a-4d77-a17c-958d17a7341c
+		summarizeBy: none
+		sourceColumn: created_date
+
+		variation Variation
+			isDefault
+			relationship: bf4fa03d-1e9b-4cf5-b8c4-f41336603dbf
+			defaultHierarchy: LocalDateTable_73183d78-d5e0-4714-a88a-2ab6409e5491.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_by
+		dataType: string
+		lineageTag: 4a7dc2df-2f31-4c33-bdf1-4de76542a0a5
+		summarizeBy: none
+		sourceColumn: modified_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e331d391-3104-43e3-af23-b30c0f98c7e2
+		summarizeBy: none
+		sourceColumn: modified_date
+
+		variation Variation
+			isDefault
+			relationship: 1d7efdd2-b6dd-4372-a9af-79a9d113d06d
+			defaultHierarchy: LocalDateTable_c633e479-970e-4502-b8ce-6fdd46e1de96.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'public customer' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    public_customer = Source{[Schema="public",Item="customer"]}[Data]
+				in
+				    public_customer
+
+	annotation PBI_ResultType = Table
+

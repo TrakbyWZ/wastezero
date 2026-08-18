@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "TrakbyWz_Reports"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "39b7672f-c077-48bd-8d59-c74f75bab38e"
+  }
+}

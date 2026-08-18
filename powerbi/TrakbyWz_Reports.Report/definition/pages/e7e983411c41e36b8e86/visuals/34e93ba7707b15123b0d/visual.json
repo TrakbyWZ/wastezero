@@ -1,0 +1,284 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "34e93ba7707b15123b0d",
+  "position": {
+    "x": 0,
+    "y": 505.2644982610841,
+    "z": 2000,
+    "height": 214.49292893922151,
+    "width": 445.93666685236326,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "columnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "HierarchyLevel": {
+                  "Expression": {
+                    "Hierarchy": {
+                      "Expression": {
+                        "PropertyVariationSource": {
+                          "Expression": {
+                            "SourceRef": {
+                              "Entity": "public log_entries"
+                            }
+                          },
+                          "Name": "Variation",
+                          "Property": "job_start_timestamp"
+                        }
+                      },
+                      "Hierarchy": "Date Hierarchy"
+                    }
+                  },
+                  "Level": "Year"
+                }
+              },
+              "queryRef": "public log_entries.job_start_timestamp.Variation.Date Hierarchy.Year",
+              "nativeQueryRef": "job_start_timestamp Year",
+              "active": true
+            },
+            {
+              "field": {
+                "HierarchyLevel": {
+                  "Expression": {
+                    "Hierarchy": {
+                      "Expression": {
+                        "PropertyVariationSource": {
+                          "Expression": {
+                            "SourceRef": {
+                              "Entity": "public log_entries"
+                            }
+                          },
+                          "Name": "Variation",
+                          "Property": "job_start_timestamp"
+                        }
+                      },
+                      "Hierarchy": "Date Hierarchy"
+                    }
+                  },
+                  "Level": "Month"
+                }
+              },
+              "queryRef": "public log_entries.job_start_timestamp.Variation.Date Hierarchy.Month",
+              "nativeQueryRef": "job_start_timestamp Month",
+              "active": true
+            },
+            {
+              "field": {
+                "HierarchyLevel": {
+                  "Expression": {
+                    "Hierarchy": {
+                      "Expression": {
+                        "PropertyVariationSource": {
+                          "Expression": {
+                            "SourceRef": {
+                              "Entity": "public log_entries"
+                            }
+                          },
+                          "Name": "Variation",
+                          "Property": "job_start_timestamp"
+                        }
+                      },
+                      "Hierarchy": "Date Hierarchy"
+                    }
+                  },
+                  "Level": "Day"
+                }
+              },
+              "queryRef": "public log_entries.job_start_timestamp.Variation.Date Hierarchy.Day",
+              "nativeQueryRef": "job_start_timestamp Day",
+              "active": true
+            }
+          ]
+        },
+        "Series": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "data_type"
+                }
+              },
+              "queryRef": "public log_entries.data_type",
+              "nativeQueryRef": "data_type"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "cnt_of_reads"
+                }
+              },
+              "queryRef": "public log_entries.cnt_of_reads",
+              "nativeQueryRef": "cnt_of_reads"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Daily Good vs Bad Reads Count'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "background": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 3,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "ffe40eee72dee1a40827",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "cnt_of_reads"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "d8401b1b744c7fb9f8c1",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "data_type"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "b78ec8f533cec572d66f",
+        "field": {
+          "HierarchyLevel": {
+            "Expression": {
+              "Hierarchy": {
+                "Expression": {
+                  "PropertyVariationSource": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "public log_entries"
+                      }
+                    },
+                    "Name": "Variation",
+                    "Property": "job_start_timestamp"
+                  }
+                },
+                "Hierarchy": "Date Hierarchy"
+              }
+            },
+            "Level": "Year"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "dac2610313c8e873d38e",
+        "field": {
+          "HierarchyLevel": {
+            "Expression": {
+              "Hierarchy": {
+                "Expression": {
+                  "PropertyVariationSource": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "public log_entries"
+                      }
+                    },
+                    "Name": "Variation",
+                    "Property": "job_start_timestamp"
+                  }
+                },
+                "Hierarchy": "Date Hierarchy"
+              }
+            },
+            "Level": "Month"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "cb6802235d413badc3aa",
+        "field": {
+          "HierarchyLevel": {
+            "Expression": {
+              "Hierarchy": {
+                "Expression": {
+                  "PropertyVariationSource": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Entity": "public log_entries"
+                      }
+                    },
+                    "Name": "Variation",
+                    "Property": "job_start_timestamp"
+                  }
+                },
+                "Hierarchy": "Date Hierarchy"
+              }
+            },
+            "Level": "Day"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

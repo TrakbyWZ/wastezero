@@ -1,0 +1,113 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 136.39376528677587,
+            "y": 704.85557796564115
+          },
+          "nodeIndex": "public batch",
+          "nodeLineageTag": "0936b96f-26c7-4730-bc67-7baa46ec8ad2",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 5
+        },
+        {
+          "location": {
+            "x": 112.13932964078674,
+            "y": 45.662771356506369
+          },
+          "nodeIndex": "public customer",
+          "nodeLineageTag": "3feac9a6-ae9e-488b-a7ad-a5347d2ca55b",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 1
+        },
+        {
+          "location": {
+            "x": 620,
+            "y": 28.988314069519106
+          },
+          "nodeIndex": "public customer_sequence",
+          "nodeLineageTag": "2b1d4d8d-75bf-42c9-9db3-4553d3514ffe",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 2
+        },
+        {
+          "location": {
+            "x": 944.39376528677587,
+            "y": 132.75917466107376
+          },
+          "nodeIndex": "public log_entries",
+          "nodeLineageTag": "30297e47-6c77-48c8-aa2b-f1ef8068844e",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 3
+        },
+        {
+          "location": {
+            "x": 1361.3937652867758,
+            "y": 226.75917466107376
+          },
+          "nodeIndex": "public log_files",
+          "nodeLineageTag": "7e352f75-a037-4c09-a681-ca9a2a810690",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 4
+        },
+        {
+          "location": {
+            "x": 854.25443564598891,
+            "y": 753.59640330456739
+          },
+          "nodeIndex": "public log_correlation_runs",
+          "nodeLineageTag": "7a616ea1-ad3d-47bd-b2e4-d63e2e37dc25",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1180.9210921401295,
+            "y": 753.59640330456739
+          },
+          "nodeIndex": "public vw_api_log_correlations",
+          "nodeLineageTag": "b1962b03-9b3a-4dde-8daf-0b632cb94c12",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

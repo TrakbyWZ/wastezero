@@ -1,0 +1,259 @@
+table 'public vw_api_log_correlations'
+	lineageTag: b1962b03-9b3a-4dde-8daf-0b632cb94c12
+
+	column id
+		dataType: string
+		lineageTag: a4735dd4-5885-4582-ae65-9e4c64491bb8
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_log_entry_id
+		dataType: string
+		lineageTag: a2307cd5-0c1b-4721-9f14-04bf8a866a3e
+		summarizeBy: none
+		sourceColumn: child_log_entry_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_log_entry_id
+		dataType: string
+		lineageTag: f898ae6e-b59d-4344-b33f-d7278fd7ac15
+		summarizeBy: none
+		sourceColumn: parent_log_entry_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_code
+		dataType: string
+		lineageTag: 6a208c8c-f93d-429f-a017-d88befdf838a
+		summarizeBy: none
+		sourceColumn: child_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_code
+		dataType: string
+		lineageTag: 5efa438d-a1ba-4d5d-9026-8080a7f67bdc
+		summarizeBy: none
+		sourceColumn: parent_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_code_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 400854b0-3488-4675-bb53-6b47ccbb2d6a
+		summarizeBy: none
+		sourceColumn: child_code_timestamp
+
+		variation Variation
+			isDefault
+			relationship: 131e1069-2700-44ef-a95e-c297ea185d57
+			defaultHierarchy: LocalDateTable_422d32d3-cbad-497f-99b3-2d5fcce15ea9.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_code_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 7a1d4880-5482-4b40-bf10-6efb38d378e9
+		summarizeBy: none
+		sourceColumn: parent_code_timestamp
+
+		variation Variation
+			isDefault
+			relationship: f54c52b7-cc75-424e-9814-f68007001292
+			defaultHierarchy: LocalDateTable_6695fce7-9447-406b-9ef9-3ec1e3636a38.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_name
+		dataType: string
+		lineageTag: 0b349d30-acbe-48a3-aed7-4cf3d0a1a5b4
+		summarizeBy: none
+		sourceColumn: job_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_number
+		dataType: string
+		lineageTag: 157c3226-4b35-4626-b3cd-7054654c009b
+		summarizeBy: none
+		sourceColumn: job_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column job_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: e78a3f9d-adf8-42a1-b474-1fafc8696d9e
+		summarizeBy: none
+		sourceColumn: job_date
+
+		variation Variation
+			isDefault
+			relationship: 1c22c862-a20f-462e-afc9-3ed0ffdd79bc
+			defaultHierarchy: LocalDateTable_4682d229-ce18-4014-a72f-cbbea28ae6b0.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column customer_id
+		dataType: string
+		lineageTag: 38a575a3-ad93-4fef-b69b-1ee0f21f9ca5
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_sequence_id
+		dataType: string
+		lineageTag: 773844d7-bf5b-446f-8664-f9a487a02918
+		summarizeBy: none
+		sourceColumn: customer_sequence_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_operator
+		dataType: string
+		lineageTag: 786a2cb4-ece7-4d81-b21b-4c6829578b26
+		summarizeBy: none
+		sourceColumn: child_operator
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_filename
+		dataType: string
+		lineageTag: a39cb64b-e549-453e-8642-1217e5f4b136
+		summarizeBy: none
+		sourceColumn: child_filename
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_operator
+		dataType: string
+		lineageTag: 4f1fd41c-87f6-422d-b25e-118843f382af
+		summarizeBy: none
+		sourceColumn: parent_operator
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_filename
+		dataType: string
+		lineageTag: ebb5e1d2-9736-45d8-b6bc-f0c3de5f1b7b
+		summarizeBy: none
+		sourceColumn: parent_filename
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_num
+		dataType: string
+		lineageTag: 22fc85f2-5532-4347-bf8e-083756b1db1b
+		summarizeBy: none
+		sourceColumn: customer_num
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_description
+		dataType: string
+		lineageTag: 51653e7d-f44a-446b-aefe-952136854512
+		summarizeBy: none
+		sourceColumn: customer_description
+
+		annotation SummarizationSetBy = Automatic
+
+	column usr_child_code
+		dataType: string
+		lineageTag: 68373805-0f13-4747-87f0-9c8bbbb9866e
+		summarizeBy: none
+		sourceColumn: usr_child_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column usr_parent_code
+		dataType: string
+		lineageTag: 07168c80-38b6-4b4b-b1bf-9a75c0c1e7bd
+		summarizeBy: none
+		sourceColumn: usr_parent_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column usr_exclude_row
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 1e419725-524d-4ed2-965b-7ce9e9f332fc
+		summarizeBy: none
+		sourceColumn: usr_exclude_row
+
+		annotation SummarizationSetBy = Automatic
+
+	column notes
+		dataType: string
+		lineageTag: 58a6da7b-29b3-42eb-ae51-7662b01c8769
+		summarizeBy: none
+		sourceColumn: notes
+
+		annotation SummarizationSetBy = Automatic
+
+	column overridden_by
+		dataType: string
+		lineageTag: acecee00-a4f3-4187-8e8e-36ea9c50a577
+		summarizeBy: none
+		sourceColumn: overridden_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column overridden_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 3c0e9c94-7e8d-4596-911b-c40568cbe7e5
+		summarizeBy: none
+		sourceColumn: overridden_at
+
+		variation Variation
+			isDefault
+			relationship: 9f47e916-aa91-4ee0-ba45-5e90aec3a914
+			defaultHierarchy: LocalDateTable_1ac51433-d8ce-4416-9b39-aa2704f5767b.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 1b897080-f2ed-4244-a460-ecde51598ce8
+		summarizeBy: none
+		sourceColumn: created_timestamp
+
+		variation Variation
+			isDefault
+			relationship: 24ad8908-82d5-4c7b-b176-cdfe6251981d
+			defaultHierarchy: LocalDateTable_22c706d4-cfa3-49eb-b8db-e2b6c7ae015b.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_timestamp
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 941f9ed4-452d-4d7c-8240-303fc0a4972d
+		summarizeBy: none
+		sourceColumn: modified_timestamp
+
+		variation Variation
+			isDefault
+			relationship: 5abcfe57-bc6c-427b-b61d-bc6716e18431
+			defaultHierarchy: LocalDateTable_702e3778-bf99-47c5-84d2-24f4224f7712.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'public vw_api_log_correlations' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:54322", "postgres"),
+				    public_vw_api_log_correlations = Source{[Schema="public",Item="vw_api_log_correlations"]}[Data]
+				in
+				    public_vw_api_log_correlations
+

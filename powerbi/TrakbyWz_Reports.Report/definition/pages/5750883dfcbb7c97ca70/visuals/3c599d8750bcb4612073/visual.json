@@ -1,0 +1,742 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "3c599d8750bcb4612073",
+  "position": {
+    "x": 268.83784003688538,
+    "y": 317.71744731631907,
+    "z": 1,
+    "height": 402.14585988988637,
+    "width": 1010.9191505519243,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "id"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.id",
+              "nativeQueryRef": "id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "customer_num"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.customer_num",
+              "nativeQueryRef": "customer_num"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "job_name"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.job_name",
+              "nativeQueryRef": "job_name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "job_number"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.job_number",
+              "nativeQueryRef": "job_number"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "job_date"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.job_date",
+              "nativeQueryRef": "job_date"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "child_code"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.child_code",
+              "nativeQueryRef": "child_code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "parent_code"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.parent_code",
+              "nativeQueryRef": "parent_code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "child_code_timestamp"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.child_code_timestamp",
+              "nativeQueryRef": "child_code_timestamp"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "parent_code_timestamp"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.parent_code_timestamp",
+              "nativeQueryRef": "parent_code_timestamp"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "child_log_entry_id"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.child_log_entry_id",
+              "nativeQueryRef": "child_log_entry_id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "child_filename"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.child_filename",
+              "nativeQueryRef": "child_filename"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "child_operator"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.child_operator",
+              "nativeQueryRef": "child_operator"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "parent_log_entry_id"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.parent_log_entry_id",
+              "nativeQueryRef": "parent_log_entry_id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "parent_filename"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.parent_filename",
+              "nativeQueryRef": "parent_filename"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "parent_operator"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.parent_operator",
+              "nativeQueryRef": "parent_operator"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "created_timestamp"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.created_timestamp",
+              "nativeQueryRef": "created_timestamp"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "modified_timestamp"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.modified_timestamp",
+              "nativeQueryRef": "modified_timestamp"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "overridden_at"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.overridden_at",
+              "nativeQueryRef": "overridden_at"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "overridden_by"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.overridden_by",
+              "nativeQueryRef": "overridden_by"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "usr_child_code"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.usr_child_code",
+              "nativeQueryRef": "usr_child_code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "usr_parent_code"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.usr_parent_code",
+              "nativeQueryRef": "usr_parent_code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "usr_exclude_row"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.usr_exclude_row",
+              "nativeQueryRef": "usr_exclude_row"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "notes"
+                }
+              },
+              "queryRef": "public vw_api_log_correlations.notes",
+              "nativeQueryRef": "notes"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "public vw_api_log_correlations"
+                  }
+                },
+                "Property": "child_code_timestamp"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ]
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'File Correlation Detail'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "background": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 3,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "5dc945412a46cda6ee90",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "3ccf3366a83b3169a855",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "child_code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "7bb61e87c7609667b936",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "child_filename"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "3a748fa899451aed0970",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "child_operator"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "fade3f966eb79431eb32",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "parent_operator"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c5e7f396f06c52894c57",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "usr_exclude_row"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "64a1fb3474c770ffa143",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "usr_child_code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "34c3675893171cf458b1",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "usr_parent_code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "be6f82c4c215f5f9b47b",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "child_code_timestamp"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c966eafbd6ec47aa204c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "parent_code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "e07c079d2118e2fa0bad",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "parent_code_timestamp"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "9db61a2479a28662fa65",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "created_timestamp"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "184d16e0fd62d01415d2",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "modified_timestamp"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "774971cc153eb9a5c2e6",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "customer_num"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "cbf0f468ebfc546c9858",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "job_date"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "5b1bb3f3061ed9df876d",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "job_name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "b8212e822b631629d18b",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "job_number"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "2bad50177124d9aa11ee",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "overridden_by"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "842ea0dc1ab6505f0028",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "overridden_at"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "f8e0a3bedb3b208d25fa",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "parent_filename"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "511f8ad7615d421a2619",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "notes"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "a35f87b120d838c81f93",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "parent_log_entry_id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "40f2b5f5a1b461f6a354",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "child_log_entry_id"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

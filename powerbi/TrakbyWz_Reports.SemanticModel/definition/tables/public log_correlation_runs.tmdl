@@ -1,0 +1,132 @@
+table 'public log_correlation_runs'
+	lineageTag: 7a616ea1-ad3d-47bd-b2e4-d63e2e37dc25
+
+	column id
+		dataType: string
+		lineageTag: f891bc8c-b3a6-4794-8ab1-855b7b506f74
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column run_started_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b03e7b39-919c-40d1-b6c3-39dcc83800a2
+		summarizeBy: none
+		sourceColumn: run_started_at
+
+		variation Variation
+			isDefault
+			relationship: 9e537bd1-459d-4323-b0ce-9dc2e028cb78
+			defaultHierarchy: LocalDateTable_13d53640-763b-4383-bc04-f0da51a364df.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column run_completed_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 0e0825eb-4103-435a-87b5-8915456d5231
+		summarizeBy: none
+		sourceColumn: run_completed_at
+
+		variation Variation
+			isDefault
+			relationship: 199cea69-2292-43f2-8653-10e53f8f0d16
+			defaultHierarchy: LocalDateTable_1a0502fd-87d4-40df-8d5f-00dad6b8c036.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column triggered_by
+		dataType: string
+		lineageTag: 1af0e5ed-95fb-49d6-b5a9-b9861e9753cc
+		summarizeBy: none
+		sourceColumn: triggered_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column allow_reprocess
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 2098406f-3d20-4e1e-bcbf-e3de14db0f0d
+		summarizeBy: none
+		sourceColumn: allow_reprocess
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_log_file_id_param
+		dataType: string
+		lineageTag: 0b053525-9c12-44c7-8e35-a7ef30926f91
+		summarizeBy: none
+		sourceColumn: child_log_file_id_param
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_log_file_id_param
+		dataType: string
+		lineageTag: 85f819f9-c67c-4b10-8d57-b613ec684877
+		summarizeBy: none
+		sourceColumn: parent_log_file_id_param
+
+		annotation SummarizationSetBy = Automatic
+
+	column resolved_parent_log_file_id
+		dataType: string
+		lineageTag: 1a500d12-94aa-4926-bb23-dc2393774160
+		summarizeBy: none
+		sourceColumn: resolved_parent_log_file_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column rows_inserted
+		dataType: int64
+		formatString: 0
+		lineageTag: b35f8fdb-a044-4ebb-92f9-d4cd45bbbb37
+		summarizeBy: sum
+		sourceColumn: rows_inserted
+
+		annotation SummarizationSetBy = Automatic
+
+	column rows_updated
+		dataType: int64
+		formatString: 0
+		lineageTag: 6fe60a59-8c38-4672-93c3-21111b0c0542
+		summarizeBy: sum
+		sourceColumn: rows_updated
+
+		annotation SummarizationSetBy = Automatic
+
+	column rows_unresolved
+		dataType: int64
+		formatString: 0
+		lineageTag: c058fa8e-fc65-44c9-b8fd-ab6a9380b935
+		summarizeBy: sum
+		sourceColumn: rows_unresolved
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 9a4612ea-c39e-4037-bc54-7adc4ac5cc1c
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column error_message
+		dataType: string
+		lineageTag: 3b4d0a04-6ffb-4612-8fe3-126f954d3c1c
+		summarizeBy: none
+		sourceColumn: error_message
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'public log_correlation_runs' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("localhost:54322", "postgres"),
+				    public_log_correlation_runs = Source{[Schema="public",Item="log_correlation_runs"]}[Data]
+				in
+				    public_log_correlation_runs
+

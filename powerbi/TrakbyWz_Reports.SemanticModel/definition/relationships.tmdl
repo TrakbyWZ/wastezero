@@ -1,0 +1,136 @@
+relationship d0448ae0-4805-4a92-94ab-2ec63bc51c93
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_entries'.job_start_timestamp
+	toColumn: LocalDateTable_1a93f0a5-7cf4-4f38-a135-a4235a1ae0c5.Date
+
+relationship bc3c2556-638f-4940-b9bb-19a4470e0821
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_entries'.job_end_timestamp
+	toColumn: LocalDateTable_6bc19fbc-3f33-485c-82a2-623f831ecf05.Date
+
+relationship 8abb1843-5230-4af6-a3fb-841d746a63cb
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_entries'.data_timestamp
+	toColumn: LocalDateTable_d9953f6c-007b-4bca-bfda-f9d068418405.Date
+
+relationship 23141e39-4962-421e-aab3-fc003b4e0b96
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_files'.upload_timestamp
+	toColumn: LocalDateTable_62b6e0dd-18fb-49a7-8bfa-028770a7f545.Date
+
+relationship 97c4cffc-88d6-4b00-b425-4a9450139f64
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_files'.created_at
+	toColumn: LocalDateTable_9ccb4803-723f-47e1-947c-22be584c0e60.Date
+
+relationship c58b9f2d-27b6-4b56-af25-17373bb2fc9c
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public batch'.start_time
+	toColumn: LocalDateTable_c8af5b02-3a32-45bb-8559-5dcdd2813fa3.Date
+
+relationship 12ee1aa5-4823-4fb1-b85e-cca2c4406f3d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public batch'.end_time
+	toColumn: LocalDateTable_d39a8cec-b9fe-48dc-ba24-bfe36a9a5248.Date
+
+relationship 90fba273-9a88-47f4-a166-8350b8b2f971
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public batch'.created_date
+	toColumn: LocalDateTable_e6cf3ef0-85e1-46c7-97f5-5ab53d0492b1.Date
+
+relationship bf868360-e670-417c-b0bf-8e3ca6ab92d2
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public batch'.modified_date
+	toColumn: LocalDateTable_196ed7ec-149c-4635-ba6c-c4704d52d8bb.Date
+
+relationship bf4fa03d-1e9b-4cf5-b8c4-f41336603dbf
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public customer'.created_date
+	toColumn: LocalDateTable_73183d78-d5e0-4714-a88a-2ab6409e5491.Date
+
+relationship 1d7efdd2-b6dd-4372-a9af-79a9d113d06d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public customer'.modified_date
+	toColumn: LocalDateTable_c633e479-970e-4502-b8ce-6fdd46e1de96.Date
+
+relationship ee6e321b-55fb-4091-8140-d2b0f57e38f2
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public customer_sequence'.created_date
+	toColumn: LocalDateTable_531a0d44-3ee1-496b-9ba8-f52a7967c6b6.Date
+
+relationship 4e270492-31ac-4dd7-b928-373c42cd3b0d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public customer_sequence'.modified_date
+	toColumn: LocalDateTable_304f7a1e-fb1b-4b63-a90f-a2da0d0aaea0.Date
+
+relationship f8ca7c86-bcc1-49cb-b226-5a4bdb7c9614
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'public log_entries'.log_file_id
+	toColumn: 'public log_files'.id
+
+	annotation PBI_IsFromSource = FS
+
+relationship ec804ab4-270c-4861-96bb-cecbd85977b5
+	crossFilteringBehavior: bothDirections
+	fromCardinality: one
+	fromColumn: 'public batch'.customer_id
+	toColumn: 'public customer'.id
+
+	annotation PBI_IsFromSource = FS
+
+relationship 6ef8923d-ed0d-8d46-72bd-6bb8416a9531
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'public log_entries'.'Customer Code'
+	toColumn: 'public customer_sequence'.label_prefix
+
+relationship 096eb5b4-f6b1-30fa-6860-71f20309e8f9
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'public customer_sequence'.customer_id
+	toColumn: 'public customer'.id
+
+	annotation PBI_IsFromSource = FS
+
+relationship 131e1069-2700-44ef-a95e-c297ea185d57
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public vw_api_log_correlations'.child_code_timestamp
+	toColumn: LocalDateTable_422d32d3-cbad-497f-99b3-2d5fcce15ea9.Date
+
+relationship f54c52b7-cc75-424e-9814-f68007001292
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public vw_api_log_correlations'.parent_code_timestamp
+	toColumn: LocalDateTable_6695fce7-9447-406b-9ef9-3ec1e3636a38.Date
+
+relationship 1c22c862-a20f-462e-afc9-3ed0ffdd79bc
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public vw_api_log_correlations'.job_date
+	toColumn: LocalDateTable_4682d229-ce18-4014-a72f-cbbea28ae6b0.Date
+
+relationship 9f47e916-aa91-4ee0-ba45-5e90aec3a914
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public vw_api_log_correlations'.overridden_at
+	toColumn: LocalDateTable_1ac51433-d8ce-4416-9b39-aa2704f5767b.Date
+
+relationship 24ad8908-82d5-4c7b-b176-cdfe6251981d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public vw_api_log_correlations'.created_timestamp
+	toColumn: LocalDateTable_22c706d4-cfa3-49eb-b8db-e2b6c7ae015b.Date
+
+relationship 5abcfe57-bc6c-427b-b61d-bc6716e18431
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public vw_api_log_correlations'.modified_timestamp
+	toColumn: LocalDateTable_702e3778-bf99-47c5-84d2-24f4224f7712.Date
+
+relationship 9e537bd1-459d-4323-b0ce-9dc2e028cb78
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_correlation_runs'.run_started_at
+	toColumn: LocalDateTable_13d53640-763b-4383-bc04-f0da51a364df.Date
+
+relationship 199cea69-2292-43f2-8653-10e53f8f0d16
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'public log_correlation_runs'.run_completed_at
+	toColumn: LocalDateTable_1a0502fd-87d4-40df-8d5f-00dad6b8c036.Date
+
+relationship c09f22d8-b10d-def5-1a8e-214ab8eae0a8
+	fromColumn: 'public vw_api_log_correlations'.child_log_entry_id
+	toColumn: 'public log_entries'.id
+
