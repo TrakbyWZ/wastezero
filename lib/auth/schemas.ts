@@ -15,18 +15,20 @@ const passwordRequirements = {
   hasSpecial: (s: string) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(s),
 };
 
-export const forceResetSchema = z
+const newPasswordFieldSchema = z
+  .string()
+  .min(
+    passwordRequirements.minLength,
+    `Password must be at least ${passwordRequirements.minLength} characters`
+  )
+  .refine(passwordRequirements.hasUpperCase, "Include at least one uppercase letter")
+  .refine(passwordRequirements.hasLowerCase, "Include at least one lowercase letter")
+  .refine(passwordRequirements.hasNumber, "Include at least one number")
+  .refine(passwordRequirements.hasSpecial, "Include at least one special character");
+
+const newPasswordSchema = z
   .object({
-    password: z
-      .string()
-      .min(
-        passwordRequirements.minLength,
-        `Password must be at least ${passwordRequirements.minLength} characters`
-      )
-      .refine(passwordRequirements.hasUpperCase, "Include at least one uppercase letter")
-      .refine(passwordRequirements.hasLowerCase, "Include at least one lowercase letter")
-      .refine(passwordRequirements.hasNumber, "Include at least one number")
-      .refine(passwordRequirements.hasSpecial, "Include at least one special character"),
+    password: newPasswordFieldSchema,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -34,4 +36,8 @@ export const forceResetSchema = z
     path: ["confirmPassword"],
   });
 
+export const forceResetSchema = newPasswordSchema;
 export type ForceResetInput = z.infer<typeof forceResetSchema>;
+
+export const updatePasswordSchema = newPasswordSchema;
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
