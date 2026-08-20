@@ -87,7 +87,7 @@ table 'public vw_api_log_correlations'
 
 	column job_date
 		dataType: dateTime
-		formatString: Long Date
+		formatString: General Date
 		lineageTag: e78a3f9d-adf8-42a1-b474-1fafc8696d9e
 		summarizeBy: none
 		sourceColumn: job_date
@@ -97,9 +97,9 @@ table 'public vw_api_log_correlations'
 			relationship: 1c22c862-a20f-462e-afc9-3ed0ffdd79bc
 			defaultHierarchy: LocalDateTable_4682d229-ce18-4014-a72f-cbbea28ae6b0.'Date Hierarchy'
 
-		annotation SummarizationSetBy = Automatic
+		changedProperty = DataType
 
-		annotation UnderlyingDateTimeDataType = Date
+		annotation SummarizationSetBy = Automatic
 
 	column customer_id
 		dataType: string
