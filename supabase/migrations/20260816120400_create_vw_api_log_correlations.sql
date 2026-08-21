@@ -27,7 +27,9 @@ select
   lc.overridden_by,
   lc.overridden_at,
   lc.created_timestamp,
-  lc.modified_timestamp
+  lc.modified_timestamp,
+  child_entry.sort_order as child_sort_order,
+  parent_entry.sort_order as parent_sort_order
 from public.log_correlations lc
 inner join public.log_entries child_entry on child_entry.id = lc.child_log_entry_id
 inner join public.log_files child_file on child_file.id = child_entry.log_file_id

@@ -149,6 +149,34 @@
                       "Entity": "public vw_api_log_correlations"
                     }
                   },
+                  "Property": "child_sort_order"
+                }
+              },
+              "queryRef": "Sum(public vw_api_log_correlations.child_sort_order)",
+              "nativeQueryRef": "child_sort_order"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
+                  "Property": "parent_sort_order"
+                }
+              },
+              "queryRef": "Sum(public vw_api_log_correlations.parent_sort_order)",
+              "nativeQueryRef": "parent_sort_order"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public vw_api_log_correlations"
+                    }
+                  },
                   "Property": "child_log_entry_id"
                 }
               },
@@ -736,6 +764,34 @@
           }
         },
         "type": "Categorical"
+      },
+      {
+        "name": "f4100f625324e4a9361b",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "parent_sort_order"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "e0fbbf7df6473e15a413",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public vw_api_log_correlations"
+              }
+            },
+            "Property": "child_sort_order"
+          }
+        },
+        "type": "Advanced"
       }
     ]
   }

@@ -248,6 +248,24 @@ table 'public vw_api_log_correlations'
 
 		annotation SummarizationSetBy = Automatic
 
+	column child_sort_order
+		dataType: int64
+		formatString: 0
+		lineageTag: 10dc5564-f973-497d-a11a-e50f82b6b66e
+		summarizeBy: sum
+		sourceColumn: child_sort_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent_sort_order
+		dataType: int64
+		formatString: 0
+		lineageTag: c3da22c7-1a1d-474b-9d19-8f172261c24b
+		summarizeBy: sum
+		sourceColumn: parent_sort_order
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'public vw_api_log_correlations' = m
 		mode: import
 		source =
