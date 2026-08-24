@@ -83,7 +83,7 @@ flowchart TB
 | **Dashboard** | [app.supabase.com](https://app.supabase.com) → your project: **Table Editor**, **SQL**, **Auth** users, **Database** → backups, **Settings** → API URL and keys. |
 | **Apply schema** | Migrations in the repo are the **source of truth**. For hosted DB: [Supabase CLI](https://supabase.com/docs/guides/cli) `supabase link` then `supabase db push` (see `supabase/README.md` in the repo). |
 | **Auth** | Users for OTP login; allowed users may also be seeded in `supabase/seed.sql` for local dev. |
-| **Backups & compliance** | Use Supabase project backup/restore and org policies. |
+| **Backups & compliance** | Supabase project backup/restore (per plan) and org policies, plus a manual, local backup/restore runbook: see [Disaster Recovery](./disaster-recovery.md). |
 | **Service role key** | Treat like a root password: only in server env (e.g. Vercel env as `SUPABASE_SECRET_KEY` or align with your `.env` naming). Never in browser or client bundles. |
 
 ---
