@@ -27,7 +27,7 @@ export const DOC_NAV: readonly DocNavSection[] = [
       { slug: "local-development", label: "Local Development" },
       { slug: "app-structure-and-database", label: "App Structure and Database" },
       { slug: "admin-platforms", label: "Users, GitHub, Supabase, and Vercel" },
-      { slug: "email-smtp-setup", label: "Email / SMTP Setup" },
+      { slug: "email-setup", label: "Email Setup (Microsoft Graph)" },
     ],
   },
   {
