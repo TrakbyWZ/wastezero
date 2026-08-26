@@ -60,22 +60,30 @@ For local Supabase, sample users can live in `supabase/seed.sql`. After changes,
 
 ## Resetting a user's password
 
-There is no self-service "forgot password" in the app — a user who forgets their password contacts an administrator, who sends them a reset email via a script (not the Supabase dashboard — see [Email Setup](./email-setup.md) for why: Supabase Auth's built-in mailer can't use this project's Microsoft Graph email setup, so the app generates the link and sends the email itself).
+Both paths below generate the recovery link via the Supabase admin API and email it through the app's own Graph-based mailer (`lib/email.ts`), not Supabase's dashboard/built-in SMTP — Supabase Auth's mailer can't use this project's Microsoft Graph email setup (see [Email Setup](./email-setup.md)). Both are gated on `lib/auth/password-reset.ts`'s check that the email belongs to an **active row in `public.users`** — the app's allow-list, not just any Supabase Auth user.
 
 ### One-time project setup (required before this works)
 
-The `redirectTo` the script uses (`${APP_URL}/auth/update-password`) must be allow-listed in the Supabase project, in **Authentication → URL Configuration → Redirect URLs**. Do this once per environment.
+The `redirectTo` used when generating the link (`${APP_URL}/auth/update-password`) must be allow-listed in the Supabase project, in **Authentication → URL Configuration → Redirect URLs**. Do this once per environment.
 
-### Sending the reset
+### Self-service (primary path)
 
-1. From a machine with the right env file (`.env.local` or `.env.prod.local`, per [Email Setup](./email-setup.md)):
-   ```bash
-   pnpm reset-password --local <email>    # local Supabase
-   pnpm reset-password --linked <email>   # production/staging
-   ```
-2. This calls `supabase.auth.admin.generateLink()` for a recovery token and emails the link via the app's Graph-based mailer (`lib/email.ts`).
-3. The user receives the email and clicks the link. It lands on `/auth/confirm`, which verifies the token and redirects to `/auth/update-password`, where they set a new password.
-4. On success, the app signs them in (sets the app's `app.session` cookie) and clears `needs_password_reset`, then sends them to `/protected/batch`. If the link is expired or already used, they see an explanation and a link back to `/login` instead of a broken form.
+A user clicks **Forgot password?** on the login page, enters their email, and submits. `app/api/auth/forgot-password/route.ts` always returns the same generic "if that email is registered..." message, whether or not the account exists or is active, so the endpoint can't be used to enumerate registered emails.
+
+### Admin-triggered (fallback — e.g. a user can't reach the login page, or an admin wants to trigger it directly)
+
+From a machine with the right env file (`.env.local` or `.env.prod.local`, per [Email Setup](./email-setup.md)):
+
+```bash
+pnpm reset-password --local <email>    # local Supabase
+pnpm reset-password --linked <email>   # production/staging
+```
+
+Unlike the self-service endpoint, this CLI reports whether the email was actually registered/sent — it's a trusted admin tool, so there's no enumeration concern.
+
+### Either way
+
+The user receives the email and clicks the link. It lands on `/auth/confirm`, which verifies the token and redirects to `/auth/update-password`, where they set a new password. On success, the app signs them in (sets the app's `app.session` cookie) and clears `needs_password_reset`, then sends them to `/protected/batch`. If the link is expired or already used, they see an explanation and a link back to `/login` instead of a broken form.
 
 ---
 
@@ -188,7 +196,7 @@ Documentation is part of the Next app: **Markdown in `content/docs/`** is render
 | Task | Where |
 | ---- | ----- |
 | Add a new login | `public.users` + `pnpm create-users` |
-| Reset a user's forgotten password | Supabase **Authentication → Users → Send password recovery** (see [Resetting a user's password](#resetting-a-users-password)) |
+| Reset a user's forgotten password | User self-service on the login page, or `pnpm reset-password` (see [Resetting a user's password](#resetting-a-users-password)) |
 | Change app code | GitHub PR → merge → Vercel deploys |
 | Change **database schema** | `supabase/migrations/` in Git → `db push` or **deploy-db** Action |
 | Run a report or inspect rows | Supabase **SQL Editor** (read carefully in prod) |

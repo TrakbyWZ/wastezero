@@ -2,11 +2,11 @@
 
 This app sends email through the client's Office 365 tenant using **Microsoft Graph's `sendMail` API** with an **Entra ID app registration** (OAuth2 client-credentials) — not SMTP. This was chosen over SMTP AUTH + app password because the client's tenant enforces modern auth; Graph is also Microsoft's recommended approach going forward regardless.
 
-**Important:** Supabase Auth's own built-in mailer (used for its dashboard-triggered "Send password recovery" action) only supports basic-auth SMTP — it has no OAuth2 support, so it **cannot** use this app registration. Password resets are therefore sent by the app itself (see [§3](#3-password-reset-emails-bypass-supabase)), not through Supabase.
+**Important:** Supabase Auth's own built-in mailer (its dashboard-triggered "Send password recovery" action) only supports basic-auth SMTP — it has no OAuth2 support, so it **cannot** use this app registration. Password resets are therefore sent by the app itself (see [§3](#3-password-reset-emails-bypass-supabase)), not through Supabase.
 
 | Mailer | Sends | Configured in |
 | ------ | ----- | ------------- |
-| **App mailer** (`lib/email.ts`) | All app-sent email: `/api/email/send`, and password-reset emails from `scripts/send-password-reset.ts` | `MS_*` env vars in `.env.local` / Vercel project env vars |
+| **App mailer** (`lib/email.ts`) | All app-sent email: `/api/email/send`, and password-reset emails from `lib/auth/password-reset.ts` (used by both the self-service "Forgot password?" flow and `scripts/send-password-reset.ts`) | `MS_*` env vars in `.env.local` / Vercel project env vars |
 | ~~Supabase Auth SMTP~~ | Not used | N/A — bypassed; see below |
 
 Without `MS_*` configured, `lib/email.ts` logs to console instead of sending (dev fallback).
@@ -59,15 +59,11 @@ Set in `.env.local` (local) or Vercel **Settings → Environment Variables** (ho
 
 ## 3. Password-reset emails bypass Supabase
 
-Supabase Auth's SMTP settings can't use this app registration, so resets are triggered from the app side instead of Supabase's dashboard. See [Resetting a user's password](./admin-platforms.md#resetting-a-users-password) for the operator flow — in short:
+Supabase Auth's SMTP settings can't use this app registration, so resets are triggered from the app side instead of Supabase's dashboard, via `lib/auth/password-reset.ts` — used by both the self-service **Forgot password?** form on the login page (`app/api/auth/forgot-password/route.ts`) and the admin CLI (`pnpm reset-password --linked <email>`). See [Resetting a user's password](./admin-platforms.md#resetting-a-users-password) for the full operator flow.
 
-```bash
-pnpm reset-password --linked <email>
-```
+Either path calls `supabase.auth.admin.generateLink({ type: "recovery", email })` to get a token (only for emails matching an **active `public.users` row** — this app's allow-list, not just any Supabase Auth user), builds the same `/auth/confirm?token_hash=...&type=recovery` URL the app already handles (`app/auth/confirm/route.ts` → `app/auth/update-password/`), and emails an HTML-rendered link (`lib/email-templates.ts`) via the Graph mailer above.
 
-This calls `supabase.auth.admin.generateLink({ type: "recovery", email })` to get a token, builds the same `/auth/confirm?token_hash=...&type=recovery` URL the app already handles (`app/auth/confirm/route.ts` → `app/auth/update-password/`), and emails it via the Graph mailer above.
-
-**One-time setup:** the `redirectTo` the script passes (`${APP_URL}/auth/update-password`) must be in Supabase's **Authentication → URL Configuration → Redirect URLs** allow-list, per environment.
+**One-time setup:** the `redirectTo` used (`${APP_URL}/auth/update-password`) must be in Supabase's **Authentication → URL Configuration → Redirect URLs** allow-list, per environment.
 
 ---
 

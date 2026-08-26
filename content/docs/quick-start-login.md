@@ -25,6 +25,7 @@ You should see the sign-in page.
 If credentials are valid, the app opens to the main operations area.
 
 - If credentials fail, check for typing errors.
+- Forgot your password? Click **Forgot password?** below the password field, enter your email, and follow the link sent to you.
 - If your account is inactive, contact your administrator.
 
 ![Login screen — enter your email and password, then click Sign in](/docs-images/help-login.png)

@@ -4,6 +4,8 @@
  * Generates the recovery link via the Supabase admin API and emails it
  * through lib/email.ts (Microsoft Graph) directly — bypasses Supabase
  * Auth's own SMTP mailer, which doesn't support Graph's OAuth2 flow.
+ * Only sends if the email belongs to an active public.users row (same
+ * check the self-service /api/auth/forgot-password route uses).
  *
  * Usage:
  *   pnpm reset-password --local <email>   # reads .env.local
@@ -12,8 +14,7 @@
 
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { createAdminClient } from "../lib/supabase/admin";
-import { sendEmail } from "../lib/email";
+import { sendPasswordResetEmail } from "../lib/auth/password-reset";
 
 const argv = process.argv.slice(2);
 const useLocal = argv.includes("--local");
@@ -55,25 +56,16 @@ if (!appUrl) {
 }
 
 async function main() {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.auth.admin.generateLink({
-    type: "recovery",
-    email: email!,
-    options: { redirectTo: `${appUrl}/auth/update-password` },
-  });
+  const result = await sendPasswordResetEmail(email!, appUrl!);
 
-  if (error || !data?.properties?.hashed_token) {
-    console.error("Error generating reset link:", error?.message ?? "no token returned");
+  if (!result.sent) {
+    if (result.reason === "not_registered") {
+      console.error(`Error: ${email} is not an active user in public.users. No email sent.`);
+    } else {
+      console.error("Error generating reset link (see Supabase admin API response for details).");
+    }
     process.exit(1);
   }
-
-  const resetUrl = `${appUrl}/auth/confirm?token_hash=${data.properties.hashed_token}&type=recovery&next=/auth/update-password`;
-
-  await sendEmail(
-    email!,
-    "Reset your Trak password",
-    `A password reset was requested for your Trak account.\n\nReset your password: ${resetUrl}\n\nIf you didn't request this, you can ignore this email.`
-  );
 
   console.log(`Password reset email sent to ${email}.`);
 }

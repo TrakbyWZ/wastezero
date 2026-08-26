@@ -38,11 +38,13 @@ async function getAccessToken(): Promise<string> {
 }
 
 /**
- * Sends a plain-text email via Microsoft Graph (app-only, client-credentials),
- * as the mailbox in MS_SENDER_EMAIL. Used by the /api/email/send route and by
- * scripts/send-password-reset.ts. If MS_* is not configured, logs to console (dev only).
+ * Sends an email via Microsoft Graph (app-only, client-credentials), as the
+ * mailbox in MS_SENDER_EMAIL. Pass `html` for a rendered email (e.g. password
+ * reset); `text` is always required as the plain-text body/dev-console fallback.
+ * Used by the /api/email/send route and lib/auth/password-reset.ts. If MS_* is
+ * not configured, logs to console (dev only).
  */
-export async function sendEmail(to: string, subject: string, text: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, text: string, html?: string): Promise<void> {
   if (!hasGraphConfig()) {
     console.log("\n--- Email (not sent; configure MS_* to send via Microsoft Graph) ---");
     console.log("  To:", to);
@@ -63,7 +65,9 @@ export async function sendEmail(to: string, subject: string, text: string): Prom
       body: JSON.stringify({
         message: {
           subject,
-          body: { contentType: "Text", content: text },
+          body: html
+            ? { contentType: "HTML", content: html }
+            : { contentType: "Text", content: text },
           toRecipients: [{ emailAddress: { address: to } }],
         },
       }),
