@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasEnvVars } from "../utils";
 import { createAdminClient } from "./admin";
 
-const PUBLIC_PATHS = ["/", "/login", "/force-reset", "/auth", "/api"];
+const PUBLIC_PATHS = ["/", "/login", "/forgot-password", "/force-reset", "/auth", "/api"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(

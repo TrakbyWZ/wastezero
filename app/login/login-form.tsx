@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { loginSchema } from "@/lib/auth/schemas";
@@ -19,47 +20,26 @@ import { cn } from "@/lib/utils";
 const forgotPasswordEmailSchema = loginSchema.shape.email;
 
 export function LoginForm({ className }: { className?: string }) {
+  const router = useRouter();
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotForm, setShowForgotForm] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotError, setForgotError] = useState<string | null>(null);
-  const [forgotSubmitting, setForgotSubmitting] = useState(false);
-  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
 
-  function resetForgotPasswordState() {
-    setShowForgotForm(false);
-    setForgotEmail("");
-    setForgotError(null);
-    setForgotMessage(null);
-  }
+  function handleForgotPasswordClick() {
+    const rawEmail = emailInputRef.current?.value ?? "";
+    const parsed = forgotPasswordEmailSchema.safeParse(rawEmail.trim().toLowerCase());
 
-  async function handleForgotPasswordSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setForgotError(null);
-
-    const parsed = forgotPasswordEmailSchema.safeParse(forgotEmail);
-    if (!parsed.success) {
-      setForgotError(parsed.error.issues[0]?.message ?? "Please enter a valid email address");
-      return;
-    }
-
-    setForgotSubmitting(true);
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
+    if (parsed.success) {
+      const email = parsed.data;
+      fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: parsed.data.trim().toLowerCase() }),
-      });
-      const data = await res.json().catch(() => ({})) as { message?: string };
-      setForgotMessage(
-        data?.message ?? "If that email is registered, you'll receive a password reset link shortly."
-      );
-    } catch {
-      setForgotMessage("If that email is registered, you'll receive a password reset link shortly.");
-    } finally {
-      setForgotSubmitting(false);
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
+      router.push(`/forgot-password?email=${encodeURIComponent(email)}`);
+    } else {
+      router.push("/forgot-password");
     }
   }
 
@@ -154,6 +134,7 @@ export function LoginForm({ className }: { className?: string }) {
                   autoComplete="email"
                   required
                   className="pl-9"
+                  ref={emailInputRef}
                 />
               </div>
             </div>
@@ -162,7 +143,7 @@ export function LoginForm({ className }: { className?: string }) {
                 <Label htmlFor="login-password">Password</Label>
                 <button
                   type="button"
-                  onClick={() => setShowForgotForm(true)}
+                  onClick={handleForgotPasswordClick}
                   className="text-sm text-muted-foreground underline-offset-4 hover:underline"
                 >
                   Forgot password?
@@ -205,51 +186,6 @@ export function LoginForm({ className }: { className?: string }) {
           </form>
         </CardContent>
       </Card>
-
-      {showForgotForm && (
-        <div role="dialog" aria-live="polite" className="rounded-lg border bg-muted/50 p-4">
-          {forgotMessage ? (
-            <p className="text-sm text-muted-foreground">{forgotMessage}</p>
-          ) : (
-            <form onSubmit={handleForgotPasswordSubmit} className="flex flex-col gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="forgot-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="forgot-email"
-                    type="email"
-                    placeholder="jdoe@wastezero.com"
-                    autoComplete="email"
-                    required
-                    className="pl-9"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-              {forgotError && (
-                <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <span>{forgotError}</span>
-                </div>
-              )}
-              <Button type="submit" size="sm" disabled={forgotSubmitting}>
-                {forgotSubmitting ? "Sending…" : "Send reset link"}
-              </Button>
-            </form>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="mt-2"
-            onClick={resetForgotPasswordState}
-          >
-            Dismiss
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
