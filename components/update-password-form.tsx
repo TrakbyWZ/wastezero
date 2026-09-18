@@ -1,7 +1,10 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { useActionState, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { updatePasswordAction } from "@/app/auth/update-password/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,64 +15,125 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+const RULES = [
+  "At least 10 characters",
+  "Uppercase and lowercase letters",
+  "At least one number",
+  "At least one special character (!@#$%^&* etc.)",
+];
 
 export function UpdatePasswordForm({
   className,
-  ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [state, formAction, isPending] = useActionState(
+    updatePasswordAction,
+    undefined,
+  );
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const supabase = createClient();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/protected/batch");
+      router.refresh();
     }
-  };
+  }, [state?.success, router]);
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn("flex flex-col gap-6", className)}>
+      <div className="flex justify-center">
+        <Image
+          src="/assets/waste-zero-logo.png"
+          alt="WasteZero"
+          width={160}
+          height={44}
+          className="h-11 w-auto object-contain"
+          priority
+        />
+      </div>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
+          <CardTitle className="text-2xl">Reset your password</CardTitle>
           <CardDescription>
-            Please enter your new password below.
+            Choose a strong password that meets the requirements below.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleForgotPassword}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="password">New password</Label>
+          <form action={formAction} className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="update-password-password">New password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="password"
-                  type="password"
+                  id="update-password-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="New password"
+                  autoComplete="new-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-9 pr-9"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save new password"}
-              </Button>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="update-password-confirm">Confirm password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="update-password-confirm"
+                  name="confirmPassword"
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  autoComplete="new-password"
+                  required
+                  className="pl-9 pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((p) => !p)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                >
+                  {showConfirm ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+              {RULES.map((rule) => (
+                <li key={rule} className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 shrink-0 text-muted-foreground" />
+                  {rule}
+                </li>
+              ))}
+            </ul>
+            {state?.error && (
+              <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>{state.error}</span>
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? "Saving…" : "Save new password"}
+            </Button>
           </form>
         </CardContent>
       </Card>

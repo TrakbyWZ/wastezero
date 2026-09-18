@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { loginSchema } from "@/lib/auth/schemas";
@@ -16,14 +17,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-const FORGOT_PASSWORD_MESSAGE =
-  "Please contact your administrator for a password reset.";
+const forgotPasswordEmailSchema = loginSchema.shape.email;
 
 export function LoginForm({ className }: { className?: string }) {
+  const router = useRouter();
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotMessage, setShowForgotMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+
+  function handleForgotPasswordClick() {
+    const rawEmail = emailInputRef.current?.value ?? "";
+    const parsed = forgotPasswordEmailSchema.safeParse(rawEmail.trim().toLowerCase());
+
+    if (parsed.success) {
+      const email = parsed.data;
+      fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
+      router.push(`/forgot-password?email=${encodeURIComponent(email)}`);
+    } else {
+      router.push("/forgot-password");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -116,6 +134,7 @@ export function LoginForm({ className }: { className?: string }) {
                   autoComplete="email"
                   required
                   className="pl-9"
+                  ref={emailInputRef}
                 />
               </div>
             </div>
@@ -124,7 +143,7 @@ export function LoginForm({ className }: { className?: string }) {
                 <Label htmlFor="login-password">Password</Label>
                 <button
                   type="button"
-                  onClick={() => setShowForgotMessage(true)}
+                  onClick={handleForgotPasswordClick}
                   className="text-sm text-muted-foreground underline-offset-4 hover:underline"
                 >
                   Forgot password?
@@ -167,25 +186,6 @@ export function LoginForm({ className }: { className?: string }) {
           </form>
         </CardContent>
       </Card>
-
-      {showForgotMessage && (
-        <div
-          role="dialog"
-          aria-live="polite"
-          className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground"
-        >
-          <p>{FORGOT_PASSWORD_MESSAGE}</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="mt-2"
-            onClick={() => setShowForgotMessage(false)}
-          >
-            Dismiss
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
