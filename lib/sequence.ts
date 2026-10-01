@@ -153,10 +153,14 @@ const UTF8 = new TextEncoder();
 /** Flush CSV text when buffer is at least this many characters (keeps many rows per enqueue, ASCII-safe). */
 const CSV_STREAM_BUFFER_CHARS = 256 * 1024;
 
+/** Header row for batch label CSV downloads (first line of the file). */
+export const BATCH_LABEL_CSV_HEADER = "Label Number";
+
 /**
  * Stream batch label lines as UTF-8 without materializing a number[] (avoids
  * "Invalid array length" / OOM for large `label_count`).
- * Newlines between rows only, same as `formatSequenceToCsv` + `join("\n")`.
+ * First row is `BATCH_LABEL_CSV_HEADER`; newlines between rows only, otherwise
+ * same as `formatSequenceToCsv` + `join("\n")`.
  */
 export function createBatchLabelCsvReadableStream(
   startSeq: number,
@@ -172,8 +176,8 @@ export function createBatchLabelCsvReadableStream(
   const format = numberFormat ?? "";
   return new ReadableStream<Uint8Array>({
     start(controller) {
-      let buf = "";
-      let isFirstInFile = true;
+      let buf = BATCH_LABEL_CSV_HEADER;
+      let isFirstInFile = false;
       const flush = () => {
         if (buf) {
           controller.enqueue(UTF8.encode(buf));
