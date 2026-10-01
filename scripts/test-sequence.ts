@@ -135,8 +135,8 @@ void (async () => {
   const fromArray = formatSequenceToCsv(generateSequence(s, e, o), "P", "0000");
   assertEqual(
     fromStream,
-    fromArray,
-    "createBatchLabelCsvReadableStream matches formatSequenceToCsv",
+    `Label Number\n${fromArray}`,
+    "createBatchLabelCsvReadableStream matches formatSequenceToCsv with header prepended",
   );
   console.log("\nAll SequenceLib tests passed.");
 })().catch((e) => {
