@@ -104,6 +104,16 @@ assertEqual(
   "%YYYYMMDD% composite",
 );
 assertEqual(
+  interpolateLabelPrefixDateTokens("%YYYYMM%-X", apr2_2026),
+  "202604-X",
+  "%YYYYMM% composite",
+);
+assertEqual(
+  interpolateLabelPrefixDateTokens("%YYMM%-X", apr2_2026),
+  "2604-X",
+  "%YYMM% composite",
+);
+assertEqual(
   interpolateLabelPrefixDateTokens("%YYYY%-%MM%-%DD%", apr2_2026),
   "2026-04-02",
   "%YYYY%, %MM%, %DD% separated",

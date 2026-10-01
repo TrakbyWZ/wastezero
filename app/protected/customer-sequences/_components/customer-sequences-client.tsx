@@ -777,7 +777,7 @@ export default function CustomerSequencesClient() {
                       <p className="border-t border-border pt-2">
                         Date expressions:{" "}
                         <span className="font-mono text-popover-foreground">
-                          %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYY% %MM% %DD% %YY%
+                          %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYYMM% %YYMM% %YYYY% %MM% %DD% %YY%
                         </span>
                       </p>
                     </InfoFieldHelp>
