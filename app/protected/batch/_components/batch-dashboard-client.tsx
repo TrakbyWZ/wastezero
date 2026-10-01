@@ -27,6 +27,7 @@ import {
 } from "@/lib/sequence";
 import type { BatchRow, CustomerRow } from "@/lib/types";
 import { useDiscardConfirm } from "@/lib/hooks/use-discard-confirm";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type CustomerSequenceOption = {
@@ -245,6 +246,7 @@ export default function BatchDashboardClient() {
 
   const { requestClose, discardPromptOpen, confirmDiscard, cancelDiscard } =
     useDiscardConfirm(modalOpen, form);
+  useBodyScrollLock(modalOpen);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -627,8 +629,8 @@ export default function BatchDashboardClient() {
           aria-modal="true"
           aria-labelledby="new-batch-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="new-batch-title">New batch</CardTitle>
                 <CardDescription>
@@ -648,7 +650,7 @@ export default function BatchDashboardClient() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="overflow-y-auto">
+            <CardContent className="min-h-0 overflow-y-auto">
               <form onSubmit={handleCreateBatch} className="space-y-4">
                 <div className="space-y-2" ref={customerDropdownRef}>
                   <Label htmlFor="batch-customer">Customer *</Label>

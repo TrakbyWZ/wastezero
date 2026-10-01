@@ -34,6 +34,7 @@ import {
 import { Info, X } from "lucide-react";
 import type { CustomerSequenceRow, CustomerRow } from "@/lib/types";
 import { useDiscardConfirm } from "@/lib/hooks/use-discard-confirm";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 function formatDate(iso: string | null): string {
@@ -250,6 +251,7 @@ export default function CustomerSequencesClient() {
 
   const { requestClose, discardPromptOpen, confirmDiscard, cancelDiscard } =
     useDiscardConfirm(modalOpen, form);
+  useBodyScrollLock(modalOpen || deleteConfirmId != null);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -616,8 +618,8 @@ export default function CustomerSequencesClient() {
           aria-modal="true"
           aria-labelledby="delete-confirm-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle id="delete-confirm-title">Delete Customer Sequence?</CardTitle>
                 <CardDescription>
@@ -635,7 +637,7 @@ export default function CustomerSequencesClient() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4 overflow-y-auto">
+            <CardContent className="min-h-0 space-y-4 overflow-y-auto">
               {deleteError && (
                 <p className="text-sm text-destructive">{deleteError}</p>
               )}
@@ -672,8 +674,8 @@ export default function CustomerSequencesClient() {
           aria-modal="true"
           aria-labelledby="sequence-modal-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="sequence-modal-title">
                   {editingId ? "Edit sequence" : "New sequence"}
@@ -695,7 +697,7 @@ export default function CustomerSequencesClient() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="overflow-y-auto">
+            <CardContent className="min-h-0 overflow-y-auto">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2" ref={customerDropdownRef}>
                   <Label htmlFor="sequence-customer">Customer *</Label>

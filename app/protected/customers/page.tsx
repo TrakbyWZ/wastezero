@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
 import type { CustomerRow } from "@/lib/types";
 import { useDiscardConfirm } from "@/lib/hooks/use-discard-confirm";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function CustomersPage() {
@@ -113,6 +114,7 @@ export default function CustomersPage() {
   const editDiscardConfirm = useDiscardConfirm(editingCustomer != null, form);
   const { requestClose: requestAddClose } = addDiscardConfirm;
   const { requestClose: requestEditClose } = editDiscardConfirm;
+  useBodyScrollLock(modalOpen || editingCustomer != null);
 
   useEffect(() => {
     if (!modalOpen && !editingCustomer) return;
@@ -366,8 +368,8 @@ export default function CustomersPage() {
           aria-modal="true"
           aria-labelledby="add-customer-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="add-customer-title">Add new customer</CardTitle>
                 <CardDescription>
@@ -385,7 +387,7 @@ export default function CustomersPage() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="overflow-y-auto">
+            <CardContent className="min-h-0 overflow-y-auto">
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer_num">Customer number *</Label>
@@ -471,8 +473,8 @@ export default function CustomersPage() {
           aria-modal="true"
           aria-labelledby="edit-customer-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="edit-customer-title">Edit customer</CardTitle>
                 <CardDescription>
@@ -490,7 +492,7 @@ export default function CustomersPage() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="overflow-y-auto">
+            <CardContent className="min-h-0 overflow-y-auto">
               <form onSubmit={handleEditCustomer} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_customer_num">Customer number *</Label>
