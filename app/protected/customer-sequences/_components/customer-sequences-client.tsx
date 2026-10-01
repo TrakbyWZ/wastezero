@@ -31,8 +31,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
+import { Info, X } from "lucide-react";
 import type { CustomerSequenceRow, CustomerRow } from "@/lib/types";
+import { useDiscardConfirm } from "@/lib/hooks/use-discard-confirm";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -171,7 +174,14 @@ export default function CustomerSequencesClient() {
       const res = await fetch("/api/customers?active_only=true");
       if (!res.ok) throw new Error("Failed to load customers");
       const data = await res.json();
-      setCustomersForDropdown(data.customers ?? []);
+      const rows: CustomerRow[] = data.customers ?? [];
+      rows.sort((a, b) =>
+        a.customer_num.localeCompare(b.customer_num, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      );
+      setCustomersForDropdown(rows);
     } catch {
       setCustomersForDropdown([]);
     } finally {
@@ -239,14 +249,18 @@ export default function CustomerSequencesClient() {
     setCustomerDropdownOpen(false);
   }, []);
 
+  const { requestClose, discardPromptOpen, confirmDiscard, cancelDiscard } =
+    useDiscardConfirm(modalOpen, form);
+  useBodyScrollLock(modalOpen || deleteConfirmId != null);
+
   useEffect(() => {
     if (!modalOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeModal();
+      if (e.key === "Escape") requestClose(closeModal);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [modalOpen, closeModal]);
+  }, [modalOpen, closeModal, requestClose]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -598,19 +612,31 @@ export default function CustomerSequencesClient() {
           seq?.customer?.customer_description ?? seq?.customer?.customer_num ?? "—";
         return (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={(e) => e.target === e.currentTarget && closeDeleteConfirm()}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
           onKeyDown={(e) => e.key === "Escape" && closeDeleteConfirm()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-confirm-title"
         >
-          <Card className="w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <CardHeader>
-              <CardTitle id="delete-confirm-title">Delete Customer Sequence?</CardTitle>
-              <CardDescription>
-                Are you sure you want to delete Sequence ID {deleteConfirmId} for Customer {customerLabel}?
-              </CardDescription>
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle id="delete-confirm-title">Delete Customer Sequence?</CardTitle>
+                <CardDescription>
+                  Are you sure you want to delete Sequence ID {deleteConfirmId} for Customer {customerLabel}?
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={closeDeleteConfirm}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               {deleteError && (
@@ -636,6 +662,7 @@ export default function CustomerSequencesClient() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
         );
       })()}
@@ -643,14 +670,14 @@ export default function CustomerSequencesClient() {
       {/* New / Edit modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={(e) => e.target === e.currentTarget && closeModal()}
-          onKeyDown={(e) => e.key === "Escape" && closeModal()}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
+          onKeyDown={(e) => e.key === "Escape" && requestClose(closeModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="sequence-modal-title"
         >
-          <Card className="w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="sequence-modal-title">
@@ -662,6 +689,16 @@ export default function CustomerSequencesClient() {
                     : "Add a sequence pattern for a customer. Used when creating batches."}
                 </CardDescription>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={() => requestClose(closeModal)}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -745,7 +782,7 @@ export default function CustomerSequencesClient() {
                       <p className="border-t border-border pt-2">
                         Date expressions:{" "}
                         <span className="font-mono text-popover-foreground">
-                          %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYY% %MM% %DD% %YY%
+                          %MMYYDD% %YYYYMMDD% %MMYY% %DDMM% %YYYYMM% %YYMM% %YYYY% %MM% %DD% %YY%
                         </span>
                       </p>
                     </InfoFieldHelp>
@@ -895,7 +932,7 @@ export default function CustomerSequencesClient() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={closeModal}
+                    onClick={() => requestClose(closeModal)}
                     disabled={formSubmitting}
                   >
                     Cancel
@@ -913,7 +950,22 @@ export default function CustomerSequencesClient() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
+      )}
+      {discardPromptOpen && (
+        <ConfirmDialog
+          titleId="discard-sequence-title"
+          title="Discard unsaved changes?"
+          description={
+            editingId
+              ? "You have unsaved changes to this sequence. Closing now will discard them."
+              : "You have unsaved changes in the new sequence form. Closing now will discard them."
+          }
+          confirmLabel="Discard"
+          onConfirm={confirmDiscard}
+          onCancel={cancelDiscard}
+        />
       )}
       {blockedActionMessage && (
         <div

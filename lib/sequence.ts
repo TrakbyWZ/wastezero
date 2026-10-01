@@ -69,8 +69,8 @@ function utcCalendarParts(at: Date): { YYYY: string; MM: string; DD: string; YY:
 /**
  * Expands `%...%` date tokens in a label prefix using the UTC calendar date of `at`.
  * Only calendar **month**, **year**, and **day** fields are supported (no time-of-day tokens).
- * Tokens (longest matched first): `%MMYYDD%`, `%YYYYMMDD%`, `%MMYY%`, `%DDMM%`, `%YYYY%`, `%MM%`, `%DD%`, `%YY%`.
- * Examples (2026-04-02 UTC): `%MMYYDD%-R002C` → `042602-R002C`; `%MMYY%-R002C` → `0426-R002C`; `%DDMM%` → `0204`.
+ * Tokens (longest matched first): `%MMYYDD%`, `%YYYYMMDD%`, `%MMYY%`, `%DDMM%`, `%YYYYMM%`, `%YYMM%`, `%YYYY%`, `%MM%`, `%DD%`, `%YY%`.
+ * Examples (2026-04-02 UTC): `%MMYYDD%-R002C` → `042602-R002C`; `%MMYY%-R002C` → `0426-R002C`; `%DDMM%` → `0204`; `%YYYYMM%` → `202604`; `%YYMM%` → `2604`.
  */
 export function interpolateLabelPrefixDateTokens(
   labelPrefix: string | null | undefined,
@@ -86,6 +86,8 @@ export function interpolateLabelPrefixDateTokens(
     ["%YYYYMMDD%", YYYY + MM + DD],
     ["%MMYY%", MM + YY],
     ["%DDMM%", DD + MM],
+    ["%YYYYMM%", YYYY + MM],
+    ["%YYMM%", YY + MM],
     ["%YYYY%", YYYY],
     ["%MM%", MM],
     ["%DD%", DD],
