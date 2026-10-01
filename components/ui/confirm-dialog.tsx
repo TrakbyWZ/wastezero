@@ -33,27 +33,29 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-[60] overflow-y-auto bg-black/50"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader>
-          <CardTitle id={titleId}>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-row gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              {cancelLabel}
-            </Button>
-            <Button type="button" variant={confirmVariant} onClick={onConfirm}>
-              {confirmLabel}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex min-h-full items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader>
+            <CardTitle id={titleId}>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-row gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                {cancelLabel}
+              </Button>
+              <Button type="button" variant={confirmVariant} onClick={onConfirm}>
+                {confirmLabel}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

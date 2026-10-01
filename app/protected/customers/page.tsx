@@ -362,14 +362,15 @@ export default function CustomersPage() {
       {/* Add New Customer modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
           onKeyDown={(e) => e.key === "Escape" && addDiscardConfirm.requestClose(closeModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-customer-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
-            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="add-customer-title">Add new customer</CardTitle>
                 <CardDescription>
@@ -387,7 +388,7 @@ export default function CustomersPage() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="min-h-0 overflow-y-auto">
+            <CardContent>
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer_num">Customer number *</Label>
@@ -461,20 +462,22 @@ export default function CustomersPage() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
 
       {/* Edit Customer modal */}
       {editingCustomer && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
           onKeyDown={(e) => e.key === "Escape" && editDiscardConfirm.requestClose(closeEditModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-customer-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
-            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="edit-customer-title">Edit customer</CardTitle>
                 <CardDescription>
@@ -492,7 +495,7 @@ export default function CustomersPage() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="min-h-0 overflow-y-auto">
+            <CardContent>
               <form onSubmit={handleEditCustomer} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit_customer_num">Customer number *</Label>
@@ -566,6 +569,7 @@ export default function CustomersPage() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
 

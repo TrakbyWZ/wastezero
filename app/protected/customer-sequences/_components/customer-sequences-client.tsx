@@ -612,14 +612,15 @@ export default function CustomerSequencesClient() {
           seq?.customer?.customer_description ?? seq?.customer?.customer_num ?? "—";
         return (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
           onKeyDown={(e) => e.key === "Escape" && closeDeleteConfirm()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-confirm-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
-            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0">
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle id="delete-confirm-title">Delete Customer Sequence?</CardTitle>
                 <CardDescription>
@@ -637,7 +638,7 @@ export default function CustomerSequencesClient() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="min-h-0 space-y-4 overflow-y-auto">
+            <CardContent className="space-y-4">
               {deleteError && (
                 <p className="text-sm text-destructive">{deleteError}</p>
               )}
@@ -661,6 +662,7 @@ export default function CustomerSequencesClient() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
         );
       })()}
@@ -668,14 +670,15 @@ export default function CustomerSequencesClient() {
       {/* New / Edit modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
           onKeyDown={(e) => e.key === "Escape" && requestClose(closeModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="sequence-modal-title"
         >
-          <Card className="flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden shadow-lg">
-            <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 pb-2">
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="sequence-modal-title">
                   {editingId ? "Edit sequence" : "New sequence"}
@@ -697,7 +700,7 @@ export default function CustomerSequencesClient() {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="min-h-0 overflow-y-auto">
+            <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2" ref={customerDropdownRef}>
                   <Label htmlFor="sequence-customer">Customer *</Label>
@@ -947,6 +950,7 @@ export default function CustomerSequencesClient() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
       {discardPromptOpen && (
