@@ -155,12 +155,16 @@ const CSV_STREAM_BUFFER_CHARS = 256 * 1024;
 
 /** Header row for batch label CSV downloads (first line of the file). */
 export const BATCH_LABEL_CSV_HEADER = "Label Number";
+/** Line terminator for batch label CSV downloads (CRLF, matching the legacy downstream format). */
+const CSV_LINE_ENDING = "\r\n";
 
 /**
- * Stream batch label lines as UTF-8 without materializing a number[] (avoids
- * "Invalid array length" / OOM for large `label_count`).
- * First row is `BATCH_LABEL_CSV_HEADER`; newlines between rows only, otherwise
- * same as `formatSequenceToCsv` + `join("\n")`.
+ * Stream batch label lines as UTF-8 (no BOM) without materializing a number[]
+ * (avoids "Invalid array length" / OOM for large `label_count`).
+ * Every row, including `BATCH_LABEL_CSV_HEADER`, is terminated with a CRLF —
+ * matching the downstream system's expected file format (header line, one
+ * CRLF-terminated row per label, trailing CRLF after the final row, no extra
+ * blank line).
  */
 export function createBatchLabelCsvReadableStream(
   startSeq: number,
@@ -176,8 +180,7 @@ export function createBatchLabelCsvReadableStream(
   const format = numberFormat ?? "";
   return new ReadableStream<Uint8Array>({
     start(controller) {
-      let buf = BATCH_LABEL_CSV_HEADER;
-      let isFirstInFile = false;
+      let buf = BATCH_LABEL_CSV_HEADER + CSV_LINE_ENDING;
       const flush = () => {
         if (buf) {
           controller.enqueue(UTF8.encode(buf));
@@ -185,9 +188,7 @@ export function createBatchLabelCsvReadableStream(
         }
       };
       const appendRow = (row: string) => {
-        if (!isFirstInFile) buf += "\n";
-        isFirstInFile = false;
-        buf += row;
+        buf += row + CSV_LINE_ENDING;
         if (buf.length >= CSV_STREAM_BUFFER_CHARS) {
           flush();
         }

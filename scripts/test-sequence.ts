@@ -133,10 +133,11 @@ void (async () => {
     createBatchLabelCsvReadableStream(s, e, o, "P", "0000"),
   ).text();
   const fromArray = formatSequenceToCsv(generateSequence(s, e, o), "P", "0000");
+  const expected = `Label Number\r\n${fromArray.split("\n").join("\r\n")}\r\n`;
   assertEqual(
     fromStream,
-    `Label Number\n${fromArray}`,
-    "createBatchLabelCsvReadableStream matches formatSequenceToCsv with header prepended",
+    expected,
+    "createBatchLabelCsvReadableStream matches formatSequenceToCsv with CRLF header/trailer",
   );
   console.log("\nAll SequenceLib tests passed.");
 })().catch((e) => {
