@@ -53,7 +53,7 @@ Both resolutions are independent: a row can have a resolved parent with no custo
 
 ### What runs, and how often
 
-A `pg_cron` job named `run-log-correlation` calls `select run_log_correlation_sweep();` every 10 minutes (`*/10 * * * *`). The sweep finds every camera1 file that (a) has a resolvable parent file and (b) still has at least one row with no `log_correlations` entry, and calls `run_log_correlation()` once per file, with every parameter at its default. That default call **only ever inserts rows for camera1 entries that have no `log_correlations` row yet**; it can never revise a row that's already been written, no matter what changes in the underlying data. A per-file failure doesn't stop the sweep from processing the rest. See [Manual Runs and Troubleshooting](./log-correlation-operations.md) for the one mechanism that can revise an existing row, and for how to inspect/pause/change the schedule.
+A `pg_cron` job named `run-log-correlation` calls `select run_log_correlation_sweep();` every 10 minutes (`*/10 * * * *`). The sweep has two passes, both in one function call: first it finds every camera1 file that (a) has a resolvable parent file and (b) still has at least one row with no `log_correlations` entry, and calls `run_log_correlation()` once per file, with every parameter at its default. That default call **only ever inserts rows for camera1 entries that have no `log_correlations` row yet**; it can never revise a row that's already been written, no matter what changes in the underlying data. Second, it finds every child file with at least one untouched `Bad_Read`/blank placeholder row left and calls `fill_log_correlation_gaps()` once per file (see [Filling gaps](#filling-gaps) below) — so a file that's freshly correlated in the first pass can have its gaps filled in the very same tick. A per-file failure in either pass doesn't stop the sweep from processing the rest. See [Manual Runs and Troubleshooting](./log-correlation-operations.md) for the one mechanism that can revise an existing row, and for how to inspect/pause/change the schedule.
 
 ### How the scheduling mechanism works
 
@@ -79,6 +79,28 @@ A few things worth knowing about how this behaves:
 
 **Note:** `run_log_correlation()` never raises for expected failures (not-ready, ambiguous parent) or even genuinely unexpected errors — it always returns a run id and records the outcome on `log_correlation_runs`. Re-raising would abort the whole transaction and roll back the very audit row meant to record the failure, so callers check the returned run's `status`/`error_message` instead of relying on an RPC-level error.
 
+## Filling gaps
+
+`run_log_correlation()` records every camera1 row as-is, including `Bad_Read`/blank reads it can't resolve a parent for. Some of those are genuine data-quality gaps where the surrounding sequence tells us, with confidence, which number is actually missing — e.g. `..., 177, Bad_Read, 179, ...` almost certainly means `178`. `fill_log_correlation_gaps(p_child_log_file_id, p_triggered_by, p_allow_refill, p_max_gap_span)` fills exactly those, and only those.
+
+Two distinct shapes, both found by the same walk over a child file's already-correlated rows in physical (`log_entries.sort_order`) order:
+
+- **Gap type A — a placeholder row physically exists.** A `Bad_Read`/blank row sits between two good reads (`177, Bad_Read, 179`). Its `usr_child_code` is set to the inferred value; the row itself (`child_log_entry_id`, `child_code`, etc.) is untouched.
+- **Gap type B — no row exists at all.** The camera1 sequence itself skips a number (`177, 179` with nothing physically between them). A synthetic row is inserted with `is_inferred = true`, `child_log_entry_id`/`child_code`/`child_code_timestamp` all `null` (the only rows allowed to have those null — see `log_correlations_inferred_or_real_check`), and `usr_child_code` set to the inferred value.
+
+A gap is only filled when it's unambiguous: the count of placeholder rows physically occupying the span must exactly equal the numeric span (missing-count). Anything else is left alone and counted in the run's `rows_unresolved`:
+
+- **Leading/trailing gaps** — a placeholder with no bound on one side — are never filled (nothing to infer from).
+- **A prefix change** between the two bounding codes is never bridged (e.g. `R005C...` to `ZZZZZ...` — different `customer_sequence` label prefixes, not a sequence gap).
+- **Partially-placeholdered gaps** — some but not all of the missing numbers have a physical placeholder row — are skipped entirely rather than guessed at (e.g. 2 numbers missing but only 1 placeholder row present).
+- **Gaps wider than `p_max_gap_span`** (default 1000) are skipped regardless of whether the placeholder count would otherwise match — a safety cap so one anomalous pair of bounds can't synthesize an unbounded number of inferred rows in one run.
+
+Within an otherwise-fillable gap type A span, a row a human has already excluded (`usr_exclude_row = true`) or already touched (`overridden_by` set, unless `p_allow_refill` is `true`) still occupies its slot in the numbering, but is left untouched rather than overwritten — its slot does not get a type-B insert either, since it's not actually empty.
+
+For every code it fills or inserts, `fill_log_correlation_gaps()` also writes `usr_parent_code` via the same ceiling-match `run_log_correlation()` uses, against whichever camera2 file the correlation pass already resolved for that child file (found from an already-resolved row's real parent linkage, not from `log_correlation_runs`). If nothing in the file has resolved a parent yet, `usr_parent_code` is left `null` rather than guessed. It does not attempt customer resolution — `customer_id`/`customer_sequence_id` are only ever written by `run_log_correlation()` itself.
+
+Like `run_log_correlation()`, it never raises for expected or unexpected failures — it always returns a run id and records the outcome on `log_correlation_runs` (tagged `operation = 'gap_fill'`, distinguishing it from `operation = 'correlate'` rows). `rows_inserted` counts type B rows, `rows_updated` counts type A corrections, `rows_unresolved` counts gaps skipped as ambiguous or too wide.
+
 ## API
 
-`GET /api/log-correlations` (session-authenticated, same pattern as `GET /api/log-files`) reads from `vw_api_log_correlations`, which joins `log_correlations` out to operator/filename (`log_entries`/`log_files`) and `customer_num`/`customer_description` (`customer`) for display. Supports `job_name`, `job_number`, `customer_id`, `from`, `to`, `page`, `page_size` query params.
+`GET /api/log-correlations` (session-authenticated, same pattern as `GET /api/log-files`) reads from `vw_api_log_correlations`, which joins `log_correlations` out to operator/filename (`log_entries`/`log_files`) and `customer_num`/`customer_description` (`customer`) for display. Supports `job_name`, `job_number`, `customer_id`, `from`, `to`, `page`, `page_size` query params. The view's `child_entry`/`child_file` joins are `left` (not `inner`) so `is_inferred` rows — which have no backing `log_entries` row — still show up. `effective_child_code`/`effective_parent_code` expose `coalesce(usr_*, *)` so callers get "the code we actually believe" (algorithm output, or a correction/fill) without repeating that logic themselves; the route sorts on `effective_child_code`.

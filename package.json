@@ -10,6 +10,7 @@
     "test:log-parser": "tsx scripts/test-log-parser.ts",
     "test:log-ingest-pressure": "tsx scripts/pressure-test-log-ingest.ts",
     "test:log-correlation": "tsx scripts/test-log-correlation.ts",
+    "test:log-correlation-gaps": "tsx scripts/test-log-correlation-gaps.ts",
     "create-users": "tsx scripts/create-user.ts",
     "reset-password": "tsx scripts/send-password-reset.ts",
     "db:backup": "tsx scripts/backup-db.ts",

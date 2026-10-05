@@ -101,7 +101,43 @@ select run_log_correlation(
 select * from run_log_correlation_sweep('manual:you@example.com');
 ```
 
-This is the same function the `pg_cron` schedule calls — it finds every camera1 file with a resolvable parent and pending unprocessed rows, and calls `run_log_correlation()` once per file (insert-only, same as the schedule). Running it manually just runs it immediately instead of waiting for the next 10-minute tick, and attributes the resulting `log_correlation_runs` rows to you instead of `'cron'`. It returns one run id per file it touched.
+This is the same function the `pg_cron` schedule calls — it finds every camera1 file with a resolvable parent and pending unprocessed rows and correlates it, then finds every file with at least one untouched `Bad_Read`/blank placeholder row and gap-fills it (insert-only/non-refilling, same as the schedule). Running it manually just runs it immediately instead of waiting for the next 10-minute tick, and attributes the resulting `log_correlation_runs` rows to you instead of `'cron'`. It returns one run id per file touched by either pass.
+
+### Manually filling gaps for one file
+
+`fill_log_correlation_gaps()` takes four parameters — only the first is required:
+
+```sql
+fill_log_correlation_gaps(
+  p_child_log_file_id uuid,
+  p_triggered_by text default 'cron',
+  p_allow_refill boolean default false,
+  p_max_gap_span integer default 1000
+)
+```
+
+- **`p_allow_refill`** is the `fill_log_correlation_gaps()` equivalent of `run_log_correlation()`'s `p_allow_reprocess`: default `false` (what the scheduled sweep uses) never touches a row that already has `usr_child_code` set or `overridden_by` non-null (human correction or a prior gap-fill). Pass `true` to let it revisit those too.
+- **`p_max_gap_span`** caps how wide a single gap can be before it's skipped rather than filled — the safety net against one anomalous pair of bounds synthesizing an unbounded number of inferred rows. Raise it only for a specific, understood case.
+
+```sql
+select fill_log_correlation_gaps(
+  p_child_log_file_id := (select id from log_files where filename = 'evergreen0416__c.csv'),
+  p_triggered_by := 'manual:you@example.com'
+);
+```
+
+### Finding files with gaps still pending
+
+```sql
+select distinct child_log_file_id
+from log_correlations
+where is_inferred = false
+  and usr_child_code is null
+  and overridden_by is null
+  and (child_code is null or child_code = 'Bad_Read' or btrim(child_code) = '');
+```
+
+This is the same predicate `log_correlations_pending_gap_fill_idx` backs and `run_log_correlation_sweep()`'s second pass uses to decide which files to gap-fill. A file keeps appearing here forever if it has a gap `fill_log_correlation_gaps()` can't resolve (ambiguous, or wider than `p_max_gap_span`) — see [Overview](./log-correlation-overview.md#filling-gaps) for exactly which shapes get skipped.
 
 ### Reprocess a batch of files (use sparingly)
 
@@ -134,4 +170,5 @@ select cron.schedule('run-log-correlation', '*/10 * * * *', $$select public.run_
 - **A row exists but `customer_id` is null:** the `customer_sequence.label_prefix`/`number_format` for that customer doesn't match the code's format via `customer_sequence_cam1_data_value_regex`. Fixing the `customer_sequence` row does not retroactively fix existing `log_correlations` rows — you must reprocess that file with `p_allow_reprocess := true`.
 - **Rerunning doesn't seem to change anything:** that's expected for the default (`p_allow_reprocess = false`) path — it's insert-only by design. You need `p_allow_reprocess := true` to revise existing rows.
 - **A correlation run is much slower than expected:** the ceiling-match and job-identity queries depend on two partial indexes on `log_entries` (`log_entries_camera2_numeric_value_idx`, `log_entries_camera2_job_key_idx`). If a migration ever changes the parsing/matching expressions without updating these indexes to match exactly, Postgres silently falls back to an unindexed scan — `explain` the query and check for a Seq Scan / Bitmap Heap Scan without an Index Cond where you'd expect one. See [Overview](./log-correlation-overview.md#the-matching-algorithm) for the exact expressions that must match.
+- **A file keeps showing up as having pending gaps, tick after tick, and never clears:** its remaining `Bad_Read`/blank row(s) are stuck in a shape `fill_log_correlation_gaps()` deliberately won't guess at — ambiguous (some but not all missing numbers have a placeholder), wider than `p_max_gap_span`, leading/trailing (no bound on one side), or across a prefix change. Check `log_correlation_runs` (`operation = 'gap_fill'`) for that file's `rows_unresolved` count, then inspect the rows directly (see "Finding unresolved rows" above) to see which shape applies. This is expected, not a bug — see [Filling gaps](./log-correlation-overview.md#filling-gaps) for the exact rules.
 - **`pg_cron` job not running:** check `select * from cron.job where jobname = 'run-log-correlation';` and `select * from cron.job_run_details order by start_time desc limit 10;` for scheduler-level failures (separate from `log_correlation_runs`, which only records runs that actually started executing `run_log_correlation()`).

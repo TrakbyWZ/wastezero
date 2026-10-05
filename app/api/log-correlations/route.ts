@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     .select("*")
     .order("job_date", { ascending: false })
     .order("job_name", { ascending: true })
-    .order("child_code", { ascending: true })
+    .order("effective_child_code", { ascending: true })
     .range(fromIndex, toIndex);
 
   if (jobName) {
