@@ -12,13 +12,15 @@ const navLinks = [
   { href: "/protected/customers", label: "Customers" },
   { href: "/protected/customer-sequences", label: "Customer Sequences" },
   { href: "/protected/logs", label: "Data Logs" },
+  { href: "/protected/quality-control", label: "Quality Control" },
 ] as const;
 
-/** Desktop top nav: batches | customer setup | data logs — then Reports. */
+/** Desktop top nav: batches | customer setup | data logs | quality control — then Reports. */
 const mainNavSections: ReadonlyArray<ReadonlyArray<(typeof navLinks)[number]>> = [
   [navLinks[0]],
   [navLinks[1], navLinks[2]],
   [navLinks[3]],
+  [navLinks[4]],
 ];
 
 const reportLinks = [

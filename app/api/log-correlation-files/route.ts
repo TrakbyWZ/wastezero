@@ -6,6 +6,11 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+/**
+ * Backs the Quality Control list screen: one row per child log file with
+ * job/customer identity, row-status counts, and latest run status, read
+ * from vw_api_log_correlation_files.
+ */
 export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -17,10 +22,9 @@ export async function GET(request: Request) {
   const jobName = searchParams.get("job_name")?.trim() ?? "";
   const jobNumber = searchParams.get("job_number")?.trim() ?? "";
   const customerId = searchParams.get("customer_id")?.trim() ?? "";
-  const childLogFileId = searchParams.get("child_log_file_id")?.trim() ?? "";
   const fromDate = searchParams.get("from")?.trim() ?? "";
   const toDate = searchParams.get("to")?.trim() ?? "";
-  const status = searchParams.get("status")?.trim() ?? "";
+  const needsAttention = searchParams.get("needs_attention") === "true";
   const pageParam = Number(searchParams.get("page") ?? "1");
   const pageSizeParam = Number(searchParams.get("page_size") ?? String(DEFAULT_PAGE_SIZE));
   const page = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1;
@@ -33,11 +37,10 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
 
   let query = admin
-    .from("vw_api_log_correlations")
+    .from("vw_api_log_correlation_files")
     .select("*")
     .order("job_date", { ascending: false })
-    .order("job_name", { ascending: true })
-    .order("effective_child_code", { ascending: true })
+    .order("child_filename", { ascending: true })
     .range(fromIndex, toIndex);
 
   if (jobName) {
@@ -49,29 +52,14 @@ export async function GET(request: Request) {
   if (customerId) {
     query = query.eq("customer_id", customerId);
   }
-  if (childLogFileId) {
-    query = query.eq("child_log_file_id", childLogFileId);
-  }
   if (fromDate) {
     query = query.gte("job_date", fromDate);
   }
   if (toDate) {
     query = query.lte("job_date", toDate);
   }
-  // "unresolved" mirrors vw_api_log_correlation_files.unresolved_count's
-  // predicate (and log_correlations_pending_gap_fill_idx's) exactly: a real
-  // row the gap-fill sweep still considers worth attempting or has given
-  // up on.
-  if (status === "unresolved") {
-    query = query
-      .eq("is_inferred", false)
-      .is("usr_child_code", null)
-      .is("overridden_by", null)
-      .or("child_code.is.null,child_code.eq.Bad_Read");
-  } else if (status === "excluded") {
-    query = query.eq("usr_exclude_row", true);
-  } else if (status === "inferred") {
-    query = query.eq("is_inferred", true);
+  if (needsAttention) {
+    query = query.or("unresolved_count.gt.0,excluded_count.gt.0");
   }
 
   const { data: rows, error } = await query;

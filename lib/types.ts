@@ -77,3 +77,78 @@ export type LogFileRow = {
   sequence_reads: number;
   uploaded_by: string | null;
 };
+
+/** Row from vw_api_log_correlation_files (Quality Control list screen) */
+export type LogCorrelationFileRow = {
+  child_log_file_id: string;
+  child_filename: string;
+  job_name: string | null;
+  job_number: string | null;
+  job_date: string;
+  customer_id: string | null;
+  customer_num: string | null;
+  customer_description: string | null;
+  total_count: number;
+  unresolved_count: number;
+  excluded_count: number;
+  inferred_count: number;
+  last_row_created_at: string;
+  last_correlate_run_at: string | null;
+  last_correlate_run_status: string | null;
+  last_gap_fill_run_at: string | null;
+  last_gap_fill_run_status: string | null;
+};
+
+/** Row from vw_api_log_correlations (Quality Control detail screen row table) */
+export type LogCorrelationRow = {
+  id: string;
+  child_log_entry_id: string | null;
+  parent_log_entry_id: string | null;
+  child_code: string | null;
+  parent_code: string | null;
+  child_code_timestamp: string | null;
+  parent_code_timestamp: string | null;
+  job_name: string | null;
+  job_number: string | null;
+  job_date: string;
+  customer_id: string | null;
+  customer_sequence_id: string | null;
+  child_operator: string | null;
+  child_filename: string | null;
+  parent_operator: string | null;
+  parent_filename: string | null;
+  customer_num: string | null;
+  customer_description: string | null;
+  usr_child_code: string | null;
+  usr_parent_code: string | null;
+  usr_exclude_row: boolean;
+  notes: string | null;
+  overridden_by: string | null;
+  overridden_at: string | null;
+  created_timestamp: string;
+  modified_timestamp: string;
+  child_sort_order: number | null;
+  parent_sort_order: number | null;
+  is_inferred: boolean;
+  effective_child_code: string | null;
+  effective_parent_code: string | null;
+  child_log_file_id: string;
+};
+
+/** Row from log_correlation_runs (Quality Control detail screen run history) */
+export type LogCorrelationRunRow = {
+  id: string;
+  run_started_at: string;
+  run_completed_at: string | null;
+  triggered_by: string;
+  allow_reprocess: boolean;
+  operation: "correlate" | "gap_fill";
+  child_log_file_id_param: string;
+  parent_log_file_id_param: string | null;
+  resolved_parent_log_file_id: string | null;
+  rows_inserted: number;
+  rows_updated: number;
+  rows_unresolved: number;
+  status: "running" | "succeeded" | "failed";
+  error_message: string | null;
+};
