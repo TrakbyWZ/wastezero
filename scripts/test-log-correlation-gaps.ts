@@ -473,6 +473,93 @@ async function main() {
     "once a file has no pending placeholder rows left, the sweep stops calling fill_log_correlation_gaps() for it",
   );
 
+  // ==========================================================================
+  // Job F: proves the sweep's stuck-file throttle - a file whose only gap
+  // can never be resolved automatically (a leading placeholder, no left
+  // bound) should get exactly one gap_fill run from repeated sweep ticks,
+  // not one per tick forever, but a change to the file (simulating a future
+  // manual correction) should make it eligible again.
+  // ==========================================================================
+  const cam1FileF = await seedLogFile(`${TEST_FILE_PREFIX}cam1f.txt`);
+  const cam2FileF = await seedLogFile(`${TEST_FILE_PREFIX}cam2f.txt`);
+  await seedLogEntries(
+    cam1FileF.id,
+    "Camera 1 Log File",
+    "GapTestF",
+    "GAP-F",
+    ["Bad_Read", "R005C0000800", "R005C0000801"],
+    0,
+  );
+  await seedLogEntries(
+    cam2FileF.id,
+    "Camera 2 Log File",
+    "GapTestF",
+    "GAP-F",
+    ["R005C0000800", "R005C0000801"],
+    100,
+  );
+
+  async function countGapFillRuns(childLogFileId: string): Promise<number> {
+    const { data, error } = await admin
+      .from("log_correlation_runs")
+      .select("id")
+      .eq("child_log_file_id_param", childLogFileId)
+      .eq("operation", "gap_fill");
+    if (error) throw new Error(`Failed to count gap_fill runs for ${childLogFileId}: ${error.message}`);
+    return (data ?? []).length;
+  }
+
+  // Tick 1: correlates the file (first loop) and attempts gap-fill (second
+  // loop) - the leading Bad_Read has no left bound, so this attempt is a
+  // complete no-op (0 inserted, 0 updated), but it's still the first-ever
+  // attempt so it must run.
+  const { error: sweepErrF1 } = await admin.rpc("run_log_correlation_sweep", {});
+  if (sweepErrF1) throw new Error(`run_log_correlation_sweep() (job F, tick 1) failed: ${sweepErrF1.message}`);
+  assert((await countGapFillRuns(cam1FileF.id)).valueOf() === 1, "tick 1 makes exactly one gap_fill attempt for job F's file");
+
+  const { data: firstRunRowF, error: firstRunRowFErr } = await admin
+    .from("log_correlation_runs")
+    .select("rows_inserted, rows_updated")
+    .eq("child_log_file_id_param", cam1FileF.id)
+    .eq("operation", "gap_fill")
+    .single();
+  if (firstRunRowFErr) throw new Error(`Failed to fetch job F's first gap_fill run: ${firstRunRowFErr.message}`);
+  assert(
+    firstRunRowF?.rows_inserted === 0 && firstRunRowF?.rows_updated === 0,
+    "job F's first gap_fill attempt makes zero progress, as expected for a leading (unbound) placeholder",
+  );
+
+  // Ticks 2 and 3: nothing has changed since tick 1's no-op run - the
+  // throttle must stop the sweep from calling fill_log_correlation_gaps()
+  // for this file again.
+  const { error: sweepErrF2 } = await admin.rpc("run_log_correlation_sweep", {});
+  if (sweepErrF2) throw new Error(`run_log_correlation_sweep() (job F, tick 2) failed: ${sweepErrF2.message}`);
+  const { error: sweepErrF3 } = await admin.rpc("run_log_correlation_sweep", {});
+  if (sweepErrF3) throw new Error(`run_log_correlation_sweep() (job F, tick 3) failed: ${sweepErrF3.message}`);
+  assert(
+    (await countGapFillRuns(cam1FileF.id)) === 1,
+    "ticks 2 and 3 add no further gap_fill runs for job F - the file is permanently stuck and nothing has changed",
+  );
+
+  // Simulate a future manual touch (e.g. a QC correction once a review UI
+  // exists) by bumping modified_timestamp on the file's placeholder row.
+  // The next tick should treat the file as eligible again.
+  const rowsFBeforeTouch = await fetchCorrelationsForFile(cam1FileF.id);
+  const leadingRowF = rowsFBeforeTouch.find((r) => (r as Record<string, unknown>).child_code === "Bad_Read");
+  if (!leadingRowF) throw new Error("expected a leading Bad_Read row for job F");
+  const { error: touchErr } = await admin
+    .from("log_correlations")
+    .update({ notes: "reviewed by QC (simulated)", modified_timestamp: new Date().toISOString() })
+    .eq("id", (leadingRowF as Record<string, unknown>).id);
+  if (touchErr) throw new Error(`Failed to simulate a manual touch for job F: ${touchErr.message}`);
+
+  const { error: sweepErrF4 } = await admin.rpc("run_log_correlation_sweep", {});
+  if (sweepErrF4) throw new Error(`run_log_correlation_sweep() (job F, tick 4) failed: ${sweepErrF4.message}`);
+  assert(
+    (await countGapFillRuns(cam1FileF.id)) === 2,
+    "a change to the file's rows since the last gap_fill run makes it eligible for the sweep again",
+  );
+
   if (failures > 0) {
     console.error(`\n${failures} test(s) failed.`);
     process.exit(1);
