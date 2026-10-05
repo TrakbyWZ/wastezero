@@ -69,8 +69,8 @@ function utcCalendarParts(at: Date): { YYYY: string; MM: string; DD: string; YY:
 /**
  * Expands `%...%` date tokens in a label prefix using the UTC calendar date of `at`.
  * Only calendar **month**, **year**, and **day** fields are supported (no time-of-day tokens).
- * Tokens (longest matched first): `%MMYYDD%`, `%YYYYMMDD%`, `%MMYY%`, `%DDMM%`, `%YYYY%`, `%MM%`, `%DD%`, `%YY%`.
- * Examples (2026-04-02 UTC): `%MMYYDD%-R002C` → `042602-R002C`; `%MMYY%-R002C` → `0426-R002C`; `%DDMM%` → `0204`.
+ * Tokens (longest matched first): `%MMYYDD%`, `%YYYYMMDD%`, `%MMYY%`, `%DDMM%`, `%YYYYMM%`, `%YYMM%`, `%YYYY%`, `%MM%`, `%DD%`, `%YY%`.
+ * Examples (2026-04-02 UTC): `%MMYYDD%-R002C` → `042602-R002C`; `%MMYY%-R002C` → `0426-R002C`; `%DDMM%` → `0204`; `%YYYYMM%` → `202604`; `%YYMM%` → `2604`.
  */
 export function interpolateLabelPrefixDateTokens(
   labelPrefix: string | null | undefined,
@@ -86,6 +86,8 @@ export function interpolateLabelPrefixDateTokens(
     ["%YYYYMMDD%", YYYY + MM + DD],
     ["%MMYY%", MM + YY],
     ["%DDMM%", DD + MM],
+    ["%YYYYMM%", YYYY + MM],
+    ["%YYMM%", YY + MM],
     ["%YYYY%", YYYY],
     ["%MM%", MM],
     ["%DD%", DD],
@@ -153,10 +155,18 @@ const UTF8 = new TextEncoder();
 /** Flush CSV text when buffer is at least this many characters (keeps many rows per enqueue, ASCII-safe). */
 const CSV_STREAM_BUFFER_CHARS = 256 * 1024;
 
+/** Header row for batch label CSV downloads (first line of the file). */
+export const BATCH_LABEL_CSV_HEADER = "Label Number";
+/** Line terminator for batch label CSV downloads (CRLF, matching the legacy downstream format). */
+const CSV_LINE_ENDING = "\r\n";
+
 /**
- * Stream batch label lines as UTF-8 without materializing a number[] (avoids
- * "Invalid array length" / OOM for large `label_count`).
- * Newlines between rows only, same as `formatSequenceToCsv` + `join("\n")`.
+ * Stream batch label lines as UTF-8 (no BOM) without materializing a number[]
+ * (avoids "Invalid array length" / OOM for large `label_count`).
+ * Every row, including `BATCH_LABEL_CSV_HEADER`, is terminated with a CRLF —
+ * matching the downstream system's expected file format (header line, one
+ * CRLF-terminated row per label, trailing CRLF after the final row, no extra
+ * blank line).
  */
 export function createBatchLabelCsvReadableStream(
   startSeq: number,
@@ -172,8 +182,7 @@ export function createBatchLabelCsvReadableStream(
   const format = numberFormat ?? "";
   return new ReadableStream<Uint8Array>({
     start(controller) {
-      let buf = "";
-      let isFirstInFile = true;
+      let buf = BATCH_LABEL_CSV_HEADER + CSV_LINE_ENDING;
       const flush = () => {
         if (buf) {
           controller.enqueue(UTF8.encode(buf));
@@ -181,9 +190,7 @@ export function createBatchLabelCsvReadableStream(
         }
       };
       const appendRow = (row: string) => {
-        if (!isFirstInFile) buf += "\n";
-        isFirstInFile = false;
-        buf += row;
+        buf += row + CSV_LINE_ENDING;
         if (buf.length >= CSV_STREAM_BUFFER_CHARS) {
           flush();
         }

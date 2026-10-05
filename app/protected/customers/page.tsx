@@ -14,7 +14,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { X } from "lucide-react";
 import type { CustomerRow } from "@/lib/types";
+import { useDiscardConfirm } from "@/lib/hooks/use-discard-confirm";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function CustomersPage() {
   const [q, setQ] = useState("");
@@ -106,17 +110,30 @@ export default function CustomersPage() {
     setFormError(null);
   }, []);
 
+  const addDiscardConfirm = useDiscardConfirm(modalOpen, form);
+  const editDiscardConfirm = useDiscardConfirm(editingCustomer != null, form);
+  const { requestClose: requestAddClose } = addDiscardConfirm;
+  const { requestClose: requestEditClose } = editDiscardConfirm;
+  useBodyScrollLock(modalOpen || editingCustomer != null);
+
   useEffect(() => {
     if (!modalOpen && !editingCustomer) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (editingCustomer) closeEditModal();
-        else closeModal();
+        if (editingCustomer) requestEditClose(closeEditModal);
+        else requestAddClose(closeModal);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [modalOpen, editingCustomer, closeModal, closeEditModal]);
+  }, [
+    modalOpen,
+    editingCustomer,
+    closeModal,
+    closeEditModal,
+    requestAddClose,
+    requestEditClose,
+  ]);
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,14 +362,14 @@ export default function CustomersPage() {
       {/* Add New Customer modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={(e) => e.target === e.currentTarget && closeModal()}
-          onKeyDown={(e) => e.key === "Escape" && closeModal()}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
+          onKeyDown={(e) => e.key === "Escape" && addDiscardConfirm.requestClose(closeModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-customer-title"
         >
-          <Card className="w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="add-customer-title">Add new customer</CardTitle>
@@ -360,6 +377,16 @@ export default function CustomersPage() {
                   Create a new customer record. Customer number must be unique and contain only letters, digits, and underscores (no spaces or other special characters).
                 </CardDescription>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={() => addDiscardConfirm.requestClose(closeModal)}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddCustomer} className="space-y-4">
@@ -423,7 +450,7 @@ export default function CustomersPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={closeModal}
+                    onClick={() => addDiscardConfirm.requestClose(closeModal)}
                     disabled={formSubmitting}
                   >
                     Cancel
@@ -435,20 +462,21 @@ export default function CustomersPage() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
 
       {/* Edit Customer modal */}
       {editingCustomer && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={(e) => e.target === e.currentTarget && closeEditModal()}
-          onKeyDown={(e) => e.key === "Escape" && closeEditModal()}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
+          onKeyDown={(e) => e.key === "Escape" && editDiscardConfirm.requestClose(closeEditModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="edit-customer-title"
         >
-          <Card className="w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="edit-customer-title">Edit customer</CardTitle>
@@ -456,6 +484,16 @@ export default function CustomersPage() {
                   Update customer information. Customer number must be unique and contain only letters, digits, and underscores (no spaces or other special characters).
                 </CardDescription>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={() => editDiscardConfirm.requestClose(closeEditModal)}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleEditCustomer} className="space-y-4">
@@ -519,7 +557,7 @@ export default function CustomersPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={closeEditModal}
+                    onClick={() => editDiscardConfirm.requestClose(closeEditModal)}
                     disabled={formSubmitting}
                   >
                     Cancel
@@ -531,7 +569,29 @@ export default function CustomersPage() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
+      )}
+
+      {addDiscardConfirm.discardPromptOpen && (
+        <ConfirmDialog
+          titleId="discard-add-customer-title"
+          title="Discard unsaved changes?"
+          description="You have unsaved changes in the new customer form. Closing now will discard them."
+          confirmLabel="Discard"
+          onConfirm={addDiscardConfirm.confirmDiscard}
+          onCancel={addDiscardConfirm.cancelDiscard}
+        />
+      )}
+      {editDiscardConfirm.discardPromptOpen && (
+        <ConfirmDialog
+          titleId="discard-edit-customer-title"
+          title="Discard unsaved changes?"
+          description="You have unsaved changes to this customer. Closing now will discard them."
+          confirmLabel="Discard"
+          onConfirm={editDiscardConfirm.confirmDiscard}
+          onCancel={editDiscardConfirm.cancelDiscard}
+        />
       )}
     </div>
   );

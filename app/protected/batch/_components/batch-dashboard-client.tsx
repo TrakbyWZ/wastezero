@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import {
   DEFAULT_CUSTOMER_SEQUENCE_NUMBER_FORMAT,
   DEFAULT_CUSTOMER_SEQUENCE_START_SEQ,
@@ -26,6 +26,9 @@ import {
   padSequenceNumber,
 } from "@/lib/sequence";
 import type { BatchRow, CustomerRow } from "@/lib/types";
+import { useDiscardConfirm } from "@/lib/hooks/use-discard-confirm";
+import { useBodyScrollLock } from "@/lib/hooks/use-body-scroll-lock";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type CustomerSequenceOption = {
   id: string;
@@ -138,7 +141,14 @@ export default function BatchDashboardClient() {
       const res = await fetch("/api/customers?active_only=true");
       if (!res.ok) throw new Error("Failed to load customers");
       const data = await res.json();
-      setCustomersForDropdown(data.customers ?? []);
+      const rows: CustomerRow[] = data.customers ?? [];
+      rows.sort((a, b) =>
+        a.customer_num.localeCompare(b.customer_num, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      );
+      setCustomersForDropdown(rows);
     } catch {
       setCustomersForDropdown([]);
     } finally {
@@ -234,14 +244,18 @@ export default function BatchDashboardClient() {
     setCustomerDropdownOpen(false);
   }, []);
 
+  const { requestClose, discardPromptOpen, confirmDiscard, cancelDiscard } =
+    useDiscardConfirm(modalOpen, form);
+  useBodyScrollLock(modalOpen);
+
   useEffect(() => {
     if (!modalOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeModal();
+      if (e.key === "Escape") requestClose(closeModal);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [modalOpen, closeModal]);
+  }, [modalOpen, closeModal, requestClose]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -609,14 +623,14 @@ export default function BatchDashboardClient() {
       {/* New Batch modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={(e) => e.target === e.currentTarget && closeModal()}
-          onKeyDown={(e) => e.key === "Escape" && closeModal()}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50"
+          onKeyDown={(e) => e.key === "Escape" && requestClose(closeModal)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="new-batch-title"
         >
-          <Card className="w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-full items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
                 <CardTitle id="new-batch-title">New batch</CardTitle>
@@ -626,6 +640,16 @@ export default function BatchDashboardClient() {
                   will download.
                 </CardDescription>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={() => requestClose(closeModal)}
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateBatch} className="space-y-4">
@@ -832,7 +856,7 @@ export default function BatchDashboardClient() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={closeModal}
+                    onClick={() => requestClose(closeModal)}
                     disabled={formSubmitting}
                   >
                     Cancel
@@ -852,7 +876,19 @@ export default function BatchDashboardClient() {
               </form>
             </CardContent>
           </Card>
+          </div>
         </div>
+      )}
+
+      {discardPromptOpen && (
+        <ConfirmDialog
+          titleId="discard-new-batch-title"
+          title="Discard unsaved changes?"
+          description="You have unsaved changes in the new batch form. Closing now will discard them."
+          confirmLabel="Discard"
+          onConfirm={confirmDiscard}
+          onCancel={cancelDiscard}
+        />
       )}
 
       {copiedFilenameId && (
