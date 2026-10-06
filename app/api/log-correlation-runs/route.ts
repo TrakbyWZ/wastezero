@@ -5,8 +5,10 @@ import { NextResponse } from "next/server";
 /**
  * Backs the Quality Control detail screen's run-history panel: every
  * log_correlation_runs row (both 'correlate' and 'gap_fill' operations) for
- * one child log file, most recent first. Replaces the raw-SQL query
- * documented in content/docs/log-correlation-operations.md with a UI view.
+ * one child log file, most recent first, with every file-id column it
+ * carries resolved to a filename (which camera1/camera2 files were
+ * correlated). Replaces the raw-SQL query documented in
+ * content/docs/log-correlation-operations.md with a UI view.
  */
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -24,7 +26,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
 
   const { data: rows, error } = await admin
-    .from("log_correlation_runs")
+    .from("vw_api_log_correlation_runs")
     .select("*")
     .eq("child_log_file_id_param", childLogFileId)
     .order("run_started_at", { ascending: false });

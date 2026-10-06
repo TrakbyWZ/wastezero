@@ -60,3 +60,8 @@ public/docs
 
 # local superpowers plans/scratch (app docs live in content/docs)
 /docs/
+
+# Claude Code local-only runtime state (settings.json itself is checked in)
+/.claude/settings.local.json
+/.claude/scheduled_tasks.lock
+/.claude/worktrees/

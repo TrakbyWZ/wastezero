@@ -97,6 +97,9 @@ export type LogCorrelationFileRow = {
   last_correlate_run_status: string | null;
   last_gap_fill_run_at: string | null;
   last_gap_fill_run_status: string | null;
+  /** The camera2 file the most recent correlate run resolved - null if it never found/was given one */
+  last_correlate_resolved_parent_file_id: string | null;
+  last_correlate_parent_filename: string | null;
 };
 
 /** Row from vw_api_log_correlations (Quality Control detail screen row table) */
@@ -135,7 +138,7 @@ export type LogCorrelationRow = {
   child_log_file_id: string;
 };
 
-/** Row from log_correlation_runs (Quality Control detail screen run history) */
+/** Row from vw_api_log_correlation_runs (Quality Control detail screen run history) */
 export type LogCorrelationRunRow = {
   id: string;
   run_started_at: string;
@@ -151,4 +154,10 @@ export type LogCorrelationRunRow = {
   rows_unresolved: number;
   status: "running" | "succeeded" | "failed";
   error_message: string | null;
+  /** The camera1 file this run processed */
+  child_filename: string;
+  /** Non-null only when an explicit parent override was passed (a manual call) */
+  parent_log_file_id_param_filename: string | null;
+  /** Whichever camera2 file actually got used (override or auto-resolved); null if none was ever resolved */
+  resolved_parent_filename: string | null;
 };

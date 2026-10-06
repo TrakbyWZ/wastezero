@@ -221,6 +221,7 @@ export default function QualityControlListPage() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="text-left font-medium p-3">Filename</th>
+                <th className="text-left font-medium p-3">Parent File</th>
                 <th className="text-left font-medium p-3">Job</th>
                 <th className="text-left font-medium p-3">Customer</th>
                 <th className="text-left font-medium p-3">Date</th>
@@ -235,13 +236,13 @@ export default function QualityControlListPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={11} className="p-8 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : files.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={11} className="p-8 text-center text-muted-foreground">
                     No files match the current filters.
                   </td>
                 </tr>
@@ -253,6 +254,12 @@ export default function QualityControlListPage() {
                   >
                     <td className="p-3 font-mono text-xs max-w-[180px] truncate" title={row.child_filename}>
                       {row.child_filename}
+                    </td>
+                    <td
+                      className="p-3 font-mono text-xs max-w-[180px] truncate text-muted-foreground"
+                      title={row.last_correlate_parent_filename ?? ""}
+                    >
+                      {row.last_correlate_parent_filename ?? "—"}
                     </td>
                     <td className="p-3 text-muted-foreground">
                       {row.job_name ?? "—"}

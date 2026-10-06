@@ -242,6 +242,7 @@ export default function QualityControlDetailPage() {
               <tr className="border-b bg-muted/50">
                 <th className="text-left font-medium p-2">Started</th>
                 <th className="text-left font-medium p-2">Operation</th>
+                <th className="text-left font-medium p-2">Parent File</th>
                 <th className="text-left font-medium p-2">Triggered By</th>
                 <th className="text-left font-medium p-2">Status</th>
                 <th className="text-left font-medium p-2">Inserted</th>
@@ -253,13 +254,13 @@ export default function QualityControlDetailPage() {
             <tbody>
               {runsLoading ? (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-6 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : runs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-6 text-center text-muted-foreground">
                     No runs yet for this file.
                   </td>
                 </tr>
@@ -268,6 +269,17 @@ export default function QualityControlDetailPage() {
                   <tr key={run.id} className="border-b last:border-b-0 even:bg-muted/25">
                     <td className="p-2 text-muted-foreground">{formatDate(run.run_started_at)}</td>
                     <td className="p-2">{run.operation}</td>
+                    <td
+                      className="p-2 font-mono text-xs max-w-[180px] truncate text-muted-foreground"
+                      title={run.resolved_parent_filename ?? ""}
+                    >
+                      {run.resolved_parent_filename ?? "—"}
+                      {run.parent_log_file_id_param_filename && (
+                        <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                          (override)
+                        </span>
+                      )}
+                    </td>
                     <td className="p-2 text-muted-foreground">{run.triggered_by}</td>
                     <td className="p-2">
                       <span className={run.status === "failed" ? "text-destructive font-medium" : ""}>
@@ -321,8 +333,10 @@ export default function QualityControlDetailPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="text-left font-medium p-2">Seq</th>
                 <th className="text-left font-medium p-2">Child Code</th>
                 <th className="text-left font-medium p-2">Parent Code</th>
+                <th className="text-left font-medium p-2">Read At</th>
                 <th className="text-left font-medium p-2">Inferred</th>
                 <th className="text-left font-medium p-2">Excluded</th>
                 <th className="text-left font-medium p-2">Notes</th>
@@ -333,13 +347,13 @@ export default function QualityControlDetailPage() {
             <tbody>
               {rowsLoading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     No rows match this filter.
                   </td>
                 </tr>
@@ -348,6 +362,9 @@ export default function QualityControlDetailPage() {
                   const isEditing = editingId === row.id;
                   return (
                     <tr key={row.id} className="border-b last:border-b-0 even:bg-muted/25 align-top">
+                      <td className="p-2 text-muted-foreground tabular-nums">
+                        {row.child_sort_order ?? "—"}
+                      </td>
                       {isEditing && editState ? (
                         <>
                           <td className="p-2">
@@ -369,6 +386,9 @@ export default function QualityControlDetailPage() {
                               className="font-mono text-xs h-8"
                               placeholder={row.parent_code ?? ""}
                             />
+                          </td>
+                          <td className="p-2 text-muted-foreground text-xs">
+                            {formatDate(row.child_code_timestamp)}
                           </td>
                           <td className="p-2 text-muted-foreground">{row.is_inferred ? "Yes" : "No"}</td>
                           <td className="p-2">
@@ -415,6 +435,9 @@ export default function QualityControlDetailPage() {
                             {row.usr_parent_code && (
                               <div className="text-muted-foreground line-through">{row.parent_code ?? "—"}</div>
                             )}
+                          </td>
+                          <td className="p-2 text-muted-foreground text-xs">
+                            {formatDate(row.child_code_timestamp)}
                           </td>
                           <td className="p-2 text-muted-foreground">{row.is_inferred ? "Yes" : "No"}</td>
                           <td className="p-2">

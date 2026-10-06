@@ -32,13 +32,28 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
 
-  let query = admin
-    .from("vw_api_log_correlations")
-    .select("*")
-    .order("job_date", { ascending: false })
-    .order("job_name", { ascending: true })
-    .order("effective_child_code", { ascending: true })
-    .range(fromIndex, toIndex);
+  let query = admin.from("vw_api_log_correlations").select("*");
+
+  // Scoped to one file (the Quality Control detail screen): order by the
+  // row's actual physical position in the file (child_sort_order, from
+  // log_entries.sort_order) so QC can tell reading order and which row is
+  // first - sorting by code text (the general-purpose order below) doesn't
+  // reflect that at all. Inferred rows have no sort_order (no backing
+  // log_entries row) and sort last; effective_child_code is a tiebreaker
+  // for same-position cases, which shouldn't occur but costs nothing to
+  // guard.
+  if (childLogFileId) {
+    query = query
+      .order("child_sort_order", { ascending: true, nullsFirst: false })
+      .order("effective_child_code", { ascending: true });
+  } else {
+    query = query
+      .order("job_date", { ascending: false })
+      .order("job_name", { ascending: true })
+      .order("effective_child_code", { ascending: true });
+  }
+
+  query = query.range(fromIndex, toIndex);
 
   if (jobName) {
     query = query.eq("job_name", jobName);
