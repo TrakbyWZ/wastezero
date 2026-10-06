@@ -250,7 +250,10 @@ async function main() {
   assert(fillRunRowA?.rows_inserted === 3, `rows_inserted counts the 3 inferred rows (180, 185, 186) - got ${fillRunRowA?.rows_inserted}`);
   assert(fillRunRowA?.rows_updated === 3, `rows_updated counts the 3 in-place corrections (178, 182, 183) - got ${fillRunRowA?.rows_updated}`);
   assert(fillRunRowA?.rows_unresolved === 2, `rows_unresolved counts exactly the ambiguous gap and the too-wide gap as skipped - got ${fillRunRowA?.rows_unresolved}`);
-  assert(fillRunRowA?.resolved_parent_log_file_id === null, "gap-fill runs do not resolve a parent file themselves");
+  assert(
+    fillRunRowA?.resolved_parent_log_file_id === cam2FileA.id,
+    "gap-fill runs record the parent file they found (via an already-resolved row), same column run_log_correlation() uses",
+  );
   assert(fillRunRowA?.parent_log_file_id_param === null, "gap-fill runs do not take a parent file override");
 
   // --- Idempotency: rerunning with no data changes should not add/change anything ---
@@ -449,11 +452,15 @@ async function main() {
 
   const { data: sweepGapFillRuns, error: sweepGapFillRunsErr } = await admin
     .from("log_correlation_runs")
-    .select("id")
+    .select("id, resolved_parent_log_file_id")
     .eq("child_log_file_id_param", cam1FileE.id)
     .eq("operation", "gap_fill");
   if (sweepGapFillRunsErr) throw new Error(`Failed to fetch gap_fill runs for job E: ${sweepGapFillRunsErr.message}`);
   assert((sweepGapFillRuns ?? []).length === 1, "the sweep recorded exactly one gap_fill audit run for job E");
+  assert(
+    sweepGapFillRuns?.[0]?.resolved_parent_log_file_id === cam2FileE.id,
+    "the sweep-driven gap_fill run also records its resolved parent file",
+  );
 
   // A second tick should find nothing left pending for this file (the
   // partial index's eligibility predicate no longer matches it) and not
