@@ -107,7 +107,7 @@ Migrations add and evolve, among other things:
 - **App users (allow list):** `public.users` (emails allowed to use the app), related OTP/login tables, RLS.  
 - **Core business:** `customer`, `customer_sequence`, `batch`, `batch_downloads`, triggers (e.g. `modified` timestamps).  
 - **Printer / camera logs:** `log_files`, `log_entries`, duplicate handling, materialized or derived fields (e.g. duplicate counts), support tables for performance.  
-- **Reporting:** report tables/views (e.g. customer bags) and `vw_api_*` views that back read APIs.  
+- **Reporting:** `vw_api_*` views that back read APIs, plus `log_correlations`/`log_correlation_runs` (the Quality Control page's camera1↔camera2 correlation and review/edit data) and `vw_api_log_correlation_files`/`vw_api_log_correlation_runs`.  
 - **API abstraction:** some **SQL views** (`vw_api_*`) isolate API consumers from raw table renames.  
 
 Exact names and behavior change over time — always use **current** migrations in Git as the source of truth, not a static list in documentation.

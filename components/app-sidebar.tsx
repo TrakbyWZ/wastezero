@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,17 +15,13 @@ const navLinks = [
   { href: "/protected/quality-control", label: "Quality Control" },
 ] as const;
 
-/** Desktop top nav: batches | customer setup | data logs | quality control — then Reports. */
+/** Desktop top nav: batches | customer setup | data logs | quality control. */
 const mainNavSections: ReadonlyArray<ReadonlyArray<(typeof navLinks)[number]>> = [
   [navLinks[0]],
   [navLinks[1], navLinks[2]],
   [navLinks[3]],
   [navLinks[4]],
 ];
-
-const reportLinks = [
-  { href: "/protected/reports/customer-bags", label: "Customer Bags" },
-] as const;
 
 const navLinkClass =
   "rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors";
@@ -50,85 +46,7 @@ function NavLinksVertical({ onLinkClick }: { onLinkClick?: () => void }) {
       >
         Help &amp; Docs
       </Link>
-      <div className="pt-2 mt-2 border-t border-border">
-        <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Reports
-        </p>
-        {reportLinks.map(({ href, label }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={onLinkClick}
-            className={navLinkClass + " block"}
-          >
-            {label}
-          </Link>
-        ))}
-      </div>
     </nav>
-  );
-}
-
-function ReportsNavItem() {
-  const [open, setOpen] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearCloseTimer = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  const scheduleClose = () => {
-    clearCloseTimer();
-    closeTimerRef.current = setTimeout(() => setOpen(false), 150);
-  };
-
-  useEffect(() => {
-    return () => clearCloseTimer();
-  }, []);
-
-  return (
-    <div
-      className="relative"
-      onMouseEnter={() => {
-        clearCloseTimer();
-        setOpen(true);
-      }}
-      onMouseLeave={scheduleClose}
-    >
-      <button
-        type="button"
-        className={cn(
-          navLinkClass,
-          "flex items-center gap-0.5",
-          open && "bg-accent text-accent-foreground"
-        )}
-        aria-expanded={open}
-        aria-haspopup="true"
-      >
-        Reports
-        <ChevronDown className="size-4" />
-      </button>
-      {open && (
-        <div
-          className="absolute left-0 top-full pt-1 z-50 min-w-[10rem] rounded-md border bg-popover text-popover-foreground shadow-md py-1"
-          onMouseEnter={clearCloseTimer}
-          onMouseLeave={scheduleClose}
-        >
-          {reportLinks.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="block px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm mx-1"
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -156,8 +74,6 @@ function NavLinksHorizontal() {
           </div>
         </div>
       ))}
-      <MainNavSectionDivider />
-      <ReportsNavItem />
       <MainNavSectionDivider />
       <Link href="/protected/docs" className={navLinkClass}>
         Help &amp; Docs
