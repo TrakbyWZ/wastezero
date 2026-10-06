@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants/pagination";
+import { PaginationControls } from "./_components/pagination-controls";
+import { DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/lib/constants/pagination";
 import type { CustomerRow, LogCorrelationFileRow } from "@/lib/types";
 
 function RunStatusBadge({ status }: { status: string | null }) {
@@ -32,6 +33,7 @@ export default function QualityControlListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [hasMore, setHasMore] = useState(false);
 
   const [customersForDropdown, setCustomersForDropdown] = useState<CustomerRow[]>([]);
@@ -67,7 +69,7 @@ export default function QualityControlListPage() {
     try {
       const params = new URLSearchParams({
         page: String(page),
-        page_size: String(DEFAULT_PAGE_SIZE),
+        page_size: String(pageSize),
       });
       if (customerId) params.set("customer_id", customerId);
       if (jobName.trim()) params.set("job_name", jobName.trim());
@@ -91,7 +93,7 @@ export default function QualityControlListPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, customerId, jobName, jobNumber, fromDate, toDate, needsAttention]);
+  }, [page, pageSize, customerId, jobName, jobNumber, fromDate, toDate, needsAttention]);
 
   useEffect(() => {
     void fetchFiles();
@@ -104,6 +106,11 @@ export default function QualityControlListPage() {
     setFromDate("");
     setToDate("");
     setNeedsAttention(false);
+    setPage(1);
+  }, []);
+
+  const handlePageSizeChange = useCallback((size: PageSizeOption) => {
+    setPageSize(size);
     setPage(1);
   }, []);
 
@@ -230,7 +237,7 @@ export default function QualityControlListPage() {
                 <th className="text-left font-medium p-3">Excluded</th>
                 <th className="text-left font-medium p-3">Last Correlate</th>
                 <th className="text-left font-medium p-3">Last Gap-Fill</th>
-                <th className="text-left font-medium p-3">Actions</th>
+                <th className="sticky right-0 z-10 border-l bg-muted text-left font-medium p-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -284,7 +291,11 @@ export default function QualityControlListPage() {
                     <td className="p-3">
                       <RunStatusBadge status={row.last_gap_fill_run_status} />
                     </td>
-                    <td className="p-3">
+                    {/* Opaque bg-card (not the row's own translucent even/hover
+                        tint, e.g. bg-muted/25) so horizontally-scrolled columns
+                        are fully occluded behind this sticky cell rather than
+                        showing through a semi-transparent background. */}
+                    <td className="sticky right-0 border-l bg-card p-3">
                       <Button type="button" variant="outline" size="sm" asChild>
                         <Link href={`/protected/quality-control/${row.child_log_file_id}`}>Review</Link>
                       </Button>
@@ -295,30 +306,16 @@ export default function QualityControlListPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col gap-3 border-t bg-muted/30 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div>{loading ? "Loading…" : `${files.length} file${files.length === 1 ? "" : "s"} on page ${page}`}</div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Page {page}</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={loading || page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={loading || !hasMore}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          hasMore={hasMore}
+          loading={loading}
+          itemCount={files.length}
+          itemLabel="file"
+        />
       </div>
     </div>
   );

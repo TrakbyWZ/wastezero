@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants/pagination";
+import { PaginationControls } from "../_components/pagination-controls";
+import { DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/lib/constants/pagination";
 import type { LogCorrelationRow, LogCorrelationRunRow } from "@/lib/types";
 
 function formatDate(iso: string | null): string {
@@ -53,6 +54,7 @@ export default function QualityControlDetailPage() {
   const [rowsLoading, setRowsLoading] = useState(true);
   const [rowsError, setRowsError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [hasMore, setHasMore] = useState(false);
   const [status, setStatus] = useState<StatusFilter>("all");
 
@@ -76,7 +78,7 @@ export default function QualityControlDetailPage() {
       const params = new URLSearchParams({
         child_log_file_id: childLogFileId,
         page: String(page),
-        page_size: String(DEFAULT_PAGE_SIZE),
+        page_size: String(pageSize),
       });
       if (status !== "all") params.set("status", status);
       const res = await fetch(`/api/log-correlations?${params.toString()}`);
@@ -94,7 +96,7 @@ export default function QualityControlDetailPage() {
     } finally {
       setRowsLoading(false);
     }
-  }, [childLogFileId, page, status]);
+  }, [childLogFileId, page, pageSize, status]);
 
   useEffect(() => {
     void fetchRows();
@@ -139,6 +141,11 @@ export default function QualityControlDetailPage() {
     },
     [childLogFileId, triggering, fetchRuns, fetchRows],
   );
+
+  const handlePageSizeChange = useCallback((size: PageSizeOption) => {
+    setPageSize(size);
+    setPage(1);
+  }, []);
 
   const startEdit = useCallback((row: LogCorrelationRow) => {
     setEditingId(row.id);
@@ -341,7 +348,7 @@ export default function QualityControlDetailPage() {
                 <th className="text-left font-medium p-2">Excluded</th>
                 <th className="text-left font-medium p-2">Notes</th>
                 <th className="text-left font-medium p-2">Last Edited</th>
-                <th className="text-left font-medium p-2">Actions</th>
+                <th className="sticky right-0 z-10 border-l bg-muted text-left font-medium p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -411,7 +418,7 @@ export default function QualityControlDetailPage() {
                           <td className="p-2 text-muted-foreground text-xs">
                             {row.overridden_by ? `${row.overridden_by} · ${formatDate(row.overridden_at)}` : "—"}
                           </td>
-                          <td className="p-2">
+                          <td className="sticky right-0 border-l bg-card p-2">
                             <div className="flex flex-col gap-1">
                               <Button type="button" size="sm" disabled={saving} onClick={saveEdit}>
                                 {saving ? "Saving…" : "Save"}
@@ -449,7 +456,7 @@ export default function QualityControlDetailPage() {
                           <td className="p-2 text-muted-foreground text-xs">
                             {row.overridden_by ? `${row.overridden_by} · ${formatDate(row.overridden_at)}` : "—"}
                           </td>
-                          <td className="p-2">
+                          <td className="sticky right-0 border-l bg-card p-2">
                             <Button type="button" variant="outline" size="sm" onClick={() => startEdit(row)}>
                               Edit
                             </Button>
@@ -463,30 +470,16 @@ export default function QualityControlDetailPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col gap-3 border-t bg-muted/30 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div>{rowsLoading ? "Loading…" : `${rows.length} row${rows.length === 1 ? "" : "s"} on page ${page}`}</div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Page {page}</span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={rowsLoading || page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={rowsLoading || !hasMore}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          hasMore={hasMore}
+          loading={rowsLoading}
+          itemCount={rows.length}
+          itemLabel="row"
+        />
       </div>
     </div>
   );
