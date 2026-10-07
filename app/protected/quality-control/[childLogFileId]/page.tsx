@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PaginationControls } from "../_components/pagination-controls";
 import { DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/lib/constants/pagination";
-import type { LogCorrelationRow, LogCorrelationRunRow } from "@/lib/types";
+import type { LogCorrelationFileRow, LogCorrelationRow, LogCorrelationRunRow } from "@/lib/types";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -62,6 +62,8 @@ export default function QualityControlDetailPage() {
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [status, setStatus] = useState<StatusFilter>("all");
 
+  const [fileSummary, setFileSummary] = useState<LogCorrelationFileRow | null>(null);
+
   const [runs, setRuns] = useState<LogCorrelationRunRow[]>([]);
   const [runsLoading, setRunsLoading] = useState(true);
   const [triggering, setTriggering] = useState<"recorrelate" | "refill-gaps" | null>(null);
@@ -72,7 +74,11 @@ export default function QualityControlDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const fileLabel = useMemo(() => rows[0]?.child_filename ?? childLogFileId ?? "", [rows, childLogFileId]);
+  const latestRun = runs[0] ?? null;
+  const titleLabel = useMemo(
+    () => latestRun?.id ?? fileSummary?.child_filename ?? childLogFileId ?? "",
+    [latestRun, fileSummary, childLogFileId],
+  );
 
   const fetchRows = useCallback(async () => {
     if (!childLogFileId) return;
@@ -109,6 +115,26 @@ export default function QualityControlDetailPage() {
   useEffect(() => {
     void fetchRows();
   }, [fetchRows]);
+
+  // Header identity (filename/parent/customer/job) - fetched independently of
+  // the row-status filter and run history, so it stays populated even when
+  // the current filter matches zero rows or no runs exist yet.
+  const fetchFileSummary = useCallback(async () => {
+    if (!childLogFileId) return;
+    try {
+      const res = await fetch(`/api/log-correlation-files?child_log_file_id=${childLogFileId}`);
+      if (!res.ok) throw new Error("Failed to load file summary");
+      const data = await res.json();
+      const row: LogCorrelationFileRow | undefined = (data.rows ?? [])[0];
+      setFileSummary(row ?? null);
+    } catch {
+      setFileSummary(null);
+    }
+  }, [childLogFileId]);
+
+  useEffect(() => {
+    void fetchFileSummary();
+  }, [fetchFileSummary]);
 
   const fetchRuns = useCallback(async () => {
     if (!childLogFileId) return;
@@ -220,7 +246,29 @@ export default function QualityControlDetailPage() {
         >
           ← Quality Control
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight font-mono truncate">{fileLabel}</h1>
+        <h1 className="text-2xl font-bold tracking-tight font-mono truncate">
+          {latestRun ? <span className="font-sans font-normal text-muted-foreground mr-2">Run</span> : null}
+          {titleLabel}
+        </h1>
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
+          <span>
+            <span className="text-muted-foreground/70">Child File: </span>
+            <span className="font-mono">{fileSummary?.child_filename ?? "—"}</span>
+          </span>
+          <span>
+            <span className="text-muted-foreground/70">Parent File: </span>
+            <span className="font-mono">{fileSummary?.last_correlate_parent_filename ?? "—"}</span>
+          </span>
+          <span>
+            <span className="text-muted-foreground/70">Customer: </span>
+            {fileSummary?.customer_num ?? "—"}
+          </span>
+          <span>
+            <span className="text-muted-foreground/70">Job: </span>
+            {fileSummary?.job_name ?? "—"}
+            {fileSummary?.job_number ? ` / ${fileSummary.job_number}` : ""}
+          </span>
+        </div>
       </div>
 
       {/* Run history */}

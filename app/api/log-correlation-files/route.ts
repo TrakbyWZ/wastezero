@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   const jobName = searchParams.get("job_name")?.trim() ?? "";
   const jobNumber = searchParams.get("job_number")?.trim() ?? "";
   const customerId = searchParams.get("customer_id")?.trim() ?? "";
+  const childLogFileId = searchParams.get("child_log_file_id")?.trim() ?? "";
   const fromDate = searchParams.get("from")?.trim() ?? "";
   const toDate = searchParams.get("to")?.trim() ?? "";
   const needsAttention = searchParams.get("needs_attention") === "true";
@@ -51,6 +52,9 @@ export async function GET(request: Request) {
   }
   if (customerId) {
     query = query.eq("customer_id", customerId);
+  }
+  if (childLogFileId) {
+    query = query.eq("child_log_file_id", childLogFileId);
   }
   if (fromDate) {
     query = query.gte("job_date", fromDate);
