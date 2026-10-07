@@ -3,11 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PaginationControls } from "../_components/pagination-controls";
 import { DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/lib/constants/pagination";
 import type { LogCorrelationFileRow, LogCorrelationRow, LogCorrelationRunRow } from "@/lib/types";
@@ -47,6 +54,49 @@ function editStateFromRow(row: LogCorrelationRow): EditState {
   };
 }
 
+/** Developer-facing: reveals a row's raw public.log_correlations.id for troubleshooting a specific record. */
+function RecordInfoButton({
+  id,
+  open,
+  copied,
+  onOpenChange,
+  onCopy,
+}: {
+  id: string;
+  open: boolean;
+  copied: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCopy: () => void;
+}) {
+  return (
+    <Tooltip open={open} onOpenChange={onOpenChange}>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          aria-label="Show record ID"
+          onClick={() => onOpenChange(!open)}
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="flex flex-col gap-1.5">
+        <span className="text-muted-foreground/70 text-[10px] uppercase tracking-wide">
+          log_correlations.id
+        </span>
+        <div className="flex items-center gap-2">
+          <code className="font-mono text-xs">{id}</code>
+          <Button type="button" variant="outline" size="sm" className="h-6 px-2 text-xs" onClick={onCopy}>
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function QualityControlDetailPage() {
   const params = useParams();
   const childLogFileId =
@@ -73,6 +123,20 @@ export default function QualityControlDetailPage() {
   const [editState, setEditState] = useState<EditState | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [infoOpenId, setInfoOpenId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyRecordId = useCallback(async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 1500);
+    } catch {
+      // Clipboard access can be denied (permissions/non-secure context) - the
+      // tooltip still shows the raw id for manual copy, so this is non-fatal.
+    }
+  }, []);
 
   const latestRun = runs[0] ?? null;
   const titleLabel = useMemo(
@@ -238,6 +302,7 @@ export default function QualityControlDetailPage() {
   }
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="flex flex-col gap-6 w-full max-w-6xl">
       <div className="flex flex-col gap-2">
         <Link
@@ -475,13 +540,22 @@ export default function QualityControlDetailPage() {
                             {row.overridden_by ? `${row.overridden_by} · ${formatDate(row.overridden_at)}` : "—"}
                           </td>
                           <td className="sticky right-0 border-l bg-card p-2">
-                            <div className="flex flex-col gap-1">
-                              <Button type="button" size="sm" disabled={saving} onClick={saveEdit}>
-                                {saving ? "Saving…" : "Save"}
-                              </Button>
-                              <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={cancelEdit}>
-                                Cancel
-                              </Button>
+                            <div className="flex items-start gap-1">
+                              <div className="flex flex-col gap-1">
+                                <Button type="button" size="sm" disabled={saving} onClick={saveEdit}>
+                                  {saving ? "Saving…" : "Save"}
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={cancelEdit}>
+                                  Cancel
+                                </Button>
+                              </div>
+                              <RecordInfoButton
+                                id={row.id}
+                                open={infoOpenId === row.id}
+                                copied={copiedId === row.id}
+                                onOpenChange={(open) => setInfoOpenId(open ? row.id : null)}
+                                onCopy={() => void copyRecordId(row.id)}
+                              />
                             </div>
                           </td>
                         </>
@@ -513,9 +587,18 @@ export default function QualityControlDetailPage() {
                             {row.overridden_by ? `${row.overridden_by} · ${formatDate(row.overridden_at)}` : "—"}
                           </td>
                           <td className="sticky right-0 border-l bg-card p-2">
-                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(row)}>
-                              Edit
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="outline" size="sm" onClick={() => startEdit(row)}>
+                                Edit
+                              </Button>
+                              <RecordInfoButton
+                                id={row.id}
+                                open={infoOpenId === row.id}
+                                copied={copiedId === row.id}
+                                onOpenChange={(open) => setInfoOpenId(open ? row.id : null)}
+                                onCopy={() => void copyRecordId(row.id)}
+                              />
+                            </div>
                           </td>
                         </>
                       )}
@@ -540,5 +623,6 @@ export default function QualityControlDetailPage() {
         />
       </div>
     </div>
+    </TooltipProvider>
   );
 }
