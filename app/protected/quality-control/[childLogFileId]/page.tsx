@@ -27,6 +27,8 @@ type RowsResponse = {
   page: number;
   page_size: number;
   has_more: boolean;
+  total_count: number | null;
+  total_pages: number | null;
 };
 
 type EditState = {
@@ -56,6 +58,8 @@ export default function QualityControlDetailPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
   const [status, setStatus] = useState<StatusFilter>("all");
 
   const [runs, setRuns] = useState<LogCorrelationRunRow[]>([]);
@@ -89,10 +93,14 @@ export default function QualityControlDetailPage() {
       const data = (await res.json()) as RowsResponse;
       setRows(data.rows ?? []);
       setHasMore(data.has_more === true);
+      setTotalCount(data.total_count ?? null);
+      setTotalPages(data.total_pages ?? null);
     } catch (e) {
       setRowsError(e instanceof Error ? e.message : "Failed to load rows");
       setRows([]);
       setHasMore(false);
+      setTotalCount(null);
+      setTotalPages(null);
     } finally {
       setRowsLoading(false);
     }
@@ -479,6 +487,8 @@ export default function QualityControlDetailPage() {
           loading={rowsLoading}
           itemCount={rows.length}
           itemLabel="row"
+          totalCount={totalCount}
+          totalPages={totalPages}
         />
       </div>
     </div>

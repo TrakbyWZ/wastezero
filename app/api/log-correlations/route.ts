@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
 
-  let query = admin.from("vw_api_log_correlations").select("*");
+  let query = admin.from("vw_api_log_correlations").select("*", { count: "exact" });
 
   // Scoped to one file (the Quality Control detail screen): order by the
   // row's actual physical position in the file (child_sort_order, from
@@ -89,18 +89,22 @@ export async function GET(request: Request) {
     query = query.eq("is_inferred", true);
   }
 
-  const { data: rows, error } = await query;
+  const { data: rows, error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   const records = (rows ?? []).slice(0, pageSize);
+  const totalCount = count ?? null;
+  const totalPages = totalCount != null ? Math.max(1, Math.ceil(totalCount / pageSize)) : null;
 
   return NextResponse.json({
     rows: records,
     page,
     page_size: pageSize,
     has_more: (rows ?? []).length > pageSize,
+    total_count: totalCount,
+    total_pages: totalPages,
   });
 }

@@ -26,6 +26,8 @@ type FilesResponse = {
   page: number;
   page_size: number;
   has_more: boolean;
+  total_count: number | null;
+  total_pages: number | null;
 };
 
 export default function QualityControlListPage() {
@@ -35,6 +37,8 @@ export default function QualityControlListPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [totalPages, setTotalPages] = useState<number | null>(null);
 
   const [customersForDropdown, setCustomersForDropdown] = useState<CustomerRow[]>([]);
   const [customerId, setCustomerId] = useState("");
@@ -86,10 +90,14 @@ export default function QualityControlListPage() {
       const data = (await res.json()) as FilesResponse;
       setFiles(data.rows ?? []);
       setHasMore(data.has_more === true);
+      setTotalCount(data.total_count ?? null);
+      setTotalPages(data.total_pages ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load files");
       setFiles([]);
       setHasMore(false);
+      setTotalCount(null);
+      setTotalPages(null);
     } finally {
       setLoading(false);
     }
@@ -315,6 +323,8 @@ export default function QualityControlListPage() {
           loading={loading}
           itemCount={files.length}
           itemLabel="file"
+          totalCount={totalCount}
+          totalPages={totalPages}
         />
       </div>
     </div>

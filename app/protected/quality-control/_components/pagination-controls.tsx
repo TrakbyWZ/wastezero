@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PAGE_SIZE_OPTIONS, type PageSizeOption } from "@/lib/constants/pagination";
 
 type Props = {
@@ -15,14 +14,19 @@ type Props = {
   itemCount: number;
   /** Singular noun for the count text, e.g. "file" or "row" */
   itemLabel: string;
+  /** Total matching rows (from the API's exact count), used to build the page dropdown. Null while not yet loaded. */
+  totalCount: number | null;
+  /** Total pages at the current page size - Math.max(1, Math.ceil(totalCount / pageSize)). Null while not yet loaded. */
+  totalPages: number | null;
 };
 
 /**
- * Shared page-size + previous/next + "jump to page" control for the Quality
- * Control list and detail screens. There's no total-row-count query backing
- * these tables (same no-count design as the Data Logs page), so "jump to
- * page" accepts any page >= 1 without an upper bound - jumping past the end
- * just renders the table's existing empty state.
+ * Shared page-size + previous/next + page-number dropdown for the Quality
+ * Control list and detail screens. The page dropdown is a real, exact list
+ * (1..totalPages) backed by GET /api/log-correlation-files and
+ * GET /api/log-correlations both returning an exact count alongside their
+ * page of rows - unlike the Data Logs page, which has no such count and
+ * only supports Previous/Next.
  */
 export function PaginationControls({
   page,
@@ -33,29 +37,40 @@ export function PaginationControls({
   loading,
   itemCount,
   itemLabel,
+  totalCount,
+  totalPages,
 }: Props) {
-  const [jumpValue, setJumpValue] = useState("");
+  // Unique per instance - both QC pages render a PaginationControls, and a
+  // hardcoded id would collide (invalid duplicate DOM ids) during the
+  // client-side transition between them, where both can be mounted at once.
+  const pageSizeId = useId();
+  const pageJumpId = useId();
 
-  const handleJump = () => {
-    const n = parseInt(jumpValue, 10);
-    if (Number.isInteger(n) && n >= 1) {
-      onPageChange(n);
-      setJumpValue("");
-    }
-  };
+  // totalPages can legitimately be smaller than the current `page` for a
+  // moment right after changing page size (the old page number is still in
+  // state until the new fetch resolves) - clamp so the <select> always has
+  // a matching <option> instead of silently showing nothing selected.
+  const pageOptions = useMemo(() => {
+    const count = Math.max(totalPages ?? 1, page);
+    return Array.from({ length: count }, (_, i) => i + 1);
+  }, [totalPages, page]);
 
   return (
     <div className="flex flex-col gap-3 border-t bg-muted/30 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3">
         <span>
-          {loading ? "Loading…" : `${itemCount} ${itemLabel}${itemCount === 1 ? "" : "s"} on page ${page}`}
+          {loading
+            ? "Loading…"
+            : `${itemCount} ${itemLabel}${itemCount === 1 ? "" : "s"} on page ${page}${
+                totalCount != null ? ` (${totalCount.toLocaleString()} total)` : ""
+              }`}
         </span>
         <div className="flex items-center gap-1.5">
-          <label htmlFor="qc-page-size" className="sr-only">
+          <label htmlFor={pageSizeId} className="sr-only">
             Rows per page
           </label>
           <select
-            id="qc-page-size"
+            id={pageSizeId}
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value) as PageSizeOption)}
             className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground"
@@ -69,7 +84,6 @@ export function PaginationControls({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-muted-foreground">Page {page}</span>
         <Button
           type="button"
           variant="outline"
@@ -79,29 +93,28 @@ export function PaginationControls({
         >
           Previous
         </Button>
+        <div className="flex items-center gap-1.5">
+          <label htmlFor={pageJumpId} className="text-muted-foreground">
+            Page
+          </label>
+          <select
+            id={pageJumpId}
+            value={page}
+            disabled={loading}
+            onChange={(e) => onPageChange(Number(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+          >
+            {pageOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          {totalPages != null && <span className="text-muted-foreground">of {totalPages.toLocaleString()}</span>}
+        </div>
         <Button type="button" variant="outline" size="sm" disabled={loading || !hasMore} onClick={() => onPageChange(page + 1)}>
           Next
         </Button>
-        <div className="flex items-center gap-1 ml-1">
-          <Input
-            type="number"
-            min={1}
-            value={jumpValue}
-            onChange={(e) => setJumpValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleJump();
-              }
-            }}
-            placeholder="Page #"
-            aria-label="Jump to page"
-            className="h-8 w-20 text-xs"
-          />
-          <Button type="button" variant="outline" size="sm" disabled={loading || !jumpValue} onClick={handleJump}>
-            Go
-          </Button>
-        </div>
       </div>
     </div>
   );

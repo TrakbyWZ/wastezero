@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   let query = admin
     .from("vw_api_log_correlation_files")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("job_date", { ascending: false })
     .order("child_filename", { ascending: true })
     .range(fromIndex, toIndex);
@@ -62,18 +62,22 @@ export async function GET(request: Request) {
     query = query.or("unresolved_count.gt.0,excluded_count.gt.0");
   }
 
-  const { data: rows, error } = await query;
+  const { data: rows, error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   const records = (rows ?? []).slice(0, pageSize);
+  const totalCount = count ?? null;
+  const totalPages = totalCount != null ? Math.max(1, Math.ceil(totalCount / pageSize)) : null;
 
   return NextResponse.json({
     rows: records,
     page,
     page_size: pageSize,
     has_more: (rows ?? []).length > pageSize,
+    total_count: totalCount,
+    total_pages: totalPages,
   });
 }
