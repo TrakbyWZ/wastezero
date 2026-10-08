@@ -231,21 +231,21 @@ export default function QualityControlListPage() {
         {error && (
           <div className="p-4 bg-destructive/10 text-destructive text-sm border-b">{error}</div>
         )}
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left font-medium p-3">Filename</th>
-                <th className="text-left font-medium p-3">Parent File</th>
-                <th className="text-left font-medium p-3">Job</th>
-                <th className="text-left font-medium p-3">Customer</th>
-                <th className="text-left font-medium p-3">Date</th>
-                <th className="text-left font-medium p-3">Rows</th>
-                <th className="text-left font-medium p-3">Unresolved</th>
-                <th className="text-left font-medium p-3">Excluded</th>
-                <th className="text-left font-medium p-3">Last Correlate</th>
-                <th className="text-left font-medium p-3">Last Gap-Fill</th>
-                <th className="sticky right-0 z-10 border-l bg-muted text-left font-medium p-3">Actions</th>
+              <tr>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Filename</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Parent File</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Job</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Customer</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Date</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Rows</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Unresolved</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Excluded</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Last Correlate</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Last Gap-Fill</th>
+                <th className="sticky top-0 right-0 z-20 border-b border-l bg-muted text-left font-medium p-3">Actions</th>
               </tr>
             </thead>
             <tbody>

@@ -364,20 +364,20 @@ export default function QualityControlDetailPage() {
         {triggerError && (
           <div className="p-3 bg-destructive/10 text-destructive text-sm border-b">{triggerError}</div>
         )}
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left font-medium p-2">Started</th>
-                <th className="text-left font-medium p-2">Operation</th>
-                <th className="text-left font-medium p-2">Parent File</th>
-                <th className="text-left font-medium p-2">Triggered By</th>
-                <th className="text-left font-medium p-2">Status</th>
-                <th className="text-left font-medium p-2">Inserted</th>
-                <th className="text-left font-medium p-2">Updated</th>
-                <th className="text-left font-medium p-2">Unresolved</th>
-                <th className="text-left font-medium p-2">Error</th>
-                <th className="sticky right-0 z-10 border-l bg-muted text-left font-medium p-2">Actions</th>
+              <tr>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Started</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Operation</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Parent File</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Triggered By</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Status</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Inserted</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Updated</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Unresolved</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Error</th>
+                <th className="sticky top-0 right-0 z-20 border-b border-l bg-muted text-left font-medium p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -463,19 +463,19 @@ export default function QualityControlDetailPage() {
         {saveError && (
           <div className="p-4 bg-destructive/10 text-destructive text-sm border-b">{saveError}</div>
         )}
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left font-medium p-2">Seq</th>
-                <th className="text-left font-medium p-2">Child Code</th>
-                <th className="text-left font-medium p-2">Parent Code</th>
-                <th className="text-left font-medium p-2">Read At</th>
-                <th className="text-left font-medium p-2">Inferred</th>
-                <th className="text-left font-medium p-2">Excluded</th>
-                <th className="text-left font-medium p-2">Notes</th>
-                <th className="text-left font-medium p-2">Last Edited</th>
-                <th className="sticky right-0 z-10 border-l bg-muted text-left font-medium p-2">Actions</th>
+              <tr>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Seq</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Child Code</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Parent Code</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Read At</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Inferred</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Excluded</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Notes</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Last Edited</th>
+                <th className="sticky top-0 right-0 z-20 border-b border-l bg-muted text-left font-medium p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
