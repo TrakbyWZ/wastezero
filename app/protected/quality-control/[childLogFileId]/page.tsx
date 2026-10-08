@@ -377,18 +377,19 @@ export default function QualityControlDetailPage() {
                 <th className="text-left font-medium p-2">Updated</th>
                 <th className="text-left font-medium p-2">Unresolved</th>
                 <th className="text-left font-medium p-2">Error</th>
+                <th className="sticky right-0 z-10 border-l bg-muted text-left font-medium p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {runsLoading ? (
                 <tr>
-                  <td colSpan={9} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={10} className="p-6 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : runs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={10} className="p-6 text-center text-muted-foreground">
                     No runs yet for this file.
                   </td>
                 </tr>
@@ -419,6 +420,11 @@ export default function QualityControlDetailPage() {
                     <td className="p-2">{run.rows_unresolved}</td>
                     <td className="p-2 text-destructive text-xs max-w-[220px] truncate" title={run.error_message ?? ""}>
                       {run.error_message ?? "—"}
+                    </td>
+                    <td className="sticky right-0 border-l bg-card p-2">
+                      <Button type="button" variant="outline" size="sm" asChild>
+                        <a href={`/api/log-correlation-runs/${run.id}/export`}>Export CSV</a>
+                      </Button>
                     </td>
                   </tr>
                 ))
