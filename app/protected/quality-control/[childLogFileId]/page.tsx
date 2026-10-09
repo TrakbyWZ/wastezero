@@ -462,6 +462,18 @@ export default function QualityControlDetailPage() {
 
       {/* Row table */}
       <div className="rounded-lg border bg-card overflow-hidden">
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          hasMore={hasMore}
+          loading={rowsLoading}
+          itemCount={rows.length}
+          itemLabel="row"
+          totalCount={totalCount}
+          totalPages={totalPages}
+        />
         {rowsError && (
           <div className="p-4 bg-destructive/10 text-destructive text-sm border-b">{rowsError}</div>
         )}
@@ -620,18 +632,6 @@ export default function QualityControlDetailPage() {
             </tbody>
           </table>
         </div>
-        <PaginationControls
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={handlePageSizeChange}
-          hasMore={hasMore}
-          loading={rowsLoading}
-          itemCount={rows.length}
-          itemLabel="row"
-          totalCount={totalCount}
-          totalPages={totalPages}
-        />
       </div>
     </div>
     </TooltipProvider>

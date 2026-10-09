@@ -228,6 +228,18 @@ export default function QualityControlListPage() {
 
       {/* File list */}
       <div className="rounded-lg border bg-card overflow-hidden">
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          hasMore={hasMore}
+          loading={loading}
+          itemCount={files.length}
+          itemLabel="file"
+          totalCount={totalCount}
+          totalPages={totalPages}
+        />
         {error && (
           <div className="p-4 bg-destructive/10 text-destructive text-sm border-b">{error}</div>
         )}
@@ -314,18 +326,6 @@ export default function QualityControlListPage() {
             </tbody>
           </table>
         </div>
-        <PaginationControls
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={handlePageSizeChange}
-          hasMore={hasMore}
-          loading={loading}
-          itemCount={files.length}
-          itemLabel="file"
-          totalCount={totalCount}
-          totalPages={totalPages}
-        />
       </div>
     </div>
   );
