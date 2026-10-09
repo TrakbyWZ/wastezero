@@ -305,16 +305,27 @@ export default function QualityControlDetailPage() {
     <TooltipProvider delayDuration={200}>
     <div className="flex flex-col gap-6 w-full max-w-6xl">
       <div className="flex flex-col gap-2">
-        <Link
-          href="/protected/quality-control"
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          ← Quality Control
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight font-mono truncate">
-          {latestRun ? <span className="font-sans font-normal text-muted-foreground mr-2">Run</span> : null}
-          {titleLabel}
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-2">
+            <Link
+              href="/protected/quality-control"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              ← Quality Control
+            </Link>
+            <h1 className="text-2xl font-bold tracking-tight font-mono truncate">
+              {latestRun ? <span className="font-sans font-normal text-muted-foreground mr-2">Run</span> : null}
+              {titleLabel}
+            </h1>
+          </div>
+          <Button
+            type="button"
+            asChild
+            className="bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-600"
+          >
+            <a href={`/api/log-files/${childLogFileId}/export`}>Export Report</a>
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
           <span>
             <span className="text-muted-foreground/70">Child File: </span>
@@ -377,19 +388,18 @@ export default function QualityControlDetailPage() {
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Updated</th>
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Unresolved</th>
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-2">Error</th>
-                <th className="sticky top-0 right-0 z-20 border-b border-l bg-muted text-left font-medium p-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {runsLoading ? (
                 <tr>
-                  <td colSpan={10} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-6 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : runs.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-6 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-6 text-center text-muted-foreground">
                     No runs yet for this file.
                   </td>
                 </tr>
@@ -420,11 +430,6 @@ export default function QualityControlDetailPage() {
                     <td className="p-2">{run.rows_unresolved}</td>
                     <td className="p-2 text-destructive text-xs max-w-[220px] truncate" title={run.error_message ?? ""}>
                       {run.error_message ?? "—"}
-                    </td>
-                    <td className="sticky right-0 border-l bg-card p-2">
-                      <Button type="button" variant="outline" size="sm" asChild>
-                        <a href={`/api/log-correlation-runs/${run.id}/export`}>Export CSV</a>
-                      </Button>
                     </td>
                   </tr>
                 ))
