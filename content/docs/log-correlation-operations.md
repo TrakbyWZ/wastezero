@@ -1,8 +1,8 @@
 # Log Data Correlation — Manual Runs and Troubleshooting
 
-This page covers how to inspect what the correlation sweep has done, and how to manually retrigger it. See [Overview and Architecture](./log-correlation-overview.md) for how the matching algorithm and data model work.
+This page covers how to inspect what the correlation sweep has done, and how to manually retrigger it. See [Overview and Architecture](./log-correlation-overview.md) for how the matching algorithm and data model work, and [Quality Control](./log-correlation-overview.md#quality-control) for the UI built on top of everything below.
 
-There is no UI or API trigger for this yet — everything here runs as SQL, either in the Supabase Studio SQL editor or `psql` against the target database.
+For single-file, ad-hoc work — reviewing one file's rows, fixing a specific code, excluding a row, re-running correlate/gap-fill for one file, or producing the customer-facing CSV — the Quality Control UI (`/protected/quality-control`) is almost always the faster path and doesn't require direct database access. Everything on this page is still the right tool for: inspecting raw run/scheduler state, bulk/scripted operations across many files, and anything the UI doesn't expose (e.g. `p_parent_log_file_id` overrides, pausing the schedule).
 
 ## Checking recent runs
 
@@ -50,6 +50,12 @@ where job_name = 'YourJobName'
 order by child_code;
 ```
 
+The Quality Control UI's **Unresolved** row filter (and the list screen's **Needs attention only** checkbox) covers this same question without SQL — see [Quality Control](./log-correlation-overview.md#quality-control).
+
+## Correcting or excluding a specific row
+
+There's no direct-SQL path for this — correcting a code, adding a note, or excluding a row is a write into `log_correlations`' `usr_child_code`/`usr_parent_code`/`usr_exclude_row`/`notes` columns, and the Quality Control row table's inline edit does exactly that via `PATCH /api/log-correlations/[id]`, stamping `overridden_by`/`overridden_at` with the editor's email and the current time. Use the row table's info (ⓘ) button to get a specific row's `log_correlations.id` first if you need to find it in SQL afterward (e.g. to confirm which run originally wrote it, via `created_by`/`modified_by` — see "Checking recent runs" above).
+
 ## Manually retriggering a run
 
 `run_log_correlation()` takes five parameters — only the first is required:
@@ -95,6 +101,8 @@ select run_log_correlation(
 );
 ```
 
+The Quality Control detail screen's **Re-correlate** button does the auto-resolving-parent version of this (`POST /api/log-files/[id]/recorrelate`, always `p_allow_reprocess := true`, attributed to the signed-in user) — reach for SQL here only when you need the explicit `p_parent_log_file_id` override, which the UI doesn't expose.
+
 ### Retrigger everything pending
 
 ```sql
@@ -125,6 +133,8 @@ select fill_log_correlation_gaps(
   p_triggered_by := 'manual:you@example.com'
 );
 ```
+
+The Quality Control detail screen's **Re-run gap-fill** button does this (`POST /api/log-files/[id]/refill-gaps`, always `p_allow_refill := true`, attributed to the signed-in user) — reach for SQL here only for a custom `p_max_gap_span` or bulk/scripted runs across many files.
 
 ### Finding files with gaps still pending
 
@@ -173,3 +183,5 @@ select cron.schedule('run-log-correlation', '*/10 * * * *', $$select public.run_
 - **A file has a `Bad_Read`/blank row that never gets filled:** it's stuck in a shape `fill_log_correlation_gaps()` deliberately won't guess at — ambiguous (some but not all missing numbers have a placeholder), wider than `p_max_gap_span`, leading/trailing (no bound on one side), or across a prefix change. Check `log_correlation_runs` (`operation = 'gap_fill'`) for that file's `rows_unresolved` count, then inspect the rows directly (see "Finding unresolved rows" above) to see which shape applies. This is expected, not a bug — see [Filling gaps](./log-correlation-overview.md#filling-gaps) for the exact rules. The sweep stops re-attempting such a file automatically after confirming it's stuck once (see "Why a stuck file doesn't keep generating runs" below) — to force another attempt anyway, call `fill_log_correlation_gaps()` manually.
 - **Why a stuck file doesn't keep generating runs:** the sweep's gap-fill pass skips a file if its most recent `gap_fill` run made zero progress (`rows_inserted = 0` and `rows_updated = 0`) and nothing in the file's rows has changed since (`modified_timestamp` newer than that run's `run_completed_at`). This caps a permanently-unresolvable file at one no-op confirmation run rather than one every 10 minutes forever. It only throttles the *automatic sweep* — a manual call to `fill_log_correlation_gaps()` (see above) always runs regardless, and once anything in the file changes (a manual `p_allow_refill := true` call that touches a row, or a future QC correction), the file becomes eligible for the automatic sweep again on its own.
 - **`pg_cron` job not running:** check `select * from cron.job where jobname = 'run-log-correlation';` and `select * from cron.job_run_details order by start_time desc limit 10;` for scheduler-level failures (separate from `log_correlation_runs`, which only records runs that actually started executing `run_log_correlation()`).
+- **Customer wants the correlation results as a file:** use the Quality Control detail screen's green **Export Report** button (`GET /api/log-files/[id]/export`) — see [Quality Control](./log-correlation-overview.md#customer-facing-export-get-apilog-filesidexport). Don't hand-build this from `GET /api/log-correlations` or a raw SQL export — it won't match the legacy "Caspio Download" column names/format, and it won't filter out excluded rows or the internal override metadata.
+- **A `Bad_Read`-child row's resolved parent code looks "skipped ahead" compared to an older report for the same file:** `run_log_correlation()`'s ceiling-match treats a `Bad_Read` parent entry as unusable and moves on to the next good parent read; it does not reconstruct the bad parent read's own sequence position the way `fill_log_correlation_gaps()` does for the child side. If an older report shows a parent code sitting exactly at the bad-read's expected sequence position instead, that's this difference, not a regression — confirmed against the legacy Caspio report while building the export above.

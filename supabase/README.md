@@ -21,6 +21,8 @@ These views back the HTTP GET API routes so that underlying SQL can change witho
 | `vw_api_customer_sequences_list` | `/api/customer-sequences`, `/api/customer-sequences/[id]` |
 | `vw_api_batches_list` | `/api/batches` |
 | `vw_api_log_correlations` | `/api/log-correlations` |
+| `vw_api_log_correlation_files` | `/api/log-correlation-files` |
+| `vw_api_log_correlation_runs` | `/api/log-correlation-runs` |
 
 Filtering (e.g. `q`, `active_only`, `from`/`to`) and response shaping (nested `customer` / `customer_sequence`) remain in the API layer.
 
