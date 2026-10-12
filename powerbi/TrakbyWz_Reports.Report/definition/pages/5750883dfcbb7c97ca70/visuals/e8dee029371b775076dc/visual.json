@@ -1,0 +1,510 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "e8dee029371b775076dc",
+  "position": {
+    "x": 268.12060445920378,
+    "y": 41.199019709584974,
+    "z": 0,
+    "height": 276.621989478642,
+    "width": 1011.6648173131422,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "id"
+                }
+              },
+              "queryRef": "public log_correlation_runs.id",
+              "nativeQueryRef": "id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "child_log_file_id_param"
+                }
+              },
+              "queryRef": "public log_correlation_runs.child_log_file_id_param",
+              "nativeQueryRef": "child_log_file_id_param"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "parent_log_file_id_param"
+                }
+              },
+              "queryRef": "public log_correlation_runs.parent_log_file_id_param",
+              "nativeQueryRef": "parent_log_file_id_param"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "resolved_parent_log_file_id"
+                }
+              },
+              "queryRef": "public log_correlation_runs.resolved_parent_log_file_id",
+              "nativeQueryRef": "resolved_parent_log_file_id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "run_started_at"
+                }
+              },
+              "queryRef": "public log_correlation_runs.run_started_at",
+              "nativeQueryRef": "run_started_at"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "run_completed_at"
+                }
+              },
+              "queryRef": "public log_correlation_runs.run_completed_at",
+              "nativeQueryRef": "run_completed_at"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "triggered_by"
+                }
+              },
+              "queryRef": "public log_correlation_runs.triggered_by",
+              "nativeQueryRef": "triggered_by"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "allow_reprocess"
+                }
+              },
+              "queryRef": "public log_correlation_runs.allow_reprocess",
+              "nativeQueryRef": "allow_reprocess"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "error_message"
+                }
+              },
+              "queryRef": "public log_correlation_runs.error_message",
+              "nativeQueryRef": "error_message"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_correlation_runs"
+                    }
+                  },
+                  "Property": "status"
+                }
+              },
+              "queryRef": "public log_correlation_runs.status",
+              "nativeQueryRef": "status"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "public log_correlation_runs"
+                        }
+                      },
+                      "Property": "rows_inserted"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(public log_correlation_runs.rows_inserted)",
+              "nativeQueryRef": "Sum of rows_inserted"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "public log_correlation_runs"
+                        }
+                      },
+                      "Property": "rows_unresolved"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(public log_correlation_runs.rows_unresolved)",
+              "nativeQueryRef": "Sum of rows_unresolved"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "public log_correlation_runs"
+                        }
+                      },
+                      "Property": "rows_updated"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(public log_correlation_runs.rows_updated)",
+              "nativeQueryRef": "Sum of rows_updated"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "public log_correlation_runs"
+                  }
+                },
+                "Property": "run_started_at"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "235.130560915229D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "public log_correlation_runs.id"
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Correlation Job Runs History'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "background": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 3,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "55c28ac7846ba737dfe1",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "acdec5e779a2ba891309",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "parent_log_file_id_param"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "0452755f2dfdb33f90a9",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "resolved_parent_log_file_id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c49402e0d530f99d1498",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "triggered_by"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "875ea4f2de7b66509ec8",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "allow_reprocess"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "b3daa365079366ebfd21",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "error_message"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "1edf8d332443a6c6d1d8",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "95d4e8f1a2325c5de42b",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "public log_correlation_runs"
+                  }
+                },
+                "Property": "rows_inserted"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "63609f8dd4e5114c13fc",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "public log_correlation_runs"
+                  }
+                },
+                "Property": "rows_unresolved"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "8a504998a6bd4fd05b20",
+        "field": {
+          "Aggregation": {
+            "Expression": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "public log_correlation_runs"
+                  }
+                },
+                "Property": "rows_updated"
+              }
+            },
+            "Function": 0
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "98daeff22dc191998e92",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "run_started_at"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "1b6c3a322319cf8fcd96",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "run_completed_at"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "766841c57111ed3afd38",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_correlation_runs"
+              }
+            },
+            "Property": "child_log_file_id_param"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

@@ -1,0 +1,154 @@
+table 'public batch'
+	lineageTag: 0936b96f-26c7-4730-bc67-7baa46ec8ad2
+
+	column id
+		dataType: string
+		lineageTag: c64ebb2a-a23c-40c1-b61d-d5cf4f2b3ea9
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: string
+		lineageTag: d9223eb6-3b5c-41bf-a34f-d12d0a8f72a5
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_sequence_id
+		dataType: string
+		lineageTag: 43480653-befd-447d-bf2c-cf0c517c9445
+		summarizeBy: none
+		sourceColumn: customer_sequence_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_sequence
+		dataType: int64
+		formatString: 0
+		lineageTag: 50169763-93cf-4341-8554-90ccb6551861
+		summarizeBy: sum
+		sourceColumn: start_sequence
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_sequence
+		dataType: int64
+		formatString: 0
+		lineageTag: c5a63bad-0725-4821-be31-c05be6ab3438
+		summarizeBy: sum
+		sourceColumn: end_sequence
+
+		annotation SummarizationSetBy = Automatic
+
+	column offset_sequence
+		dataType: int64
+		formatString: 0
+		lineageTag: c76607cb-b91f-4b73-b54e-c70c15a1c700
+		summarizeBy: sum
+		sourceColumn: offset_sequence
+
+		annotation SummarizationSetBy = Automatic
+
+	column label_count
+		dataType: int64
+		formatString: 0
+		lineageTag: bf60d994-b32f-4355-98b7-495c4fb2f57b
+		summarizeBy: sum
+		sourceColumn: label_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_time
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: c12e5335-a89c-4960-bb4e-93deb66d01c3
+		summarizeBy: none
+		sourceColumn: start_time
+
+		variation Variation
+			isDefault
+			relationship: c58b9f2d-27b6-4b56-af25-17373bb2fc9c
+			defaultHierarchy: LocalDateTable_c8af5b02-3a32-45bb-8559-5dcdd2813fa3.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_time
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: d5995b0e-3674-48fc-a1d9-9034ca323452
+		summarizeBy: none
+		sourceColumn: end_time
+
+		variation Variation
+			isDefault
+			relationship: 12ee1aa5-4823-4fb1-b85e-cca2c4406f3d
+			defaultHierarchy: LocalDateTable_d39a8cec-b9fe-48dc-ba24-bfe36a9a5248.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column filename
+		dataType: string
+		lineageTag: 8ca2f807-2850-4930-9f42-29e413c96484
+		summarizeBy: none
+		sourceColumn: filename
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_by
+		dataType: string
+		lineageTag: 8bf24027-efbc-45be-9b2f-44f0cb852a8e
+		summarizeBy: none
+		sourceColumn: created_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: db3fa460-3461-4274-bd91-b1e51db2b966
+		summarizeBy: none
+		sourceColumn: created_date
+
+		variation Variation
+			isDefault
+			relationship: 90fba273-9a88-47f4-a166-8350b8b2f971
+			defaultHierarchy: LocalDateTable_e6cf3ef0-85e1-46c7-97f5-5ab53d0492b1.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_by
+		dataType: string
+		lineageTag: fa0ed2df-e318-4ce1-99ea-d3cacaa548af
+		summarizeBy: none
+		sourceColumn: modified_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 3c1f50b4-6c0c-40a3-89c1-037cdd194ee9
+		summarizeBy: none
+		sourceColumn: modified_date
+
+		variation Variation
+			isDefault
+			relationship: bf868360-e670-417c-b0bf-8e3ca6ab92d2
+			defaultHierarchy: LocalDateTable_196ed7ec-149c-4635-ba6c-c4704d52d8bb.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'public batch' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    public_batch = Source{[Schema="public",Item="batch"]}[Data]
+				in
+				    public_batch
+
+	annotation PBI_ResultType = Table
+

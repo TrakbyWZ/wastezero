@@ -34,7 +34,11 @@ async function ProtectedLayoutInner({
           </>
         }
       />
-      <main className="flex-1 flex flex-col min-h-screen pt-14">
+      {/* min-w-0 overrides the flex item's default min-width: auto - without
+          it, a wide child (e.g. a table inside overflow-x-auto) forces this
+          flex item - and the whole page body - wider than the viewport
+          instead of scrolling within its own container. */}
+      <main className="flex-1 flex flex-col min-h-screen min-w-0 pt-14">
         <div className="flex-1 flex flex-col gap-20 max-w-6xl w-full p-5 mx-auto">
           {children}
         </div>

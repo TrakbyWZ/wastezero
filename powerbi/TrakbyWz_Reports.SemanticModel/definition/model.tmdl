@@ -1,0 +1,48 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["public log_entries","public log_files","public batch","public customer","public customer_sequence","public vw_api_log_correlations","public log_correlation_runs"]
+
+annotation PBI_RemovedChildren = [{"remoteItemId":{"foreignKeyRelationship":{"fromTableLocalLineageTag":"0936b96f-26c7-4730-bc67-7baa46ec8ad2","fromColumnLocalLineageTag":"43480653-befd-447d-bf2c-cf0c517c9445","toTableLocalLineageTag":"2b1d4d8d-75bf-42c9-9db3-4553d3514ffe","toColumnLocalLineageTag":"831cd67d-5c89-4f61-9c36-a1ca4f1cee74"}},"objectType":"Relationship"}]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table 'public log_entries'
+ref table DateTableTemplate_2ca90127-188d-463e-9f3f-5cab4af23753
+ref table LocalDateTable_1a93f0a5-7cf4-4f38-a135-a4235a1ae0c5
+ref table LocalDateTable_6bc19fbc-3f33-485c-82a2-623f831ecf05
+ref table LocalDateTable_d9953f6c-007b-4bca-bfda-f9d068418405
+ref table 'public log_files'
+ref table LocalDateTable_62b6e0dd-18fb-49a7-8bfa-028770a7f545
+ref table LocalDateTable_9ccb4803-723f-47e1-947c-22be584c0e60
+ref table 'public batch'
+ref table LocalDateTable_c8af5b02-3a32-45bb-8559-5dcdd2813fa3
+ref table LocalDateTable_d39a8cec-b9fe-48dc-ba24-bfe36a9a5248
+ref table LocalDateTable_e6cf3ef0-85e1-46c7-97f5-5ab53d0492b1
+ref table LocalDateTable_196ed7ec-149c-4635-ba6c-c4704d52d8bb
+ref table 'public customer'
+ref table LocalDateTable_73183d78-d5e0-4714-a88a-2ab6409e5491
+ref table LocalDateTable_c633e479-970e-4502-b8ce-6fdd46e1de96
+ref table 'public customer_sequence'
+ref table LocalDateTable_531a0d44-3ee1-496b-9ba8-f52a7967c6b6
+ref table LocalDateTable_304f7a1e-fb1b-4b63-a90f-a2da0d0aaea0
+ref table 'public vw_api_log_correlations'
+ref table LocalDateTable_422d32d3-cbad-497f-99b3-2d5fcce15ea9
+ref table LocalDateTable_6695fce7-9447-406b-9ef9-3ec1e3636a38
+ref table LocalDateTable_4682d229-ce18-4014-a72f-cbbea28ae6b0
+ref table LocalDateTable_1ac51433-d8ce-4416-9b39-aa2704f5767b
+ref table LocalDateTable_22c706d4-cfa3-49eb-b8db-e2b6c7ae015b
+ref table LocalDateTable_702e3778-bf99-47c5-84d2-24f4224f7712
+ref table 'public log_correlation_runs'
+ref table LocalDateTable_13d53640-763b-4383-bc04-f0da51a364df
+ref table LocalDateTable_1a0502fd-87d4-40df-8d5f-00dad6b8c036
+
+ref cultureInfo en-US
+

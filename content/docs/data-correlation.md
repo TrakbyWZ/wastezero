@@ -1,0 +1,84 @@
+# Data Correlation
+
+There are two files that uploaded from the on-premise printing system.
+
+1. A camera 1 log file that contains all the individual bag codes.
+2. A camera 2 log file that contains the "parent" bag codes. 
+
+The plant operations want to be bucket and correlate the child codes from the 
+Camera 1 log files with the appropriate parent codes from the Camera 2 log files.
+
+
+## Sample Data
+
+A sample sequence in a camera 1 log file may be laid out as such:
+
+R005C0000177
+R005C0000178
+R005C0000179
+R005C0000180
+R005C0000181
+R005C0000182
+R005C0000183
+R005C0000184
+R005C0000185
+R005C0000186
+R005C0000187
+R005C0000188
+R005C0000189
+R005C0000190
+...
+
+A sample sequence in camera 2 log file for the same job and job timestamp date as the camera 1 log file would be:
+
+R005C0000129
+R005C0000136
+Bad_Read
+R005C0000146
+Bad_Read
+Bad_Read
+R005C0000163
+R005C0000170
+R005C0000175
+R005C0000180
+R005C0000184
+R005C0000189
+R005C0000194
+
+What we require is correlating the parent child codes to the child codes by using a range between teh parent sequences. For example, in the instance of the above situation, we would want the following:
+
+Camera1Code, ParentEV
+R005C0000177,R005C0000180
+R005C0000178,R005C0000180
+R005C0000179,R005C0000180
+R005C0000180,R005C0000180
+R005C0000181,R005C0000184
+R005C0000182,R005C0000184
+R005C0000183,R005C0000184
+R005C0000184,R005C0000184
+R005C0000185,R005C0000189
+R005C0000186,R005C0000189
+R005C0000187,R005C0000189
+R005C0000188,R005C0000189
+R005C0000189,R005C0000189
+R005C0000190,R005C0000194
+
+
+## Final Expected Result for Sample
+A sample final result of the expected output would be 
+
+Camera1,ParentEV,Date,Time,ParentTime,Job Name,Job Number,Operator
+R005C0000177,R005C0000180,4/16/2026,10:31:49 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000178,R005C0000180,4/16/2026,10:31:50 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000179,R005C0000180,4/16/2026,10:31:50 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000180,R005C0000180,4/16/2026,10:31:51 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000181,R005C0000184,4/16/2026,10:31:53 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000182,R005C0000184,4/16/2026,10:31:53 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000183,R005C0000184,4/16/2026,10:31:54 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000184,R005C0000184,4/16/2026,10:31:55 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000185,R005C0000189,4/16/2026,10:31:56 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000186,R005C0000189,4/16/2026,10:31:56 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000187,R005C0000189,4/16/2026,10:31:57 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000188,R005C0000189,4/16/2026,10:31:58 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000189,R005C0000189,4/16/2026,10:31:58 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth
+R005C0000190,R005C0000194,4/16/2026,10:31:59 AM,4/16/2026 10:34,Evergreen0416,Evergeen0416,Garth

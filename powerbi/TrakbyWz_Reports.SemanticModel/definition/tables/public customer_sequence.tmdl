@@ -1,0 +1,134 @@
+table 'public customer_sequence'
+	lineageTag: 2b1d4d8d-75bf-42c9-9db3-4553d3514ffe
+
+	column id
+		dataType: string
+		lineageTag: 831cd67d-5c89-4f61-9c36-a1ca4f1cee74
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_id
+		dataType: string
+		lineageTag: bf7c8cd2-d2b4-4b3f-8c6e-c915886ad3df
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column label_prefix
+		dataType: string
+		lineageTag: 8f9e0a16-0bc1-4d62-814c-77a07d81f657
+		summarizeBy: none
+		sourceColumn: label_prefix
+
+		annotation SummarizationSetBy = Automatic
+
+	column number_format
+		dataType: string
+		lineageTag: 520e97ae-a695-4b23-aa08-6a1e112ef7db
+		summarizeBy: none
+		sourceColumn: number_format
+
+		annotation SummarizationSetBy = Automatic
+
+	column attributes
+		dataType: string
+		lineageTag: 619ffdb2-9a4d-4d2b-9c5b-f974952e1f51
+		summarizeBy: none
+		sourceColumn: attributes
+
+		annotation SummarizationSetBy = Automatic
+
+	column start_seq
+		dataType: int64
+		formatString: 0
+		lineageTag: ce803f10-dc21-4c12-be3e-7bed1ac6136d
+		summarizeBy: sum
+		sourceColumn: start_seq
+
+		annotation SummarizationSetBy = Automatic
+
+	column end_seq
+		dataType: int64
+		formatString: 0
+		lineageTag: f09835af-1cb4-495f-a826-113a431c95b5
+		summarizeBy: sum
+		sourceColumn: end_seq
+
+		annotation SummarizationSetBy = Automatic
+
+	column offset_sequence
+		dataType: int64
+		formatString: 0
+		lineageTag: 766f6fbd-71d1-4c37-9a5f-c7f269aa0edb
+		summarizeBy: sum
+		sourceColumn: offset_sequence
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_by
+		dataType: string
+		lineageTag: e98b7110-c2e5-4e2d-b875-5d37b5cc94d2
+		summarizeBy: none
+		sourceColumn: created_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 5940b0e2-bcaa-4106-9c06-b91899a936ee
+		summarizeBy: none
+		sourceColumn: created_date
+
+		variation Variation
+			isDefault
+			relationship: ee6e321b-55fb-4091-8140-d2b0f57e38f2
+			defaultHierarchy: LocalDateTable_531a0d44-3ee1-496b-9ba8-f52a7967c6b6.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_by
+		dataType: string
+		lineageTag: d96ae76e-0b3b-4774-b54d-41debf8c9301
+		summarizeBy: none
+		sourceColumn: modified_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_date
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 97eec3a8-c7a9-47d4-af5a-76054f335e60
+		summarizeBy: none
+		sourceColumn: modified_date
+
+		variation Variation
+			isDefault
+			relationship: 4e270492-31ac-4dd7-b928-373c42cd3b0d
+			defaultHierarchy: LocalDateTable_304f7a1e-fb1b-4b63-a90f-a2da0d0aaea0.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_default
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b4c7027c-3d89-4140-9f1c-1151c91d295d
+		summarizeBy: none
+		sourceColumn: is_default
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'public customer_sequence' = m
+		mode: import
+		source =
+				let
+				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    public_customer_sequence = Source{[Schema="public",Item="customer_sequence"]}[Data]
+				in
+				    public_customer_sequence
+
+	annotation PBI_ResultType = Table
+

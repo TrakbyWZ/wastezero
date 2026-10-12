@@ -1,0 +1,500 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "f280713b235fb73dc27c",
+  "position": {
+    "x": 446.5886210436679,
+    "y": 48.896564347846848,
+    "z": 1000,
+    "height": 310.33019506100135,
+    "width": 833.19745648731032,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_files"
+                    }
+                  },
+                  "Property": "filename"
+                }
+              },
+              "queryRef": "public log_files.filename",
+              "nativeQueryRef": "File Name",
+              "displayName": "File Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "job_name"
+                }
+              },
+              "queryRef": "public log_entries.job_name",
+              "nativeQueryRef": "Job Name",
+              "displayName": "Job Name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "job_number"
+                }
+              },
+              "queryRef": "public log_entries.job_number",
+              "nativeQueryRef": "Job #",
+              "displayName": "Job #"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "job_start_timestamp"
+                }
+              },
+              "queryRef": "public log_entries.job_start_timestamp",
+              "nativeQueryRef": "Job Start TS",
+              "displayName": "Job Start TS"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "job_end_timestamp"
+                }
+              },
+              "queryRef": "public log_entries.job_end_timestamp",
+              "nativeQueryRef": "Job End TS",
+              "displayName": "Job End TS"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "job_duration_in_hrs"
+                }
+              },
+              "queryRef": "public log_entries.job_duration_in_min",
+              "nativeQueryRef": "Duration (Hrs)",
+              "displayName": "Duration (Hrs)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "cnt_of_bad_reads"
+                }
+              },
+              "queryRef": "public log_entries.total_bad_reads",
+              "nativeQueryRef": "Bad Reads",
+              "displayName": "Bad Reads"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "cnt_of_good_reads"
+                }
+              },
+              "queryRef": "public log_entries.cnt_of_good_reads",
+              "nativeQueryRef": "Good Reads",
+              "displayName": "Good Reads"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "cnt_of_reads"
+                }
+              },
+              "queryRef": "public log_entries.total_entries",
+              "nativeQueryRef": "Total Reads",
+              "displayName": "Total Reads"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "public log_entries"
+                    }
+                  },
+                  "Property": "pct_good_reads"
+                }
+              },
+              "queryRef": "public log_entries.good_reads_pct",
+              "nativeQueryRef": "Good Reads Pct",
+              "displayName": "Good Reads Pct"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "public log_entries"
+                  }
+                },
+                "Property": "job_duration_in_hrs"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "175.70756411085176D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "public log_files.filename"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "68.3087931439445D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "public log_entries.job_number"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "65.79963143469735D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "public log_entries.total_bad_reads"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "119.69120619834874D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "public log_entries.job_start_timestamp"
+          }
+        }
+      ],
+      "total": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Jobs List'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "background": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 3,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "stylePreset": [
+        {
+          "properties": {
+            "name": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Default'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "5d57f0f5bf447a0cce80",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_files"
+              }
+            },
+            "Property": "filename"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "c1260a9bd3bfd92c8dc7",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "job_name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "1655754489a8d4fca13c",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "job_number"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "0a428ccf2fce4d2aa862",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "job_start_timestamp"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "146753707c438ba09ba3",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "job_end_timestamp"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "545defce82f6f1574031",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "cnt_of_reads"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "9e640986dac409f8ea26",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "cnt_of_bad_reads"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "51c9ffae58333628e1e7",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "pct_good_reads"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "84607799057c323b14ba",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "job_duration_in_hrs"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "a408a1fc496e5a8303bd",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "public log_entries"
+              }
+            },
+            "Property": "cnt_of_good_reads"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}
