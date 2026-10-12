@@ -67,7 +67,7 @@ create extension if not exists pg_cron;
 select cron.schedule(
   'run-log-correlation',
   '*/10 * * * *',
-  $$select public.run_log_correlation_sweep()$$
+  $$set statement_timeout = '10min'; select public.run_log_correlation_sweep()$$
 );
 ```
 
@@ -76,8 +76,9 @@ A few things worth knowing about how this behaves:
 - **`cron.schedule()` is registration, not migration-tracked state.** The job itself lives in the `cron.job` system table, not as a row this migration "owns" the way a table/function definition is. Calling `cron.schedule()` again with the same job name (`'run-log-correlation'`) **updates** the existing job in place rather than creating a duplicate — so re-running this migration (a full `supabase db reset`, or reapplying it) is always safe and idempotent.
 - **Changing the schedule later requires a new migration** (this one is already applied — see the "never edit an applied migration" rule in the main `CLAUDE.md`). A new migration just calls `cron.schedule('run-log-correlation', '<new interval>', $$...$$)` again; no need to `cron.unschedule()` first, since it's an upsert by name.
 - **`pg_cron` needs to be preloaded at the Postgres server level** (`shared_preload_libraries`) for the background worker to actually run, not just have its extension created. This was verified present on both local Supabase (`supabase start`) and is expected on hosted Supabase (Supabase's own "Supabase Cron" feature is built on the same extension) — but if the schedule ever silently stops working after a deploy, that's the first thing to check (see [Manual Runs and Troubleshooting](./log-correlation-operations.md)).
+- **The job's command carries its own `statement_timeout`, scoped to just this job** (`supabase/migrations/20261012180754_raise_statement_timeout_for_log_correlation_cron.sql`), raised from the default 2min to 10min. This was added after the very first production deploy: with every pre-existing file simultaneously "pending" for a brand-new feature, the sweep's first few ticks exceeded 2min and got cancelled — see the **Note** below for why that's worse than an ordinary failure. Scoping the raise to the job's own command (rather than the `postgres` role or database) keeps the normal 2min guard everywhere else (Studio SQL editor, other admin queries).
 
-**Note:** `run_log_correlation()` never raises for expected failures (not-ready, ambiguous parent) or even genuinely unexpected errors — it always returns a run id and records the outcome on `log_correlation_runs`. Re-raising would abort the whole transaction and roll back the very audit row meant to record the failure, so callers check the returned run's `status`/`error_message` instead of relying on an RPC-level error.
+**Note:** `run_log_correlation()` never raises for expected failures (not-ready, ambiguous parent) or even genuinely unexpected errors — it always returns a run id and records the outcome on `log_correlation_runs`. Re-raising would abort the whole transaction and roll back the very audit row meant to record the failure, so callers check the returned run's `status`/`error_message` instead of relying on an RPC-level error. A `statement_timeout` cancellation is the one failure mode this can't protect against: it's a hard query cancellation the function's exception handling never gets a chance to catch, so it aborts the whole call (including, for the sweep, every file batched into that invocation) with no audit row at all — `log_correlation_runs` stays completely silent about it. `cron.job_run_details.return_message` is the only place the actual `canceling statement due to statement timeout` error shows up (see [Manual Runs and Troubleshooting](./log-correlation-operations.md#checking-the-schedule-itself)). If the sweep ever goes quiet again despite `cron.job` showing it as active, check there first.
 
 ## Filling gaps
 
