@@ -53,6 +53,14 @@ function formatParentTime(iso: string | null): string {
   return `${MONTHS_1_12(d)}/${d.getUTCDate()}/${d.getUTCFullYear()} ${d.getUTCHours()}:${mm}`;
 }
 
+/** yyyyMMdd_HHmmss, UTC, for the exported filename's generated-at stamp. */
+function formatFileTimestamp(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const datePart = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}`;
+  const timePart = `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
+  return `${datePart}_${timePart}`;
+}
+
 type Row = {
   child_code: string | null;
   effective_child_code: string | null;
@@ -179,7 +187,10 @@ export async function GET(
 
   const csv = [CASPIO_HEADER.join(","), ...rows.map(toCsvLine)].join("\r\n") + "\r\n";
   const baseName = rows[0].child_filename.replace(/\.[^./\\]+$/, "");
-  const safeFilename = `${baseName} Report`.replace(/[^a-zA-Z0-9 _.-]/g, "_");
+  const safeFilename = `${baseName}_CORR_RPT_${formatFileTimestamp(new Date())}`.replace(
+    /[^a-zA-Z0-9 _.-]/g,
+    "_",
+  );
 
   return new NextResponse(csv, {
     status: 200,
