@@ -90,10 +90,12 @@ table 'public customer'
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_customer = Source{[Schema="public",Item="customer"]}[Data]
 				in
 				    public_customer
 
 	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
 

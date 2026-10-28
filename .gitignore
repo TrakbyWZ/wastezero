@@ -65,3 +65,6 @@ public/docs
 /.claude/settings.local.json
 /.claude/scheduled_tasks.lock
 /.claude/worktrees/
+
+# Local MCP server config (may contain personal tokens)
+/.mcp.json

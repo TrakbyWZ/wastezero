@@ -41,6 +41,10 @@ export const DOC_NAV: readonly DocNavSection[] = [
       { slug: "log-correlation-operations", label: "Manual Runs and Troubleshooting" },
     ],
   },
+  {
+    label: "Power BI Reports",
+    items: [{ slug: "powerbi-reports", label: "Download the Report" }],
+  },
 ] as const;
 
 export function getAllDocSlugs(): string[] {

@@ -159,7 +159,7 @@ table 'public log_entries'
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_log_entries = Source{[Schema="public",Item="log_entries"]}[Data],
 				    #"Added Custom" = Table.AddColumn(public_log_entries, "data_type", each if Text.Contains([data_value], "Bad") then "Bad Read" else "Good Read"),
 				    #"Duplicated Column" = Table.AddColumn(#"Added Custom", "Customer Code", each [data_value], type text),

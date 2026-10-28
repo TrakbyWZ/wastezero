@@ -266,12 +266,65 @@ table 'public vw_api_log_correlations'
 
 		annotation SummarizationSetBy = Automatic
 
+	column is_inferred
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 20f019e3-b3fb-48d1-84f5-4039cef2c908
+		summarizeBy: none
+		sourceColumn: is_inferred
+
+		annotation SummarizationSetBy = Automatic
+
+	column effective_child_code
+		dataType: string
+		lineageTag: f412db24-ebc0-4128-bebb-a7c4dd958c22
+		summarizeBy: none
+		sourceColumn: effective_child_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column effective_parent_code
+		dataType: string
+		lineageTag: 535d09b8-4b28-42de-8535-e653bc310a4f
+		summarizeBy: none
+		sourceColumn: effective_parent_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column child_log_file_id
+		dataType: string
+		lineageTag: 8b790ff5-aa57-45af-97cd-3b10a937fc42
+		summarizeBy: none
+		sourceColumn: child_log_file_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_by
+		dataType: string
+		lineageTag: d9d8f0de-e836-41d4-9900-3016ea70111f
+		summarizeBy: none
+		sourceColumn: created_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column modified_by
+		dataType: string
+		lineageTag: d6fe80bd-46ec-44f2-8eee-ce841da05f11
+		summarizeBy: none
+		sourceColumn: modified_by
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'public vw_api_log_correlations' = m
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("localhost:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_vw_api_log_correlations = Source{[Schema="public",Item="vw_api_log_correlations"]}[Data]
 				in
 				    public_vw_api_log_correlations
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
 
