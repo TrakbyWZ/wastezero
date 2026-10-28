@@ -1,0 +1,15 @@
+find_replace:
+  - find_value: "aws-0-us-west-2.pooler.supabase.com:5432"
+    replace_value:
+      PROD: "aws-0-us-west-2.pooler.supabase.com:5432"
+      LOCAL: "localhost:54322"
+    item_type: "SemanticModel"
+    item_name: "TrakbyWz_Reports"
+
+  - find_value: "postgres"
+    replace_value:
+      PROD: "postgres"
+      LOCAL: "postgres"
+    item_type: "SemanticModel"
+    item_name: "TrakbyWz_Reports"
+    file_path: "/TrakbyWz_Reports.SemanticModel/definition/expressions.tmdl"

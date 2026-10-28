@@ -1,0 +1,14 @@
+expression sql_endpoint = "aws-0-us-west-2.pooler.supabase.com:5432" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
+	lineageTag: 2894033e-3559-4840-b4b0-10672b5d8bf0
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+
+expression sql_dbname = "postgres" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
+	lineageTag: ad1f1cec-a5dc-4b98-b36c-1f13293ca231
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+

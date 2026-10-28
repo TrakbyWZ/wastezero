@@ -145,10 +145,12 @@ table 'public batch'
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_batch = Source{[Schema="public",Item="batch"]}[Data]
 				in
 				    public_batch
 
 	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
 

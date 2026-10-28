@@ -125,10 +125,12 @@ table 'public customer_sequence'
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_customer_sequence = Source{[Schema="public",Item="customer_sequence"]}[Data]
 				in
 				    public_customer_sequence
 
 	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
 

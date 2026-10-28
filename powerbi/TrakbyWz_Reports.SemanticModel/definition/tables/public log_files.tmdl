@@ -92,10 +92,12 @@ table 'public log_files'
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("127.0.0.1:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_log_files = Source{[Schema="public",Item="log_files"]}[Data]
 				in
 				    public_log_files
 
 	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
 

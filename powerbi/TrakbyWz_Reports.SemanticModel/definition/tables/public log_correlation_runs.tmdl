@@ -121,12 +121,24 @@ table 'public log_correlation_runs'
 
 		annotation SummarizationSetBy = Automatic
 
+	column operation
+		dataType: string
+		lineageTag: 220c9563-3c0f-4227-b502-c09fd7ae9bfb
+		summarizeBy: none
+		sourceColumn: operation
+
+		annotation SummarizationSetBy = Automatic
+
 	partition 'public log_correlation_runs' = m
 		mode: import
 		source =
 				let
-				    Source = PostgreSQL.Database("localhost:54322", "postgres"),
+				    Source = PostgreSQL.Database(sql_endpoint, sql_dbname),
 				    public_log_correlation_runs = Source{[Schema="public",Item="log_correlation_runs"]}[Data]
 				in
 				    public_log_correlation_runs
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
 

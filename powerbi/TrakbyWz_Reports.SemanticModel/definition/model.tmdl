@@ -8,7 +8,7 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 1
 
-annotation PBI_QueryOrder = ["public log_entries","public log_files","public batch","public customer","public customer_sequence","public vw_api_log_correlations","public log_correlation_runs"]
+annotation PBI_QueryOrder = ["public log_entries","public log_files","public batch","public customer","public customer_sequence","public vw_api_log_correlations","public log_correlation_runs","sql_endpoint","sql_dbname"]
 
 annotation PBI_RemovedChildren = [{"remoteItemId":{"foreignKeyRelationship":{"fromTableLocalLineageTag":"0936b96f-26c7-4730-bc67-7baa46ec8ad2","fromColumnLocalLineageTag":"43480653-befd-447d-bf2c-cf0c517c9445","toTableLocalLineageTag":"2b1d4d8d-75bf-42c9-9db3-4553d3514ffe","toColumnLocalLineageTag":"831cd67d-5c89-4f61-9c36-a1ca4f1cee74"}},"objectType":"Relationship"}]
 
