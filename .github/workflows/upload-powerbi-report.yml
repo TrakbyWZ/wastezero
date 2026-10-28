@@ -1,0 +1,38 @@
+name: Upload Power BI Report
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "powerbi/**"
+      - ".github/workflows/upload-powerbi-report.yml"
+
+jobs:
+  upload-powerbi:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Upload Power BI project files
+        run: pnpm run upload-powerbi

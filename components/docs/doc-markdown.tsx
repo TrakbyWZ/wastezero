@@ -45,19 +45,29 @@ function PreForMarkdown(
   );
 }
 
+const DOWNLOAD_LINK_CLASS =
+  "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground no-underline shadow transition-colors hover:bg-primary/90";
+
 const components: Components = {
   pre: PreForMarkdown,
-  a: ({ href, children, ...rest }) => (
-    <a
-      href={href}
-      className="font-medium text-primary underline underline-offset-4"
-      target={href?.startsWith("http") ? "_blank" : undefined}
-      rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
-      {...rest}
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children, ...rest }) => {
+    const isDownload = href?.startsWith("/api/") && href.includes("/download");
+    return (
+      <a
+        href={href}
+        className={
+          isDownload
+            ? DOWNLOAD_LINK_CLASS
+            : "font-medium text-primary underline underline-offset-4"
+        }
+        target={href?.startsWith("http") ? "_blank" : undefined}
+        rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
+        {...rest}
+      >
+        {children}
+      </a>
+    );
+  },
   h1: ({ children }) => (
     <h1 className="scroll-mt-20 text-3xl font-bold tracking-tight text-foreground">
       {children}
