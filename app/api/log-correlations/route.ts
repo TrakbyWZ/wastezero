@@ -86,7 +86,11 @@ export async function GET(request: Request) {
   } else if (status === "excluded") {
     query = query.eq("usr_exclude_row", true);
   } else if (status === "inferred") {
-    query = query.eq("is_inferred", true);
+    // is_child_code_inferred, not is_inferred: the latter only covers
+    // synthetic gap type B rows, so a file whose gaps were all filled in
+    // place (gap type A) matched nothing here even though gap-fill had
+    // inferred its codes.
+    query = query.eq("is_child_code_inferred", true);
   }
 
   const { data: rows, error, count } = await query;

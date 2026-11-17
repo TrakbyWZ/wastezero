@@ -73,7 +73,54 @@ async function main() {
   const admin = createAdminClient();
 
   // --- Cleanup any previous run's data ---
-  await admin.from("log_files").delete().like("filename", `${TEST_FILE_PREFIX}%`);
+  // Order matters: log_correlations cascades from log_files, but
+  // log_correlation_runs does not (its child_log_file_id_param FK has no ON
+  // DELETE CASCADE), and log_correlations.created_by/modified_by point back
+  // at those runs. Deleting log_files alone therefore fails on the second
+  // run with a foreign-key violation, so unwind correlations -> runs -> files.
+  const { data: staleFiles } = await admin
+    .from("log_files")
+    .select("id")
+    .like("filename", `${TEST_FILE_PREFIX}%`);
+  // Errors here are thrown, not ignored: a cleanup that fails quietly leaves
+  // the next run to die on a confusing duplicate-filename insert instead.
+  const staleFileIds = (staleFiles ?? []).map((f) => f.id as string);
+  if (staleFileIds.length > 0) {
+    const { error: delCorrErr } = await admin
+      .from("log_correlations")
+      .delete()
+      .in("child_log_file_id", staleFileIds);
+    if (delCorrErr) throw new Error(`Cleanup failed deleting log_correlations: ${delCorrErr.message}`);
+
+    const { error: delRunsErr } = await admin
+      .from("log_correlation_runs")
+      .delete()
+      .in("child_log_file_id_param", staleFileIds);
+    if (delRunsErr) throw new Error(`Cleanup failed deleting log_correlation_runs: ${delRunsErr.message}`);
+
+    // Deleted explicitly, and in chunks, rather than left to cascade from
+    // log_files: public.log_correlations.parent_log_entry_id has no index, so
+    // every log_entries row deleted costs a sequential scan of
+    // log_correlations for the FK check. Against a developer database
+    // restored from production that is slow enough that one big cascading
+    // delete hits the statement timeout.
+    const { data: staleEntries, error: staleEntriesErr } = await admin
+      .from("log_entries")
+      .select("id")
+      .in("log_file_id", staleFileIds);
+    if (staleEntriesErr) throw new Error(`Cleanup failed listing log_entries: ${staleEntriesErr.message}`);
+    const staleEntryIds = (staleEntries ?? []).map((e) => e.id as string);
+    for (let i = 0; i < staleEntryIds.length; i += 100) {
+      const { error: delEntriesErr } = await admin
+        .from("log_entries")
+        .delete()
+        .in("id", staleEntryIds.slice(i, i + 100));
+      if (delEntriesErr) throw new Error(`Cleanup failed deleting log_entries: ${delEntriesErr.message}`);
+    }
+
+    const { error: delFilesErr } = await admin.from("log_files").delete().in("id", staleFileIds);
+    if (delFilesErr) throw new Error(`Cleanup failed deleting log_files: ${delFilesErr.message}`);
+  }
 
   async function seedLogFile(filename: string): Promise<SeededFile> {
     const { data, error } = await admin
@@ -125,6 +172,26 @@ async function main() {
       .order("usr_child_code", { ascending: true });
     if (error) throw new Error(`Failed to fetch log_correlations for ${childLogFileId}: ${error.message}`);
     return data ?? [];
+  }
+
+  /** Same rows as fetchCorrelationsForFile, but read through the API's read model. */
+  async function fetchViewRowsForFile(childLogFileId: string) {
+    const { data, error } = await admin
+      .from("vw_api_log_correlations")
+      .select("*")
+      .eq("child_log_file_id", childLogFileId);
+    if (error) throw new Error(`Failed to fetch vw_api_log_correlations for ${childLogFileId}: ${error.message}`);
+    return (data ?? []) as Record<string, unknown>[];
+  }
+
+  async function fetchFileSummary(childLogFileId: string) {
+    const { data, error } = await admin
+      .from("vw_api_log_correlation_files")
+      .select("*")
+      .eq("child_log_file_id", childLogFileId)
+      .single();
+    if (error) throw new Error(`Failed to fetch vw_api_log_correlation_files for ${childLogFileId}: ${error.message}`);
+    return data as Record<string, unknown>;
   }
 
   function byEffectiveCode(rows: Record<string, unknown>[]) {
@@ -256,6 +323,48 @@ async function main() {
   );
   assert(fillRunRowA?.parent_log_file_id_param === null, "gap-fill runs do not take a parent file override");
 
+  // --- is_child_code_inferred: the read model's answer to "was this code
+  // inferred?", which is_inferred alone gets wrong for gap type A (issue
+  // #34 - a file with only type A fills showed nothing as inferred). ---
+  const viewRowsA = await fetchViewRowsForFile(cam1FileA.id);
+  const byViewCodeA = byEffectiveCode(viewRowsA);
+
+  const view178 = byViewCodeA.get("R005C0000178");
+  assert(
+    view178?.is_inferred === false && view178?.is_child_code_inferred === true,
+    "gap type A (178): is_inferred stays false (it is a real read) but is_child_code_inferred is true - the code itself was inferred",
+  );
+
+  const view180 = byViewCodeA.get("R005C0000180");
+  assert(
+    view180?.is_inferred === true && view180?.is_child_code_inferred === true,
+    "gap type B (180): a synthetic row is inferred by both measures",
+  );
+
+  const view177 = byViewCodeA.get("R005C0000177");
+  assert(
+    view177?.is_child_code_inferred === false,
+    "an ordinary camera read (177) is not inferred by either measure",
+  );
+
+  const unfilledPlaceholderView = viewRowsA.find(
+    (r) => r.child_code === "Bad_Read" && r.usr_child_code === null,
+  );
+  assert(
+    unfilledPlaceholderView?.is_child_code_inferred === false,
+    "a Bad_Read gap-fill could not resolve is not inferred - nothing was inferred for it",
+  );
+
+  const summaryA = await fetchFileSummary(cam1FileA.id);
+  assert(
+    summaryA.inferred_count === 3,
+    `inferred_count still counts only the 3 synthetic rows (180, 185, 186) - got ${summaryA.inferred_count}`,
+  );
+  assert(
+    summaryA.inferred_code_count === 6,
+    `inferred_code_count counts all 6 inferred codes (178, 182, 183 in place + 180, 185, 186 synthetic) - got ${summaryA.inferred_code_count}`,
+  );
+
   // --- Idempotency: rerunning with no data changes should not add/change anything ---
   const countBefore = rowsA.length;
   const modifiedBefore = new Map(rowsA.map((r) => [(r as Record<string, unknown>).id, (r as Record<string, unknown>).modified_timestamp]));
@@ -330,6 +439,21 @@ async function main() {
   assert(
     refetchedRowB?.overridden_at != null && new Date(refetchedRowB.overridden_at as string).getTime() === new Date(humanOverriddenAt).getTime(),
     "the human's overridden_at timestamp is preserved - the row was never touched again",
+  );
+
+  // A reviewer's own correction is a verified value, not a guess, so it must
+  // not read as inferred even though it fills what was a gap.
+  const viewRowB = (await fetchViewRowsForFile(cam1FileB.id)).find(
+    (r) => r.id === (placeholderRowB as Record<string, unknown>).id,
+  );
+  assert(
+    viewRowB?.is_child_code_inferred === false,
+    "a human-entered correction is not inferred - overridden_by names the reviewer, not 'gap-fill'",
+  );
+  const summaryB = await fetchFileSummary(cam1FileB.id);
+  assert(
+    summaryB.inferred_code_count === 0,
+    `a fully human-reviewed file has inferred_code_count = 0 - got ${summaryB.inferred_code_count}`,
   );
 
   // ==========================================================================
