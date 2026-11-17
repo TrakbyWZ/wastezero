@@ -541,7 +541,7 @@ export default function QualityControlDetailPage() {
                           <td className="p-2 text-muted-foreground text-xs">
                             {formatDate(row.child_code_timestamp)}
                           </td>
-                          <td className="p-2 text-muted-foreground">{row.is_inferred ? "Yes" : "No"}</td>
+                          <td className="p-2 text-muted-foreground">{row.is_child_code_inferred ? "Yes" : "No"}</td>
                           <td className="p-2">
                             <Checkbox
                               checked={editState.usr_exclude_row}
@@ -599,7 +599,7 @@ export default function QualityControlDetailPage() {
                           <td className="p-2 text-muted-foreground text-xs">
                             {formatDate(row.child_code_timestamp)}
                           </td>
-                          <td className="p-2 text-muted-foreground">{row.is_inferred ? "Yes" : "No"}</td>
+                          <td className="p-2 text-muted-foreground">{row.is_child_code_inferred ? "Yes" : "No"}</td>
                           <td className="p-2">
                             {row.usr_exclude_row ? <span className="font-medium">Yes</span> : "No"}
                           </td>

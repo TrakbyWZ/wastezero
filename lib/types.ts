@@ -91,7 +91,10 @@ export type LogCorrelationFileRow = {
   total_count: number;
   unresolved_count: number;
   excluded_count: number;
+  /** Synthetic (gap type B) rows only - see inferred_code_count for "codes we inferred" */
   inferred_count: number;
+  /** Rows whose effective child code was inferred by gap-fill: synthetic rows plus in-place (gap type A) corrections */
+  inferred_code_count: number;
   last_row_created_at: string;
   last_correlate_run_at: string | null;
   last_correlate_run_status: string | null;
@@ -132,7 +135,15 @@ export type LogCorrelationRow = {
   modified_timestamp: string;
   child_sort_order: number | null;
   parent_sort_order: number | null;
+  /** Structural: this row has no backing log_entries row at all (gap type B) */
   is_inferred: boolean;
+  /**
+   * effective_child_code came from gap-fill rather than a camera read or a
+   * reviewer: a synthetic row (is_inferred) or an in-place gap type A
+   * correction (overridden_by = 'gap-fill'). This is what the QC "Inferred"
+   * column and the status=inferred filter mean.
+   */
+  is_child_code_inferred: boolean;
   effective_child_code: string | null;
   effective_parent_code: string | null;
   child_log_file_id: string;

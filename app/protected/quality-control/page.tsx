@@ -255,6 +255,7 @@ export default function QualityControlListPage() {
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Rows</th>
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Unresolved</th>
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Excluded</th>
+                <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Inferred</th>
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Last Correlate</th>
                 <th className="sticky top-0 z-10 border-b bg-muted text-left font-medium p-3">Last Gap-Fill</th>
                 <th className="sticky top-0 right-0 z-20 border-b border-l bg-muted text-left font-medium p-3">Actions</th>
@@ -263,13 +264,13 @@ export default function QualityControlListPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={12} className="p-8 text-center text-muted-foreground">
                     Loading…
                   </td>
                 </tr>
               ) : files.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={12} className="p-8 text-center text-muted-foreground">
                     No files match the current filters.
                   </td>
                 </tr>
@@ -303,6 +304,14 @@ export default function QualityControlListPage() {
                     <td className="p-3">
                       <span className={row.excluded_count > 0 ? "font-medium" : ""}>
                         {row.excluded_count.toLocaleString()}
+                      </span>
+                    </td>
+                    {/* inferred_code_count, not inferred_count: gaps filled in
+                        place (gap type A) are inferred codes too, and a file
+                        can have many of them with zero synthetic rows. */}
+                    <td className="p-3">
+                      <span className={row.inferred_code_count > 0 ? "font-medium" : ""}>
+                        {row.inferred_code_count.toLocaleString()}
                       </span>
                     </td>
                     <td className="p-3">
