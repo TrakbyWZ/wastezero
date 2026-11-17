@@ -82,6 +82,38 @@ pnpm exec supabase db reset
 - **When you change a migration** during development, run `db reset` again (or the workflow you use) so local Postgres matches.  
 - CLI details and `db push` for remote projects live in `supabase/README.md` in the repository (remote deploy is also covered in [admin-platforms](./admin-platforms.md)).
 
+### Working from a copy of production data
+
+`db reset` gives you migrations plus `seed.sql`. When you need to reproduce something against real data instead, restore a production dump onto local:
+
+```bash
+pnpm db:refresh:local   # db:backup --linked, then db:restore --local --latest --yes
+```
+
+`db:restore` **drops and recreates the local `postgres` database**, and refuses anything but `--local` by design — it never writes to a linked or remote project.
+
+Two things are not in that dump, and both will stop you cold if you skip them:
+
+- **Auth users.** The dump covers the **`public`** schema only, so restoring empties **`auth.users`** while `public.users` keeps its allow-listed emails. Login is OTP-only against Supabase Auth, so with no Auth users you simply cannot sign in — the app looks broken, with nothing wrong in the app. Rebuild them from `public.users`:
+
+  ```bash
+  pnpm create-users --local
+  ```
+
+  Any `supabase/seed.sql` dev users are gone too; `create-users` reads `public.users`, which the dump *does* restore.
+
+- **Migrations newer than production.** A dump carries production's schema, so anything in `supabase/migrations/` not yet pushed is missing. Do **not** use `db reset` to apply it — that rebuilds from migrations and `seed.sql` and throws the restored data away. Use:
+
+  ```bash
+  pnpm db:migrate:local   # --dry-run first to see the plan
+  ```
+
+  It marks versions already applied on the linked project as applied (without re-running their SQL), then applies only the local-only ones.
+
+So a full "work against production data" cycle is: `db:refresh:local` → `db:migrate:local` → `create-users --local`.
+
+A restored dump is real customer data. Keep it local, and remember that test scripts under `scripts/` seed and delete rows in the same database.
+
 ### Local Studio
 
 Open **Supabase Studio** for the local project from the CLI (URL is listed in `supabase status`) to browse tables, SQL, and Auth for debugging.
@@ -89,6 +121,7 @@ Open **Supabase Studio** for the local project from the CLI (URL is listed in `s
 ### OTP and allow-listed users (local)
 
 - Seeded / test users for local dev are typically defined in **`supabase/seed.sql`**. If you change the seed, run `pnpm exec supabase db reset` so they are reapplied.  
+- **If you cannot sign in after restoring a production dump**, `auth.users` is empty — the dump only carries the `public` schema. Run `pnpm create-users --local`; see [Working from a copy of production data](#working-from-a-copy-of-production-data).  
 - Without outgoing SMTP, use the code shown in the **dev server** terminal.  
 - The app’s access rules still use `public.users` and Supabase Auth (see [App structure](./app-structure-and-database.md) and the allow-list in `lib/supabase/proxy.ts`).
 
@@ -128,6 +161,7 @@ Help and developer pages are **Markdown** files in **`content/docs/`**, rendered
 - [ ] `pnpm install` completed with no error at repo root.  
 - [ ] `.env.local` exists and matches a running Supabase (local `status` or hosted project).  
 - [ ] `pnpm exec supabase db reset` (local) or equivalent applied migrations.  
+- [ ] If you restored a production dump instead: `pnpm db:migrate:local` applied the local-only migrations, and `pnpm create-users --local` recreated the Auth users (otherwise sign-in fails with `auth.users` empty).  
 - [ ] `pnpm dev` (or `pnpm run dev:full`) running and the browser target matches your env (e.g. `http://localhost:3000`).
 
 For **repository layout**, key names, and RLS, continue with [App structure, Supabase connection, and database construction](./app-structure-and-database.md). For **production** GitHub / Vercel / hosted Supabase operations, use [Users, GitHub, Supabase, and Vercel](./admin-platforms.md).
