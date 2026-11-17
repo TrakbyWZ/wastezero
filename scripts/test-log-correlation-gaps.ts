@@ -6,14 +6,21 @@
  * TypeScript module. Follows the same pattern as
  * scripts/test-log-correlation.ts.
  *
+ * Local only - this suite seeds and deletes rows, and the customer_sequence
+ * run_log_correlation() resolves against is shared with real data. See
+ * scripts/lib/require-local-supabase.ts.
+ *
  * Usage:
  *   pnpm test:log-correlation-gaps -- --local
- *   pnpm test:log-correlation-gaps -- --linked
  */
 
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { createAdminClient } from "../lib/supabase/admin";
+import {
+  requireLocalFlag,
+  assertLocalSupabaseUrl,
+} from "./lib/require-local-supabase";
 
 const TEST_FILE_PREFIX = "test-log-correlation-gaps-";
 /**
@@ -47,10 +54,6 @@ function loadEnvFile(filename: string) {
   }
 }
 
-function hasFlag(name: string): boolean {
-  return process.argv.includes(name);
-}
-
 let failures = 0;
 function assert(condition: boolean, message: string) {
   if (condition) {
@@ -68,18 +71,14 @@ function tsAt(secondsOffset: number): string {
 type SeededFile = { id: string };
 
 async function main() {
-  const useLocal = hasFlag("--local");
-  const useLinked = hasFlag("--linked");
-  if (useLocal === useLinked) {
-    console.error("Pass exactly one of --local or --linked.");
-    process.exit(1);
-  }
-  loadEnvFile(useLocal ? ".env.local" : ".env.prod.local");
+  requireLocalFlag("test:log-correlation-gaps");
+  loadEnvFile(".env.local");
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
     console.error("Missing SUPABASE_URL / SUPABASE_SECRET_KEY in env.");
     process.exit(1);
   }
+  assertLocalSupabaseUrl("test:log-correlation-gaps");
 
   const admin = createAdminClient();
 
