@@ -98,26 +98,11 @@ async function main() {
       .in("child_log_file_id_param", staleFileIds);
     if (delRunsErr) throw new Error(`Cleanup failed deleting log_correlation_runs: ${delRunsErr.message}`);
 
-    // Deleted explicitly, and in chunks, rather than left to cascade from
-    // log_files: public.log_correlations.parent_log_entry_id has no index, so
-    // every log_entries row deleted costs a sequential scan of
-    // log_correlations for the FK check. Against a developer database
-    // restored from production that is slow enough that one big cascading
-    // delete hits the statement timeout.
-    const { data: staleEntries, error: staleEntriesErr } = await admin
-      .from("log_entries")
-      .select("id")
-      .in("log_file_id", staleFileIds);
-    if (staleEntriesErr) throw new Error(`Cleanup failed listing log_entries: ${staleEntriesErr.message}`);
-    const staleEntryIds = (staleEntries ?? []).map((e) => e.id as string);
-    for (let i = 0; i < staleEntryIds.length; i += 100) {
-      const { error: delEntriesErr } = await admin
-        .from("log_entries")
-        .delete()
-        .in("id", staleEntryIds.slice(i, i + 100));
-      if (delEntriesErr) throw new Error(`Cleanup failed deleting log_entries: ${delEntriesErr.message}`);
-    }
-
+    // log_entries is left to cascade from log_files. That cascade used to hit
+    // the statement timeout, because every entry deleted cost a sequential
+    // scan of log_correlations for the parent_log_entry_id FK check -
+    // 20261117130000_index_log_correlations_parent_log_entry_id.sql indexed
+    // that column, so it is an index lookup now.
     const { error: delFilesErr } = await admin.from("log_files").delete().in("id", staleFileIds);
     if (delFilesErr) throw new Error(`Cleanup failed deleting log_files: ${delFilesErr.message}`);
   }
