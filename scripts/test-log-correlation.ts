@@ -15,6 +15,26 @@ import { createAdminClient } from "../lib/supabase/admin";
 
 const TEST_CUSTOMER_NUM = "TESTLOGCORR";
 const TEST_FILE_PREFIX = "test-log-correlation-";
+/**
+ * Label prefix for this test's seeded customer_sequence, and the prefix every
+ * camera1 code below is built from. Deliberately not shaped like a real one.
+ *
+ * Customer resolution matches a code against *every* customer_sequence by
+ * regex (customer_sequence_cam1_data_value_regex), not just the one this test
+ * seeded, so the prefix has to be one no real sequence uses. It used to be
+ * R005C, which is a live prefix belonging to customer EVERGREEN on a developer
+ * database restored from production. Step A4 below renames this test's own
+ * sequence away and asserts the rows stop resolving - but EVERGREEN's R005C
+ * still matched them, so they kept resolving and that assertion failed for
+ * reasons that had nothing to do with the code under test.
+ *
+ * assertPrefixIsUnused() re-checks this at startup rather than trusting it,
+ * since a real sequence using this prefix could be added at any time.
+ */
+const TEST_LABEL_PREFIX = "ZQTST";
+const TEST_NUMBER_FORMAT = "0000000";
+/** Non-matching value step A4 renames the seeded sequence to. Namespaced so stray rows are traceable to this test. */
+const TEST_RENAMED_LABEL_PREFIX = "ZQTST-RENAMED-NO-MATCH";
 const JOB_START = "2026-04-16T10:30:00.000Z";
 const JOB_END = "2026-04-16T10:35:00.000Z";
 
@@ -72,8 +92,59 @@ async function main() {
   const admin = createAdminClient();
 
   // --- Cleanup any previous run's data ---
-  await admin.from("log_files").delete().like("filename", `${TEST_FILE_PREFIX}%`);
-  await admin.from("customer").delete().eq("customer_num", TEST_CUSTOMER_NUM);
+  // Order matters, and errors are thrown rather than ignored: log_correlations
+  // cascades from log_files but log_correlation_runs does not (its
+  // child_log_file_id_param FK has no ON DELETE CASCADE), and
+  // log_correlations.created_by/modified_by point back at those runs. Deleting
+  // log_files alone fails on the second run with a foreign-key violation,
+  // which then surfaces as a confusing duplicate-filename insert instead.
+  const { data: staleFiles, error: staleFilesErr } = await admin
+    .from("log_files")
+    .select("id")
+    .like("filename", `${TEST_FILE_PREFIX}%`);
+  if (staleFilesErr) throw new Error(`Cleanup failed listing log_files: ${staleFilesErr.message}`);
+  const staleFileIds = (staleFiles ?? []).map((f) => f.id as string);
+  if (staleFileIds.length > 0) {
+    const { error: delCorrErr } = await admin
+      .from("log_correlations")
+      .delete()
+      .in("child_log_file_id", staleFileIds);
+    if (delCorrErr) throw new Error(`Cleanup failed deleting log_correlations: ${delCorrErr.message}`);
+
+    const { error: delRunsErr } = await admin
+      .from("log_correlation_runs")
+      .delete()
+      .in("child_log_file_id_param", staleFileIds);
+    if (delRunsErr) throw new Error(`Cleanup failed deleting log_correlation_runs: ${delRunsErr.message}`);
+
+    const { error: delFilesErr } = await admin.from("log_files").delete().in("id", staleFileIds);
+    if (delFilesErr) throw new Error(`Cleanup failed deleting log_files: ${delFilesErr.message}`);
+  }
+
+  const { error: delCustomerErr } = await admin
+    .from("customer")
+    .delete()
+    .eq("customer_num", TEST_CUSTOMER_NUM);
+  if (delCustomerErr) throw new Error(`Cleanup failed deleting test customer: ${delCustomerErr.message}`);
+
+  // Customer resolution matches a code against every customer_sequence, not
+  // just this test's, so any other sequence sharing TEST_LABEL_PREFIX silently
+  // breaks the assertions about which sequence a row resolved to. Checked
+  // after the cleanup above, so this test's own leftovers never trip it.
+  const { data: collidingSequences, error: collisionErr } = await admin
+    .from("customer_sequence")
+    .select("id, label_prefix, number_format, customer_id")
+    .eq("label_prefix", TEST_LABEL_PREFIX);
+  if (collisionErr) throw new Error(`Failed to check for a colliding customer_sequence: ${collisionErr.message}`);
+  if ((collidingSequences ?? []).length > 0) {
+    throw new Error(
+      `A customer_sequence already uses label_prefix "${TEST_LABEL_PREFIX}" ` +
+        `(${(collidingSequences ?? []).map((s) => s.id).join(", ")}). ` +
+        `This test's codes would resolve against it as well as the sequence it seeds, ` +
+        `making the customer-resolution assertions meaningless. ` +
+        `Change TEST_LABEL_PREFIX to a value no real customer_sequence uses.`,
+    );
+  }
 
   async function seedLogFile(filename: string): Promise<SeededFile> {
     const { data, error } = await admin
@@ -154,8 +225,8 @@ async function main() {
     .from("customer_sequence")
     .insert({
       customer_id: customer.id,
-      label_prefix: "R005C",
-      number_format: "0000000",
+      label_prefix: TEST_LABEL_PREFIX,
+      number_format: TEST_NUMBER_FORMAT,
       start_seq: 1,
       end_seq: 9999999,
       offset_sequence: 1,
@@ -172,36 +243,52 @@ async function main() {
   const cam2FileA = await seedLogFile(`${TEST_FILE_PREFIX}cam2a.txt`);
 
   const cam1CodesA = [
-    ...Array.from({ length: 14 }, (_, i) => `R005C${String(177 + i).padStart(7, "0")}`),
-    "R005C0000195",
+    ...Array.from({ length: 14 }, (_, i) => `${TEST_LABEL_PREFIX}${String(177 + i).padStart(7, "0")}`),
+    "ZQTST0000195",
+    // Deliberately matches no customer_sequence at all, seeded or real.
     "ZZZZZ0000001",
     "Bad_Read",
   ];
+
   await seedLogEntries(cam1FileA.id, "Camera 1 Log File", "EvergreenA", "EVG-A", cam1CodesA, 0);
 
   const cam2ValuesA = [
-    "R005C0000129", "R005C0000136", "Bad_Read", "R005C0000146", "Bad_Read", "Bad_Read",
-    "R005C0000163", "R005C0000170", "R005C0000175", "R005C0000180", "R005C0000184",
-    "R005C0000189", "R005C0000194",
+    "ZQTST0000129", "ZQTST0000136", "Bad_Read", "ZQTST0000146", "Bad_Read", "Bad_Read",
+    "ZQTST0000163", "ZQTST0000170", "ZQTST0000175", "ZQTST0000180", "ZQTST0000184",
+    "ZQTST0000189", "ZQTST0000194",
   ];
+  // Most codes above are written out literally for readability, so they cannot
+  // follow a change to TEST_LABEL_PREFIX on their own. Catch that drift here
+  // rather than through a wall of confusing resolution failures. ZZZZZ is
+  // exempt: it is the deliberately-unmatched prefix.
+  const strayCode = [...cam1CodesA, ...cam2ValuesA].find(
+    (code) => code !== "Bad_Read" && !code.startsWith(TEST_LABEL_PREFIX) && !code.startsWith("ZZZZZ"),
+  );
+  if (strayCode) {
+    throw new Error(
+      `Seeded code "${strayCode}" does not start with TEST_LABEL_PREFIX ("${TEST_LABEL_PREFIX}"). ` +
+        `Update the literal codes in this file to match the constant.`,
+    );
+  }
+
   await seedLogEntries(cam2FileA.id, "Camera 2 Log File", "EvergreenA", "EVG-A", cam2ValuesA, 300);
 
   const expectedParentA: Record<string, string | null> = {
-    "R005C0000177": "R005C0000180",
-    "R005C0000178": "R005C0000180",
-    "R005C0000179": "R005C0000180",
-    "R005C0000180": "R005C0000180",
-    "R005C0000181": "R005C0000184",
-    "R005C0000182": "R005C0000184",
-    "R005C0000183": "R005C0000184",
-    "R005C0000184": "R005C0000184",
-    "R005C0000185": "R005C0000189",
-    "R005C0000186": "R005C0000189",
-    "R005C0000187": "R005C0000189",
-    "R005C0000188": "R005C0000189",
-    "R005C0000189": "R005C0000189",
-    "R005C0000190": "R005C0000194",
-    "R005C0000195": null,
+    "ZQTST0000177": "ZQTST0000180",
+    "ZQTST0000178": "ZQTST0000180",
+    "ZQTST0000179": "ZQTST0000180",
+    "ZQTST0000180": "ZQTST0000180",
+    "ZQTST0000181": "ZQTST0000184",
+    "ZQTST0000182": "ZQTST0000184",
+    "ZQTST0000183": "ZQTST0000184",
+    "ZQTST0000184": "ZQTST0000184",
+    "ZQTST0000185": "ZQTST0000189",
+    "ZQTST0000186": "ZQTST0000189",
+    "ZQTST0000187": "ZQTST0000189",
+    "ZQTST0000188": "ZQTST0000189",
+    "ZQTST0000189": "ZQTST0000189",
+    "ZQTST0000190": "ZQTST0000194",
+    "ZQTST0000195": null,
     "ZZZZZ0000001": null,
     "Bad_Read": null,
   };
@@ -224,7 +311,7 @@ async function main() {
   const resolvedCustomerRowsA = rowsA.filter((r) => r.child_code !== "ZZZZZ0000001" && r.child_code !== "Bad_Read");
   assert(
     resolvedCustomerRowsA.every((r) => r.customer_id === customer.id && r.customer_sequence_id === customerSequence.id),
-    "all R005C-prefixed rows resolve to the seeded customer/customer_sequence",
+    "all ZQTST-prefixed rows resolve to the seeded customer/customer_sequence",
   );
   const unmatchedRowA = rowsA.find((r) => r.child_code === "ZZZZZ0000001");
   assert(
@@ -270,7 +357,7 @@ async function main() {
   // call still can't touch existing rows.
   const { error: mutateErr } = await admin
     .from("customer_sequence")
-    .update({ label_prefix: "NOPE_NO_MATCH" })
+    .update({ label_prefix: TEST_RENAMED_LABEL_PREFIX })
     .eq("id", customerSequence.id);
   if (mutateErr) throw new Error(`Failed to mutate customer_sequence: ${mutateErr.message}`);
 

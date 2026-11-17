@@ -16,6 +16,17 @@ import { join } from "path";
 import { createAdminClient } from "../lib/supabase/admin";
 
 const TEST_FILE_PREFIX = "test-log-correlation-gaps-";
+/**
+ * Label prefix every camera1 code below is built from. This test asserts
+ * nothing about customer resolution, but run_log_correlation() still resolves
+ * each code against every customer_sequence by regex, so a prefix a real
+ * sequence uses would quietly attribute this test's rows to a real customer.
+ * It used to be R005C, which belongs to customer EVERGREEN on a developer
+ * database restored from production. ZQTST matches no real sequence; ZZZZZ,
+ * used below, is the deliberately-unmatched prefix for the prefix-change case.
+ * Codes are written out literally, so keep them in step with this value.
+ */
+const TEST_LABEL_PREFIX = "ZQTST";
 const JOB_START = "2026-04-16T10:30:00.000Z";
 const JOB_END = "2026-04-16T10:35:00.000Z";
 
@@ -206,28 +217,44 @@ async function main() {
 
   const cam1CodesA = [
     "Bad_Read", // leading placeholder - no left bound, must be skipped
-    "R005C0000177",
+    "ZQTST0000177",
     "Bad_Read", // -> 178, type A (1-wide)
-    "R005C0000179",
+    "ZQTST0000179",
     // gap: nothing for 180 - type B (1-wide)
-    "R005C0000181",
+    "ZQTST0000181",
     "Bad_Read", // -> 182
     "Bad_Read", // -> 183, type A (2-wide)
-    "R005C0000184",
+    "ZQTST0000184",
     // gap: nothing for 185, 186 - type B (2-wide)
-    "R005C0000187",
+    "ZQTST0000187",
     "Bad_Read", // ambiguous: only 1 placeholder but 2 missing (188, 189)
     // gap: nothing for the other missing number
-    "R005C0000190",
+    "ZQTST0000190",
     "Bad_Read", // gap to 992 is 801-wide - too wide for p_max_gap_span=100 below
-    "R005C0000992",
+    "ZQTST0000992",
     "Bad_Read", // trailing placeholder - no right bound, must be skipped
   ];
   await seedLogEntries(cam1FileA.id, "Camera 1 Log File", "GapTestA", "GAP-A", cam1CodesA, 0);
 
   // Parent file: ceiling-matches exist for every number from 177 through 992,
   // so every filled/inferred child code in job A has a real usr_parent_code.
-  const cam2ValuesA = Array.from({ length: 820 }, (_, i) => `R005C${String(177 + i).padStart(7, "0")}`);
+  const cam2ValuesA = Array.from(
+    { length: 820 },
+    (_, i) => `${TEST_LABEL_PREFIX}${String(177 + i).padStart(7, "0")}`,
+  );
+
+  // The camera1 codes above are literals, so they cannot follow a change to
+  // TEST_LABEL_PREFIX on their own. ZZZZZ is exempt - it is the
+  // deliberately-unmatched prefix used by the prefix-change case below.
+  const strayCode = cam1CodesA.find(
+    (code) => code !== "Bad_Read" && !code.startsWith(TEST_LABEL_PREFIX) && !code.startsWith("ZZZZZ"),
+  );
+  if (strayCode) {
+    throw new Error(
+      `Seeded code "${strayCode}" does not start with TEST_LABEL_PREFIX ("${TEST_LABEL_PREFIX}"). ` +
+        `Update the literal codes in this file to match the constant.`,
+    );
+  }
   await seedLogEntries(cam2FileA.id, "Camera 2 Log File", "GapTestA", "GAP-A", cam2ValuesA, 2000);
 
   const { error: runErrA } = await admin.rpc("run_log_correlation", { p_child_log_file_id: cam1FileA.id });
@@ -247,35 +274,35 @@ async function main() {
   const byCodeA = byEffectiveCode(rowsA as Record<string, unknown>[]);
 
   // --- Type A (1-wide): Bad_Read between 177 and 179 becomes 178 ---
-  const row178 = byCodeA.get("R005C0000178");
+  const row178 = byCodeA.get("ZQTST0000178");
   assert(!!row178, "type A (1-wide): a usr_child_code of 178 now exists");
   assert(row178?.is_inferred === false, "178 is a corrected real row (Bad_Read), not an inferred one");
-  assert(row178?.usr_parent_code === "R005C0000178", "178's usr_parent_code ceiling-matches against the parent file");
+  assert(row178?.usr_parent_code === "ZQTST0000178", "178's usr_parent_code ceiling-matches against the parent file");
   assert(row178?.overridden_by === "gap-fill", "178's overridden_by records the gap-fill run");
   assert(row178?.overridden_at != null, "178's overridden_at is set");
 
   // --- Type B (1-wide): no row at all for 180 - inferred row inserted ---
-  const row180 = byCodeA.get("R005C0000180");
+  const row180 = byCodeA.get("ZQTST0000180");
   assert(!!row180, "type B (1-wide): an inferred row for 180 now exists");
   assert(row180?.is_inferred === true, "180 is a synthetic inferred row (no backing log_entries row)");
   assert(row180?.child_log_entry_id === null, "180's child_log_entry_id is null (no backing entry)");
-  assert(row180?.usr_parent_code === "R005C0000180", "180's usr_parent_code ceiling-matches against the parent file");
+  assert(row180?.usr_parent_code === "ZQTST0000180", "180's usr_parent_code ceiling-matches against the parent file");
   assert(row180?.job_name === "GapTestA" && row180?.job_number === "GAP-A", "180 carries forward the file's job identity");
 
   // --- Type A (2-wide): two Bad_Read rows between 181 and 184 become 182, 183 ---
-  const row182 = byCodeA.get("R005C0000182");
-  const row183 = byCodeA.get("R005C0000183");
+  const row182 = byCodeA.get("ZQTST0000182");
+  const row183 = byCodeA.get("ZQTST0000183");
   assert(!!row182 && !!row183, "type A (2-wide): usr_child_codes of 182 and 183 now exist");
   assert(row182?.is_inferred === false && row183?.is_inferred === false, "182/183 are corrected real rows, not inferred");
 
   // --- Type B (2-wide): no rows at all for 185, 186 - two inferred rows inserted ---
-  const row185 = byCodeA.get("R005C0000185");
-  const row186 = byCodeA.get("R005C0000186");
+  const row185 = byCodeA.get("ZQTST0000185");
+  const row186 = byCodeA.get("ZQTST0000186");
   assert(!!row185 && !!row186, "type B (2-wide): inferred rows for 185 and 186 now exist");
   assert(row185?.is_inferred === true && row186?.is_inferred === true, "185/186 are synthetic inferred rows");
 
   // --- Ambiguous (1 placeholder present, 2 missing): must be skipped entirely ---
-  assert(!byCodeA.has("R005C0000188") && !byCodeA.has("R005C0000189"), "ambiguous gap (187->190, 1 placeholder but 2 missing) is skipped - no 188 or 189 row created");
+  assert(!byCodeA.has("ZQTST0000188") && !byCodeA.has("ZQTST0000189"), "ambiguous gap (187->190, 1 placeholder but 2 missing) is skipped - no 188 or 189 row created");
   const unresolvedCountInGap = rowsA.filter(
     (r) => (r as Record<string, unknown>).usr_child_code === null && (r as Record<string, unknown>).child_code === "Bad_Read",
   );
@@ -285,7 +312,7 @@ async function main() {
   );
 
   // --- Too wide (190 -> 992, 801 missing, over p_max_gap_span=100): skipped ---
-  assert(!byCodeA.has("R005C0000199") && !byCodeA.has("R005C0000500"), "a gap wider than p_max_gap_span is skipped entirely - no inferred rows anywhere in its span");
+  assert(!byCodeA.has("ZQTST0000199") && !byCodeA.has("ZQTST0000500"), "a gap wider than p_max_gap_span is skipped entirely - no inferred rows anywhere in its span");
 
   // --- Leading/trailing placeholders: no bound on one side, must stay unfilled ---
   const leadingRow = rowsA.find((r) => (r as Record<string, unknown>).child_log_entry_id !== null && (r as Record<string, unknown>).child_code === "Bad_Read" && (r as Record<string, unknown>).usr_child_code === null);
@@ -314,19 +341,19 @@ async function main() {
   const viewRowsA = await fetchViewRowsForFile(cam1FileA.id);
   const byViewCodeA = byEffectiveCode(viewRowsA);
 
-  const view178 = byViewCodeA.get("R005C0000178");
+  const view178 = byViewCodeA.get("ZQTST0000178");
   assert(
     view178?.is_inferred === false && view178?.is_child_code_inferred === true,
     "gap type A (178): is_inferred stays false (it is a real read) but is_child_code_inferred is true - the code itself was inferred",
   );
 
-  const view180 = byViewCodeA.get("R005C0000180");
+  const view180 = byViewCodeA.get("ZQTST0000180");
   assert(
     view180?.is_inferred === true && view180?.is_child_code_inferred === true,
     "gap type B (180): a synthetic row is inferred by both measures",
   );
 
-  const view177 = byViewCodeA.get("R005C0000177");
+  const view177 = byViewCodeA.get("ZQTST0000177");
   assert(
     view177?.is_child_code_inferred === false,
     "an ordinary camera read (177) is not inferred by either measure",
@@ -376,7 +403,7 @@ async function main() {
     "Camera 1 Log File",
     "GapTestB",
     "GAP-B",
-    ["R005C0000300", "Bad_Read", "R005C0000302"],
+    ["ZQTST0000300", "Bad_Read", "ZQTST0000302"],
     0,
   );
   await seedLogEntries(
@@ -384,7 +411,7 @@ async function main() {
     "Camera 2 Log File",
     "GapTestB",
     "GAP-B",
-    ["R005C0000300", "R005C0000301", "R005C0000302"],
+    ["ZQTST0000300", "ZQTST0000301", "ZQTST0000302"],
     100,
   );
   const { error: runErrB } = await admin.rpc("run_log_correlation", { p_child_log_file_id: cam1FileB.id });
@@ -403,7 +430,7 @@ async function main() {
   const humanOverriddenAt = new Date().toISOString();
   const { error: humanUpdateErr } = await admin
     .from("log_correlations")
-    .update({ usr_child_code: "R005C0000301", overridden_by: "qc-human@example.com", overridden_at: humanOverriddenAt })
+    .update({ usr_child_code: "ZQTST0000301", overridden_by: "qc-human@example.com", overridden_at: humanOverriddenAt })
     .eq("id", (placeholderRowB as Record<string, unknown>).id);
   if (humanUpdateErr) throw new Error(`Failed to seed human correction: ${humanUpdateErr.message}`);
 
@@ -419,7 +446,7 @@ async function main() {
     .eq("id", (placeholderRowB as Record<string, unknown>).id)
     .single();
   if (refetchErrB) throw new Error(`Failed to refetch job B row: ${refetchErrB.message}`);
-  assert(refetchedRowB?.usr_child_code === "R005C0000301", "a human correction (overridden_by set to a human identity) is never overwritten by a default gap-fill run");
+  assert(refetchedRowB?.usr_child_code === "ZQTST0000301", "a human correction (overridden_by set to a human identity) is never overwritten by a default gap-fill run");
   assert(refetchedRowB?.overridden_by === "qc-human@example.com", "the human's overridden_by value is preserved, not replaced with 'gap-fill'");
   assert(
     refetchedRowB?.overridden_at != null && new Date(refetchedRowB.overridden_at as string).getTime() === new Date(humanOverriddenAt).getTime(),
@@ -452,7 +479,7 @@ async function main() {
     "Camera 1 Log File",
     "GapTestC",
     "GAP-C",
-    ["R005C0000400", "Bad_Read", "R005C0000402"],
+    ["ZQTST0000400", "Bad_Read", "ZQTST0000402"],
     0,
   );
   await seedLogEntries(
@@ -460,7 +487,7 @@ async function main() {
     "Camera 2 Log File",
     "GapTestC",
     "GAP-C",
-    ["R005C0000400", "R005C0000401", "R005C0000402"],
+    ["ZQTST0000400", "ZQTST0000401", "ZQTST0000402"],
     100,
   );
   const { error: runErrC } = await admin.rpc("run_log_correlation", { p_child_log_file_id: cam1FileC.id });
@@ -498,7 +525,7 @@ async function main() {
     "Camera 1 Log File",
     "GapTestD",
     "GAP-D",
-    ["R005C0000500", "Bad_Read", "ZZZZZ0000501"],
+    ["ZQTST0000500", "Bad_Read", "ZZZZZ0000501"],
     0,
   );
   // No parent file for job D - run_log_correlation() will succeed with "not
@@ -507,7 +534,7 @@ async function main() {
   // camera1 file is invalid; instead seed a trivial camera2 file so
   // correlation proceeds and rows exist for gap-fill to walk.
   const cam2FileD = await seedLogFile(`${TEST_FILE_PREFIX}cam2d.txt`);
-  await seedLogEntries(cam2FileD.id, "Camera 2 Log File", "GapTestD", "GAP-D", ["R005C0000500"], 100);
+  await seedLogEntries(cam2FileD.id, "Camera 2 Log File", "GapTestD", "GAP-D", ["ZQTST0000500"], 100);
   const { error: runErrD } = await admin.rpc("run_log_correlation", { p_child_log_file_id: cam1FileD.id });
   if (runErrD) throw new Error(`run_log_correlation() (job D) failed: ${runErrD.message}`);
 
@@ -515,7 +542,7 @@ async function main() {
   if (fillErrD) throw new Error(`fill_log_correlation_gaps() (job D) failed: ${fillErrD.message}`);
 
   const rowsD = await fetchCorrelationsForFile(cam1FileD.id);
-  assert(rowsD.length === 3, "a prefix change is never bridged - no inferred/corrected row is added between R005C and ZZZZZ");
+  assert(rowsD.length === 3, "a prefix change is never bridged - no inferred/corrected row is added between ZQTST and ZZZZZ");
   const unresolvedD = rowsD.find((r) => (r as Record<string, unknown>).child_code === "Bad_Read");
   assert(unresolvedD !== undefined && (unresolvedD as Record<string, unknown>).usr_child_code === null, "the Bad_Read row between two different prefixes remains unfilled");
 
@@ -533,7 +560,7 @@ async function main() {
     "Camera 1 Log File",
     "GapTestE",
     "GAP-E",
-    ["R005C0000700", "Bad_Read", "R005C0000702"],
+    ["ZQTST0000700", "Bad_Read", "ZQTST0000702"],
     0,
   );
   await seedLogEntries(
@@ -541,7 +568,7 @@ async function main() {
     "Camera 2 Log File",
     "GapTestE",
     "GAP-E",
-    ["R005C0000700", "R005C0000701", "R005C0000702"],
+    ["ZQTST0000700", "ZQTST0000701", "ZQTST0000702"],
     100,
   );
 
@@ -555,7 +582,7 @@ async function main() {
 
   const rowsEAfterTick1 = await fetchCorrelationsForFile(cam1FileE.id);
   assert(rowsEAfterTick1.length === 3, "sweep tick 1 correlates job E's file");
-  const filledE = rowsEAfterTick1.find((r) => (r as Record<string, unknown>).usr_child_code === "R005C0000701");
+  const filledE = rowsEAfterTick1.find((r) => (r as Record<string, unknown>).usr_child_code === "ZQTST0000701");
   assert(!!filledE, "the same sweep tick also gap-fills job E's file on its own, with no direct fill_log_correlation_gaps() call");
   assert((filledE as Record<string, unknown>).overridden_by === "gap-fill", "the sweep-driven fill is attributed to 'gap-fill'");
 
@@ -603,7 +630,7 @@ async function main() {
     "Camera 1 Log File",
     "GapTestF",
     "GAP-F",
-    ["Bad_Read", "R005C0000800", "R005C0000801"],
+    ["Bad_Read", "ZQTST0000800", "ZQTST0000801"],
     0,
   );
   await seedLogEntries(
@@ -611,7 +638,7 @@ async function main() {
     "Camera 2 Log File",
     "GapTestF",
     "GAP-F",
-    ["R005C0000800", "R005C0000801"],
+    ["ZQTST0000800", "ZQTST0000801"],
     100,
   );
 
